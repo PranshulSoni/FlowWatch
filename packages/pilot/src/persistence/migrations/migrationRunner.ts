@@ -1,0 +1,50 @@
+import type { Pool } from "pg"
+import type { Migration } from "./migrations.js"
+
+export async function runMigrations(pool: Pool, migrationsToRun: Migration[]) {
+    await createMigrationsTable(pool)
+
+    const appliedMigrations = await getAppliedMigrations(pool)
+
+    for (const migration of migrationsToRun) {
+        if (appliedMigrations.has(migration.name)) {
+            continue
+        }
+        await pool.query("BEGIN")
+        try {
+            await pool.query(migration.up)
+            await pool.query(
+                "INSERT INTO pilot_migrations (name) VALUES ($1)",
+                [migration.name]
+            )
+            await pool.query("COMMIT")
+        }
+        catch (error) {
+            await pool.query("ROLLBACK")
+            throw error
+        }
+    }
+}
+
+async function createMigrationsTable(pool: Pool) {
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS pilot_migrations (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        );
+    `)
+}
+async function getAppliedMigrations(pool: Pool): Promise<Set<string>> {
+    const result = await pool.query("SELECT name FROM pilot_migrations")
+
+    const migrationNames: string[] = []
+
+    for (const row of result.rows) {
+        migrationNames.push(row.name)
+    }
+
+    const appliedMigrations = new Set<string>(migrationNames)
+
+    return appliedMigrations
+}
