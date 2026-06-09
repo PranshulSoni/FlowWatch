@@ -39,6 +39,8 @@ docker-data/
 postgres-data/
 redis-data/
 elasticsearch-data/
+pilot_npm_project_details.md
+PROJECT_HANDOFF.md
 
 # Runtime temp files
 tmp/

@@ -14,7 +14,7 @@ export async function checkPostgresHealth(pool: Pool) {
     catch (error) {
         return {
             status: "error",
-            message: error instanceof Error ? error.message : "Unknown error" //If the error is a javascript object then use its message other it will return unknown error
+            message: error instanceof Error ? error.message : "Unknown error" 
         }
     }
 }
