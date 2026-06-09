@@ -1,5 +1,5 @@
 import type { Pool } from "pg"
-import { insertWorkflow } from "../../persistence/repositories/workflows/workflowRepository.js"
+import { insertWorkflow, insertWorkflowExecution } from "../../persistence/repositories/workflows/workflowRepository.js"
 import type { RegisterWorkflow, RegisteredWorkflow, TriggerWorkflow, WorkflowStep } from "./types.js"
 export interface WorkflowEngine {
     workflow: RegisterWorkflow
@@ -13,13 +13,6 @@ export function createWorkflowEngine(pool: Pool): WorkflowEngine {
     async function workflow(name: string, steps: WorkflowStep[]): Promise<void> {
         validateWorkflow(name, steps)
 
-        const registeredWorkflow: RegisteredWorkflow = {
-            name,
-            steps,
-        }
-
-        registry.set(name, registeredWorkflow)
-
         const workflowSteps = []
 
         for (const step of steps) {
@@ -29,26 +22,50 @@ export function createWorkflowEngine(pool: Pool): WorkflowEngine {
             })
         }
 
-        await insertWorkflow(pool, {
+        const insertedWorkflow = await insertWorkflow(pool, {
             name,
             steps: workflowSteps,
         })
+
+        const registeredWorkflow: RegisteredWorkflow = {
+            name,
+            steps,
+            dbWorkflow: insertedWorkflow.workflow,
+            dbSteps: insertedWorkflow.steps,
+        }
+
+        registry.set(name, registeredWorkflow)
     }
 
     function getWorkflow(name: string): RegisteredWorkflow | undefined {
         return registry.get(name)
     }
 
-    async function trigger(name: string, input?: unknown): Promise<void> {
+    async function trigger(name: string, input?: unknown): Promise<{ executionId: string }> {
         const workflow = getWorkflow(name)
 
         if (!workflow) {
             throw new Error(`workflow not found: ${name}`)
         }
 
+        const execution = await insertWorkflowExecution(pool, {
+            workflowId: workflow.dbWorkflow.id,
+            workflowName: workflow.dbWorkflow.name,
+            workflowVersion: workflow.dbWorkflow.version,
+            input,
+            steps: workflow.dbSteps.map((step) => ({
+                workflowStepId: step.id,
+                stepIndex: step.stepIndex,
+                stepName: step.name,
+                maxRetries: step.maxRetries,
+            })),
+        })
+
         for (const step of workflow.steps) {
             await step.run(input)
         }
+
+        return execution
     }
     return {
         workflow,

@@ -9,6 +9,18 @@ export interface WorkflowStep {
 export interface RegisteredWorkflow {
     name: string
     steps: WorkflowStep[]
+    dbWorkflow: {
+        id: string
+        name: string
+        version: number
+    }
+    dbSteps: {
+        id: string
+        workflowId: string
+        stepIndex: number
+        name: string
+        maxRetries: number
+    }[]
 }
 
 export type RegisterWorkflow = (
@@ -20,4 +32,4 @@ export type RegisterWorkflow = (
 export type TriggerWorkflow = (
     name: string,
     input?: unknown
-) => Promise<void>
+) => Promise<{ executionId: string }>
