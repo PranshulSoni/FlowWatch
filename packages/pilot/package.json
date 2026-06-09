@@ -1,0 +1,29 @@
+{
+  "name": "pilot",
+  "version": "0.0.0",
+  "description": "Embedded operations layer for Express backends.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@elastic/elasticsearch": "^9.4.2",
+    "bullmq": "^5.78.0",
+    "express": "^5.2.1",
+    "ioredis": "^5.11.1",
+    "pg": "^8.21.0",
+    "zod": "^4.4.3"
+  }
+}

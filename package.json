@@ -1,0 +1,37 @@
+{
+  "name": "pilot-monorepo",
+  "version": "0.0.0",
+  "description": "Monorepo for the Pilot npm package and dashboard.",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "npm run build --workspace pilot",
+    "test": "echo \"No tests configured yet\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PranshulSoni/Pilot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/PranshulSoni/Pilot/issues"
+  },
+  "homepage": "https://github.com/PranshulSoni/Pilot#readme",
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.2",
+    "@types/pg": "^8.20.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}
