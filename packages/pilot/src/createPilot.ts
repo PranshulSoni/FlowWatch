@@ -8,9 +8,13 @@ import { createElasticsearchClient } from "./search/elasticsearch/client.js"
 import { Redis } from "ioredis"
 import { runMigrations } from "./persistence/migrations/migrationRunner.js"
 import { migrations } from "./persistence/migrations/migrations.js"
+import { createWorkflowEngine } from "./engine/workflows/workflowEngine.js"
+import type { RegisterWorkflow, TriggerWorkflow } from "./engine/workflows/types.js"
 
 export interface Pilot {
     dashboard: Router
+    workflow: RegisterWorkflow
+    trigger: TriggerWorkflow
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
@@ -22,13 +26,17 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     }
     const redisClient = new Redis(normalizedConfig.redis.url)
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
+    const workflowEngine = createWorkflowEngine(postgresPool)
     const dashboard = createDashboardRouter({
         config: normalizedConfig,
         postgresPool,
         redisClient,
         elasticsearchClient,
     })
+
     return {
-        dashboard
+        dashboard,
+        workflow: workflowEngine.workflow,
+        trigger: workflowEngine.trigger
     }
 }
