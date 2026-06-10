@@ -50,6 +50,40 @@ export interface WorkflowExecutionRecord {
     executionId: string
 }
 
+export interface WorkflowExecutionRow {
+    id: string
+    workflow_id: string
+    workflow_name: string
+    workflow_version: number
+    status: string
+    input: unknown
+    output: unknown
+    error: unknown
+    created_at: Date
+    started_at: Date | null
+    completed_at: Date | null
+    failed_at: Date | null
+}
+
+export interface WorkflowStepExecutionRow {
+    id: string
+    execution_id: string
+    workflow_step_id: string | null
+    step_index: number
+    step_name: string
+    status: string
+    input: unknown
+    output: unknown
+    error: unknown
+    attempt_count: number
+    max_retries: number
+    created_at: Date
+    started_at: Date | null
+    completed_at: Date | null
+    failed_at: Date | null
+    next_retry_at: Date | null
+}
+
 export async function insertWorkflow(
     pool: Pool,
     input: CreateWorkflowDefinitionInput
@@ -201,5 +235,142 @@ export async function insertWorkflowExecution(
     catch (error) {
         await pool.query("ROLLBACK")
         throw error
+    }
+}
+
+
+export async function getWorkflowExecution(
+    pool: Pool,
+    executionId: string
+): Promise<WorkflowExecutionRow | undefined> {
+    const result = await pool.query<WorkflowExecutionRow>(
+        `SELECT * FROM pilot_workflow_executions WHERE id = $1`,
+        [executionId]
+    )
+
+    return result.rows[0]
+}
+
+export async function getWorkflowExecutionSteps(
+    pool: Pool,
+    executionId: string
+): Promise<WorkflowStepExecutionRow[]> {
+    const result = await pool.query<WorkflowStepExecutionRow>(
+        `
+        SELECT *
+        FROM pilot_workflow_step_executions
+        WHERE execution_id = $1
+        ORDER BY step_index ASC
+        `,
+        [executionId]
+    )
+
+    return result.rows
+}
+
+export async function markWorkflowExecutionRunning(pool: Pool, executionId: string): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_executions
+        SET status = 'running',
+            started_at = COALESCE(started_at, now())
+        WHERE id = $1
+        `,
+        [executionId]
+    )
+}
+
+export async function markWorkflowExecutionCompleted(
+    pool: Pool,
+    executionId: string,
+    output?: unknown
+): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_executions
+        SET status = 'completed',
+            output = $2,
+            completed_at = now()
+        WHERE id = $1
+        `,
+        [executionId, JSON.stringify(output)]
+    )
+}
+
+export async function markWorkflowExecutionFailed(
+    pool: Pool,
+    executionId: string,
+    error: unknown
+): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_executions
+        SET status = 'failed',
+            error = $2,
+            failed_at = now()
+        WHERE id = $1
+        `,
+        [executionId, JSON.stringify(serializeError(error))]
+    )
+}
+
+export async function markWorkflowStepRunning(pool: Pool, stepExecutionId: string): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_step_executions
+        SET status = 'running',
+            started_at = COALESCE(started_at, now())
+        WHERE id = $1
+        `,
+        [stepExecutionId]
+    )
+}
+
+export async function markWorkflowStepCompleted(
+    pool: Pool,
+    stepExecutionId: string,
+    output?: unknown
+): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_step_executions
+        SET status = 'completed',
+            output = $2,
+            completed_at = now()
+        WHERE id = $1
+        `,
+        [stepExecutionId, JSON.stringify(output)]
+    )
+}
+
+export async function markWorkflowStepFailed(
+    pool: Pool,
+    stepExecutionId: string,
+    error: unknown
+): Promise<void> {
+    await pool.query(
+        `
+        UPDATE pilot_workflow_step_executions
+        SET status = 'failed',
+            error = $2,
+            failed_at = now(),
+            attempt_count = attempt_count + 1
+        WHERE id = $1
+        `,
+        [stepExecutionId, JSON.stringify(serializeError(error))]
+    )
+}
+
+function serializeError(error: unknown) {
+    if (error instanceof Error) {
+        return {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+        }
+    }
+
+    return {
+        message: String(error),
     }
 }
