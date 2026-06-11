@@ -2,11 +2,7 @@ import type { FeatureFlagRow, FeatureFlagRuleRow } from "../../persistence/repos
 import type { FlagContext } from "./types.js"
 import { getRolloutBucket } from "./hashRollout.js"
 
-export function evaluateFlag(
-    flag: FeatureFlagRow | undefined,
-    rules: FeatureFlagRuleRow[],
-    context: FlagContext = {}
-): boolean {
+export function evaluateFlag(flag: FeatureFlagRow | undefined,rules: FeatureFlagRuleRow[],context: FlagContext = {}): boolean {
     if (!flag) {
         return false
     }
@@ -16,7 +12,7 @@ export function evaluateFlag(
     }
 
     for (const rule of rules) {
-        if (rule.enabled && ruleMatches(rule, context)) {
+        if (rule.enabled && ruleMatches(rule,context)) {
             return true
         }
     }
