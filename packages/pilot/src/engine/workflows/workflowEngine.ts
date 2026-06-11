@@ -1,5 +1,6 @@
 import type { Pool } from "pg"
 import { insertWorkflow, insertWorkflowExecution } from "../../persistence/repositories/workflows/workflowRepository.js"
+import { addWorkflowJobToQueue, type createWorkflowQueue } from "../background/queues/workflowQueue.js"
 import type { RegisterWorkflow, RegisteredWorkflow, TriggerWorkflow, WorkflowStep } from "./types.js"
 export interface WorkflowEngine {
     workflow: RegisterWorkflow
@@ -7,7 +8,13 @@ export interface WorkflowEngine {
     getWorkflow: (name: string) => RegisteredWorkflow | undefined
 }
 
-export function createWorkflowEngine(pool: Pool): WorkflowEngine {
+export interface WorkflowEngineOptions {
+    pool: Pool
+    workflowQueue: ReturnType<typeof createWorkflowQueue>
+}
+
+export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEngine {
+    const {pool,workflowQueue} = options
     const registry = new Map<string, RegisteredWorkflow>()
 
     async function workflow(name: string, steps: WorkflowStep[]): Promise<void> {
@@ -61,9 +68,7 @@ export function createWorkflowEngine(pool: Pool): WorkflowEngine {
             })),
         })
 
-        for (const step of workflow.steps) {
-            await step.run(input)
-        }
+        await addWorkflowJobToQueue(workflowQueue,execution.executionId)
 
         return execution
     }

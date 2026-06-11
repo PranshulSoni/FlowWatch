@@ -78,4 +78,47 @@ ON pilot_workflow_step_executions (execution_id, step_index);
 CREATE INDEX IF NOT EXISTS pilot_workflow_step_executions_status_retry_idx
 ON pilot_workflow_step_executions (status, next_retry_at);`
     }
+,
+    {
+        name: "002_create_feature_flag_tables",
+        up: `CREATE TABLE IF NOT EXISTS pilot_feature_flags (
+  id UUID PRIMARY KEY,
+  key TEXT NOT NULL UNIQUE,
+  description TEXT,
+  enabled BOOLEAN NOT NULL DEFAULT false,
+  rollout_percentage INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+
+  CONSTRAINT pilot_feature_flags_rollout_percentage_check
+  CHECK (rollout_percentage >= 0 AND rollout_percentage <= 100)
+);
+
+CREATE TABLE IF NOT EXISTS pilot_feature_flag_rules (
+  id UUID PRIMARY KEY,
+  flag_id UUID NOT NULL REFERENCES pilot_feature_flags(id) ON DELETE CASCADE,
+  attribute TEXT NOT NULL,
+  operator TEXT NOT NULL,
+  value JSONB NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS pilot_feature_flag_audit_logs (
+  id UUID PRIMARY KEY,
+  flag_id UUID REFERENCES pilot_feature_flags(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  before JSONB,
+  after JSONB,
+  changed_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS pilot_feature_flag_rules_flag_id_idx
+ON pilot_feature_flag_rules (flag_id);
+
+CREATE INDEX IF NOT EXISTS pilot_feature_flag_audit_logs_flag_id_created_at_idx
+ON pilot_feature_flag_audit_logs (flag_id, created_at DESC);`
+    }
 ];

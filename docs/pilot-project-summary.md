@@ -228,3 +228,33 @@ Build in vertical slices:
 ```
 
 Do not overbuild all engines first. Build one feature end-to-end at a time.
+
+## Strategic Differentiators
+
+Do not prioritize a visual drag-and-drop workflow builder for MVP. It is large frontend scope and not a strong differentiator anymore. Use simple dashboard views first.
+
+Possible future differentiator:
+
+```txt
+Event-driven workflow execution using PostgreSQL LISTEN/NOTIFY.
+```
+
+This could reduce latency compared with polling-based queues. Pilot is not serverless-first, so persistent DB connections are acceptable. Keep BullMQ for the current MVP and investigate LISTEN/NOTIFY later.
+
+Strongest long-term differentiator:
+
+```txt
+Diff-based workflow recovery and replay.
+```
+
+Future idea:
+
+```txt
+Detect workflow definition changes between versions.
+Show what changed.
+Select failed or affected executions.
+Replay them using new code.
+Skip steps that already completed correctly.
+```
+
+The current schema direction with workflow versions should preserve room for this.
