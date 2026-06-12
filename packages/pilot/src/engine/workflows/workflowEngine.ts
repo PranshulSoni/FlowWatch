@@ -1,6 +1,7 @@
 import type { Pool } from "pg"
 import { insertWorkflow, insertWorkflowExecution } from "../../persistence/repositories/workflows/workflowRepository.js"
 import { addWorkflowJobToQueue, type createWorkflowQueue } from "../background/queues/workflowQueue.js"
+import type { TraceEngine } from "../trace/traceEngine.js"
 import type { RegisterWorkflow, RegisteredWorkflow, TriggerWorkflow, WorkflowStep } from "./types.js"
 export interface WorkflowEngine {
     workflow: RegisterWorkflow
@@ -11,37 +12,43 @@ export interface WorkflowEngine {
 export interface WorkflowEngineOptions {
     pool: Pool
     workflowQueue: ReturnType<typeof createWorkflowQueue>
+    traceEngine: TraceEngine
 }
 
 export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEngine {
-    const {pool,workflowQueue} = options
+    const { pool, workflowQueue, traceEngine } = options
     const registry = new Map<string, RegisteredWorkflow>()
 
     async function workflow(name: string, steps: WorkflowStep[]): Promise<void> {
-        validateWorkflow(name, steps)
+        return traceEngine.trace("pilot.workflow.register", "workflow_step", async () => {
+            validateWorkflow(name, steps)
 
-        const workflowSteps = []
+            const workflowSteps = []
 
-        for (const step of steps) {
-            workflowSteps.push({
-                name: step.name,
-                maxRetries: step.retries ?? 0,
+            for (const step of steps) {
+                workflowSteps.push({
+                    name: step.name,
+                    maxRetries: step.retries ?? 0,
+                })
+            }
+
+            const insertedWorkflow = await insertWorkflow(pool, {
+                name,
+                steps: workflowSteps,
             })
-        }
 
-        const insertedWorkflow = await insertWorkflow(pool, {
-            name,
-            steps: workflowSteps,
+            const registeredWorkflow: RegisteredWorkflow = {
+                name,
+                steps,
+                dbWorkflow: insertedWorkflow.workflow,
+                dbSteps: insertedWorkflow.steps,
+            }
+
+            registry.set(name, registeredWorkflow)
+        }, {
+            workflowName: name,
+            stepCount: steps.length,
         })
-
-        const registeredWorkflow: RegisteredWorkflow = {
-            name,
-            steps,
-            dbWorkflow: insertedWorkflow.workflow,
-            dbSteps: insertedWorkflow.steps,
-        }
-
-        registry.set(name, registeredWorkflow)
     }
 
     function getWorkflow(name: string): RegisteredWorkflow | undefined {
@@ -49,28 +56,32 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
     }
 
     async function trigger(name: string, input?: unknown): Promise<{ executionId: string }> {
-        const workflow = getWorkflow(name)
+        return traceEngine.trace("pilot.workflow.trigger", "workflow_step", async () => {
+            const workflow = getWorkflow(name)
 
-        if (!workflow) {
-            throw new Error(`workflow not found: ${name}`)
-        }
+            if (!workflow) {
+                throw new Error(`workflow not found: ${name}`)
+            }
 
-        const execution = await insertWorkflowExecution(pool, {
-            workflowId: workflow.dbWorkflow.id,
-            workflowName: workflow.dbWorkflow.name,
-            workflowVersion: workflow.dbWorkflow.version,
-            input,
-            steps: workflow.dbSteps.map((step) => ({
-                workflowStepId: step.id,
-                stepIndex: step.stepIndex,
-                stepName: step.name,
-                maxRetries: step.maxRetries,
-            })),
+            const execution = await insertWorkflowExecution(pool, {
+                workflowId: workflow.dbWorkflow.id,
+                workflowName: workflow.dbWorkflow.name,
+                workflowVersion: workflow.dbWorkflow.version,
+                input,
+                steps: workflow.dbSteps.map((step) => ({
+                    workflowStepId: step.id,
+                    stepIndex: step.stepIndex,
+                    stepName: step.name,
+                    maxRetries: step.maxRetries,
+                })),
+            })
+
+            await addWorkflowJobToQueue(workflowQueue, execution.executionId)
+
+            return execution
+        }, {
+            workflowName: name,
         })
-
-        await addWorkflowJobToQueue(workflowQueue,execution.executionId)
-
-        return execution
     }
     return {
         workflow,

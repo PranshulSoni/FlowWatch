@@ -1,5 +1,5 @@
 import type { Pool } from "pg"
-import { createTraceSpan, finishTraceSpan, type TraceSpanType, type TraceStatus } from "../../persistence/repositories/errors/errorRepository.js"
+import { createTraceSpan, finishTraceSpan, type TraceSpanType, type TraceStatus } from "../../persistence/repositories/traces/traceRepository.js"
 import { getCurrentSpanId, getCurrentTraceId, runWithSpanContext } from "../../runtime/tracing/traceContext.js"
 
 export interface ActiveTraceSpan {

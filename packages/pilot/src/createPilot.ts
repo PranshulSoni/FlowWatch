@@ -16,7 +16,7 @@ import { createFlagEngine } from "./engine/flags/flagEngine.js"
 import type { EvaluateFlag } from "./engine/flags/types.js"
 import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
 import { createTraceEngine, type ActiveTraceSpan, type TraceFunction } from "./engine/trace/traceEngine.js"
-import type { TraceSpanType, TraceStatus } from "./persistence/repositories/errors/errorRepository.js"
+import type { TraceSpanType, TraceStatus } from "./persistence/repositories/traces/traceRepository.js"
 
 export interface Pilot {
     dashboard: Router
@@ -39,12 +39,13 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const redisClient = new Redis(normalizedConfig.redis.url)
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
     const workflowQueue= createWorkflowQueue(normalizedConfig.redis.url);
+    const traceEngine = createTraceEngine(postgresPool)
     const workflowEngine = createWorkflowEngine({
         pool: postgresPool,
         workflowQueue,
+        traceEngine,
     })
-    const flagEngine = createFlagEngine(postgresPool)
-    const traceEngine = createTraceEngine(postgresPool)
+    const flagEngine = createFlagEngine(postgresPool, traceEngine)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
 
     if (normalizedConfig.worker.enabled) {
@@ -52,6 +53,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
             redisUrl: normalizedConfig.redis.url,
             pool: postgresPool,
             getWorkflow: workflowEngine.getWorkflow,
+            traceEngine,
         })
     }
 

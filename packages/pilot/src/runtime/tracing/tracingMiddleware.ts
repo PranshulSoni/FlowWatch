@@ -1,6 +1,6 @@
 import type { NextFunction, Request, RequestHandler, Response } from "express"
 import type { Pool } from "pg"
-import { createRequestTrace, finishRequestTrace } from "../../persistence/repositories/errors/errorRepository.js"
+import { createRequestTrace, finishRequestTrace } from "../../persistence/repositories/traces/traceRepository.js"
 import { runWithTraceContext } from "./traceContext.js"
 
 export function createRequestTracingMiddleware(pool: Pool): RequestHandler {

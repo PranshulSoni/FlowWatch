@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto"
-import { Pool } from "pg"
-import { getCurrentTraceContext } from "../../../runtime/tracing/traceContext.js"
-import { createRequestTrace } from "../errors/errorRepository.js"
+import type { Pool } from "pg"
 export type FlagRuleOperator =
     | "equals"
     | "not_equals"

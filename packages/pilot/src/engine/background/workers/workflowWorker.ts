@@ -2,11 +2,13 @@ import { Worker } from "bullmq"
 import type { Pool } from "pg"
 import type { WorkflowJobData } from "../queues/workflowQueue.js"
 import type { RegisteredWorkflow } from "../../workflows/types.js"
+import type { TraceEngine } from "../../trace/traceEngine.js"
 
 export interface WorkflowWorkerOptions {
     redisUrl: string
     pool: Pool
     getWorkflow: (name: string) => RegisteredWorkflow | undefined
+    traceEngine: TraceEngine
 }
 import {getWorkflowExecution,getWorkflowExecutionSteps,markWorkflowExecutionCompleted,markWorkflowExecutionFailed,markWorkflowExecutionRunning,markWorkflowStepCompleted,markWorkflowStepFailed,markWorkflowStepRunning,} from "../../../persistence/repositories/workflows/workflowRepository.js"
 
@@ -65,7 +67,20 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
                 await markWorkflowStepRunning(worker.pool, stepExecution.id)
 
                 try {
-                    lastStepOutput = await registeredStep.run(result.input)
+                    lastStepOutput = await worker.traceEngine.trace(
+                        `pilot.workflow.step.${stepExecution.step_name}`,
+                        "workflow_step",
+                        async () => registeredStep.run(result.input),
+                        {
+                            workflowName: result.workflow_name,
+                            workflowVersion: result.workflow_version,
+                            executionId,
+                            stepExecutionId: stepExecution.id,
+                            stepName: stepExecution.step_name,
+                            stepIndex: stepExecution.step_index,
+                            attempt: attempt + 1,
+                        }
+                    )
                     await markWorkflowStepCompleted(worker.pool, stepExecution.id, lastStepOutput)
                     break
                 }
@@ -87,4 +102,3 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
         throw error
     }
 }
-
