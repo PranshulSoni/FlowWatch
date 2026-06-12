@@ -1,4 +1,3 @@
-import type { RequestHandler, Router } from "express"
 import { createDashboardRouter } from "./dashboard/routes/router.js"
 import type { PilotConfig } from "./types/index.js"
 import { validateConfig } from "./runtime/config/validationConfig.js"
@@ -17,7 +16,8 @@ import type { EvaluateFlag } from "./engine/flags/types.js"
 import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
 import { createTraceEngine, type ActiveTraceSpan, type TraceFunction } from "./engine/trace/traceEngine.js"
 import type { TraceSpanType, TraceStatus } from "./persistence/repositories/traces/traceRepository.js"
-
+import { createErrorHandler } from "./engine/errors/errorEngine.js"
+import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 export interface Pilot {
     dashboard: Router
     workflow: RegisterWorkflow
@@ -27,6 +27,7 @@ export interface Pilot {
     startSpan: (name: string, type: TraceSpanType, metadata?: unknown) => Promise<ActiveTraceSpan | undefined>
     endSpan: (span: ActiveTraceSpan | undefined, status: TraceStatus, metadata?: unknown) => Promise<void>
     trace: TraceFunction
+    errorHandler:ErrorRequestHandler
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
@@ -47,6 +48,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     })
     const flagEngine = createFlagEngine(postgresPool, traceEngine)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
+    const errorHandler=createErrorHandler(postgresPool);
 
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({
@@ -72,6 +74,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         requestTracer,
         startSpan: traceEngine.startSpan,
         endSpan: traceEngine.endSpan,
-        trace: traceEngine.trace,
+        trace:traceEngine.trace,
+        errorHandler
     }
 }
