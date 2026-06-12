@@ -1,4 +1,4 @@
-import type { Router } from "express"
+import type { RequestHandler, Router } from "express"
 import { createDashboardRouter } from "./dashboard/routes/router.js"
 import type { PilotConfig } from "./types/index.js"
 import { validateConfig } from "./runtime/config/validationConfig.js"
@@ -14,12 +14,14 @@ import { createWorkflowQueue } from "./engine/background/queues/workflowQueue.js
 import { createWorkflowWorker } from "./engine/background/workers/workflowWorker.js"
 import { createFlagEngine } from "./engine/flags/flagEngine.js"
 import type { EvaluateFlag } from "./engine/flags/types.js"
+import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
 
 export interface Pilot {
     dashboard: Router
     workflow: RegisterWorkflow
     trigger: TriggerWorkflow
     flag: EvaluateFlag
+    requestTracer: RequestHandler
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
@@ -37,6 +39,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         workflowQueue,
     })
     const flagEngine = createFlagEngine(postgresPool)
+    const requestTracer = createRequestTracingMiddleware(postgresPool)
 
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({
@@ -58,5 +61,6 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         workflow: workflowEngine.workflow,
         trigger: workflowEngine.trigger,
         flag: flagEngine.flag,
+        requestTracer,
     }
 }

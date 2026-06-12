@@ -16,6 +16,7 @@ import {
     updateFlag,
     updateFlagRule,
 } from "../../persistence/repositories/flags/flagRepository.js"
+import { createRequestTracingMiddleware } from "../../runtime/tracing/tracingMiddleware.js"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -28,8 +29,10 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
     router.use(json())
+    router.use(createRequestTracingMiddleware(postgresPool))
 
     router.get("/api/health", async (req, res) => {
+
         const postgres = await checkPostgresHealth(postgresPool)
         const redis = await checkRedisHealth(redisClient)
         const elasticsearch = await checkElasticsearchHealth(elasticsearchClient)

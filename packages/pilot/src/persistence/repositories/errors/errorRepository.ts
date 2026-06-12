@@ -128,10 +128,7 @@ export interface CreateErrorInput {
     occurredAt?: Date
 }
 
-export async function createRequestTrace(
-    pool: Pool,
-    input: CreateRequestTraceInput
-): Promise<RequestTraceRow> {
+export async function createRequestTrace(pool: Pool,input: CreateRequestTraceInput):Promise<RequestTraceRow> {
     const result = await pool.query<RequestTraceRow>(
         `
         INSERT INTO pilot_request_traces (
@@ -161,10 +158,7 @@ export async function createRequestTrace(
     return result.rows[0]
 }
 
-export async function finishRequestTrace(
-    pool: Pool,
-    input: FinishRequestTraceInput
-): Promise<RequestTraceRow | undefined> {
+export async function finishRequestTrace(pool: Pool,input: FinishRequestTraceInput):Promise<RequestTraceRow | undefined> {
     const result = await pool.query<RequestTraceRow>(
         `
         UPDATE pilot_request_traces

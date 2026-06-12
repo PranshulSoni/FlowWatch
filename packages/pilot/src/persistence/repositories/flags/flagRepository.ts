@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
-import type { Pool } from "pg"
-
+import { Pool } from "pg"
+import { getCurrentTraceContext } from "../../../runtime/tracing/traceContext.js"
+import { createRequestTrace } from "../errors/errorRepository.js"
 export type FlagRuleOperator =
     | "equals"
     | "not_equals"
@@ -77,7 +78,6 @@ export interface UpdateFlagRuleInput {
 
 export async function createFlag(pool: Pool, input: CreateFlagInput): Promise<FeatureFlagRow> {
     const flagId = randomUUID()
-
     await pool.query("BEGIN")
 
     try {
@@ -123,6 +123,7 @@ export async function createFlag(pool: Pool, input: CreateFlagInput): Promise<Fe
 }
 
 export async function listFlags(pool: Pool): Promise<FeatureFlagRow[]> {
+    
     const result = await pool.query<FeatureFlagRow>(
         `
         SELECT *
