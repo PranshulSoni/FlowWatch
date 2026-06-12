@@ -1,9 +1,11 @@
 export type WorkflowStepHandler = (input: unknown) => unknown | Promise<unknown>
+export type WorkflowStepInputResolver = (workflowInput: unknown) => unknown
 
 export interface WorkflowStep {
     name: string
     run: WorkflowStepHandler
     retries?: number
+    input?: unknown | WorkflowStepInputResolver
 }
 
 export interface RegisteredWorkflow {

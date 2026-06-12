@@ -10,7 +10,7 @@ export interface WorkflowWorkerOptions {
     getWorkflow: (name: string) => RegisteredWorkflow | undefined
     traceEngine: TraceEngine
 }
-import {getWorkflowExecution,getWorkflowExecutionSteps,markWorkflowExecutionCompleted,markWorkflowExecutionFailed,markWorkflowExecutionRunning,markWorkflowStepCompleted,markWorkflowStepFailed,markWorkflowStepRunning,} from "../../../persistence/repositories/workflows/workflowRepository.js"
+import { getWorkflowExecution, getWorkflowExecutionSteps, markWorkflowExecutionCompleted, markWorkflowExecutionFailed, markWorkflowExecutionRunning, markWorkflowStepCompleted, markWorkflowStepFailed, markWorkflowStepRunning, } from "../../../persistence/repositories/workflows/workflowRepository.js"
 
 export function createWorkflowWorker(options: WorkflowWorkerOptions): Worker<WorkflowJobData> {
     return new Worker<WorkflowJobData>(
@@ -52,8 +52,8 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
                 continue
             }
 
-            const registeredStep=workflowToExecute.steps.find((step)=>{
-                return step.name===stepExecution.step_name
+            const registeredStep = workflowToExecute.steps.find((step) => {
+                return step.name === stepExecution.step_name
             })
 
             if (!registeredStep) {
@@ -63,14 +63,14 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
             let attempt = stepExecution.attempt_count
             const maxAttempts = stepExecution.max_retries + 1
 
-            while(attempt<maxAttempts){
+            while (attempt < maxAttempts) {
                 await markWorkflowStepRunning(worker.pool, stepExecution.id)
 
                 try {
                     lastStepOutput = await worker.traceEngine.trace(
                         `pilot.workflow.step.${stepExecution.step_name}`,
                         "workflow_step",
-                        async () => registeredStep.run(result.input),
+                        async () => registeredStep.run(stepExecution.input),
                         {
                             workflowName: result.workflow_name,
                             workflowVersion: result.workflow_version,
@@ -84,21 +84,21 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
                     await markWorkflowStepCompleted(worker.pool, stepExecution.id, lastStepOutput)
                     break
                 }
-                catch(error){
-                    attempt+=1
-                    await markWorkflowStepFailed(worker.pool,stepExecution.id,error)
+                catch (error) {
+                    attempt += 1
+                    await markWorkflowStepFailed(worker.pool, stepExecution.id, error)
 
-                    if (attempt>=maxAttempts){
+                    if (attempt >= maxAttempts) {
                         throw error
                     }
                 }
             }
         }
 
-        await markWorkflowExecutionCompleted(worker.pool,executionId,lastStepOutput)
+        await markWorkflowExecutionCompleted(worker.pool, executionId, lastStepOutput)
     }
-    catch(error){
-        await markWorkflowExecutionFailed(worker.pool,executionId,error)
+    catch (error) {
+        await markWorkflowExecutionFailed(worker.pool, executionId, error)
         throw error
     }
 }

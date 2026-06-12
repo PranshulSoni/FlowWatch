@@ -45,7 +45,8 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
             }
 
             registry.set(name, registeredWorkflow)
-        }, {
+        }, 
+        {
             workflowName: name,
             stepCount: steps.length,
         })
@@ -63,17 +64,32 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
                 throw new Error(`workflow not found: ${name}`)
             }
 
+            const executionSteps = []
+            
+            for (const step of workflow.dbSteps) {
+                const registeredStep = workflow.steps.find((workflowStep) => {
+                    return workflowStep.name === step.name
+                })
+
+                if (!registeredStep) {
+                    throw new Error(`workflow step not found in registry: ${step.name}`)
+                }
+
+                executionSteps.push({
+                    workflowStepId: step.id,
+                    stepIndex: step.stepIndex,
+                    stepName: step.name,
+                    maxRetries: step.maxRetries,
+                    input: resolveStepInput(registeredStep, input),
+                })
+            }
+
             const execution = await insertWorkflowExecution(pool, {
                 workflowId: workflow.dbWorkflow.id,
                 workflowName: workflow.dbWorkflow.name,
                 workflowVersion: workflow.dbWorkflow.version,
                 input,
-                steps: workflow.dbSteps.map((step) => ({
-                    workflowStepId: step.id,
-                    stepIndex: step.stepIndex,
-                    stepName: step.name,
-                    maxRetries: step.maxRetries,
-                })),
+                steps: executionSteps,
             })
 
             await addWorkflowJobToQueue(workflowQueue, execution.executionId)
@@ -88,6 +104,18 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
         trigger,
         getWorkflow
     }
+}
+
+function resolveStepInput(step: WorkflowStep, workflowInput: unknown): unknown {
+    if (typeof step.input === "function") {
+        return step.input(workflowInput)
+    }
+
+    if (step.input !== undefined) {
+        return step.input
+    }
+
+    return workflowInput
 }
 
 function validateWorkflow(name: string, steps: WorkflowStep[]): void {

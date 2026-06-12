@@ -44,6 +44,7 @@ export interface WorkflowExecutionStepInput {
         stepIndex: number
         stepName: string
         maxRetries: number
+        input?: unknown
 }
 
 export interface WorkflowExecutionRecord {
@@ -84,9 +85,7 @@ export interface WorkflowStepExecutionRow {
     next_retry_at: Date | null
 }
 
-export async function insertWorkflow(
-    pool: Pool,
-    input: CreateWorkflowDefinitionInput
+export async function insertWorkflow(pool: Pool,input: CreateWorkflowDefinitionInput
 ): Promise<InsertWorkflowResult> {
     const workflowId = randomUUID()
     const version = input.version ?? 1
@@ -167,14 +166,10 @@ export async function insertWorkflow(
 }
 
 
-export async function insertWorkflowExecution(
-    pool: Pool,
-    input: WorkflowExecutionInput
-): Promise<WorkflowExecutionRecord> {
+export async function insertWorkflowExecution(pool: Pool,input: WorkflowExecutionInput): Promise<WorkflowExecutionRecord> {
     const executionId = randomUUID()
 
     await pool.query("BEGIN")
-
     try {
         await pool.query(
             `
@@ -221,7 +216,7 @@ export async function insertWorkflowExecution(
                     step.stepIndex,
                     step.stepName,
                     "pending",
-                    JSON.stringify(input.input),
+                    JSON.stringify(step.input),
                     0,
                     step.maxRetries
                 ]
