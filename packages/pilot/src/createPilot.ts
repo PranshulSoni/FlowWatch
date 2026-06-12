@@ -15,6 +15,8 @@ import { createWorkflowWorker } from "./engine/background/workers/workflowWorker
 import { createFlagEngine } from "./engine/flags/flagEngine.js"
 import type { EvaluateFlag } from "./engine/flags/types.js"
 import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
+import { createTraceEngine, type ActiveTraceSpan, type TraceFunction } from "./engine/trace/traceEngine.js"
+import type { TraceSpanType, TraceStatus } from "./persistence/repositories/errors/errorRepository.js"
 
 export interface Pilot {
     dashboard: Router
@@ -22,6 +24,9 @@ export interface Pilot {
     trigger: TriggerWorkflow
     flag: EvaluateFlag
     requestTracer: RequestHandler
+    startSpan: (name: string, type: TraceSpanType, metadata?: unknown) => Promise<ActiveTraceSpan | undefined>
+    endSpan: (span: ActiveTraceSpan | undefined, status: TraceStatus, metadata?: unknown) => Promise<void>
+    trace: TraceFunction
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
@@ -39,6 +44,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         workflowQueue,
     })
     const flagEngine = createFlagEngine(postgresPool)
+    const traceEngine = createTraceEngine(postgresPool)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
 
     if (normalizedConfig.worker.enabled) {
@@ -62,5 +68,8 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         trigger: workflowEngine.trigger,
         flag: flagEngine.flag,
         requestTracer,
+        startSpan: traceEngine.startSpan,
+        endSpan: traceEngine.endSpan,
+        trace: traceEngine.trace,
     }
 }

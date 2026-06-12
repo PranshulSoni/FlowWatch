@@ -5,10 +5,10 @@ export interface Migration {
 
 
 
-export const migrations:Migration[] = [
-    {
-        name: "001_create_workflow_tables",
-        up: `CREATE TABLE IF NOT EXISTS pilot_workflows (
+export const migrations: Migration[] = [
+  {
+    name: "001_create_workflow_tables",
+    up: `CREATE TABLE IF NOT EXISTS pilot_workflows (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
@@ -77,11 +77,11 @@ ON pilot_workflow_step_executions (execution_id, step_index);
 
 CREATE INDEX IF NOT EXISTS pilot_workflow_step_executions_status_retry_idx
 ON pilot_workflow_step_executions (status, next_retry_at);`
-    }
-,
-    {
-        name: "002_create_feature_flag_tables",
-        up: `CREATE TABLE IF NOT EXISTS pilot_feature_flags (
+  }
+  ,
+  {
+    name: "002_create_feature_flag_tables",
+    up: `CREATE TABLE IF NOT EXISTS pilot_feature_flags (
   id UUID PRIMARY KEY,
   key TEXT NOT NULL UNIQUE,
   description TEXT,
@@ -120,10 +120,10 @@ ON pilot_feature_flag_rules (flag_id);
 
 CREATE INDEX IF NOT EXISTS pilot_feature_flag_audit_logs_flag_id_created_at_idx
 ON pilot_feature_flag_audit_logs (flag_id, created_at DESC);`
-    },
-    {
-        name: "003_create_error_capture_tables",
-        up: `CREATE TABLE IF NOT EXISTS pilot_request_traces (
+  },
+  {
+    name: "003_create_error_capture_tables",
+    up: `CREATE TABLE IF NOT EXISTS pilot_request_traces (
   id UUID PRIMARY KEY,
   method TEXT NOT NULL,
   path TEXT NOT NULL,
@@ -195,5 +195,5 @@ ON pilot_errors (occurred_at DESC);
 
 CREATE INDEX IF NOT EXISTS pilot_errors_fingerprint_idx
 ON pilot_errors (fingerprint);`
-    }
+  }
 ];

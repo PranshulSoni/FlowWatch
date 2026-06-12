@@ -212,10 +212,7 @@ export async function createTraceSpan(
     return result.rows[0]
 }
 
-export async function finishTraceSpan(
-    pool: Pool,
-    input: FinishTraceSpanInput
-): Promise<TraceSpanRow | undefined> {
+export async function finishTraceSpan(pool: Pool,input: FinishTraceSpanInput):Promise<TraceSpanRow | undefined> {
     const result = await pool.query<TraceSpanRow>(
         `
         UPDATE pilot_trace_spans
