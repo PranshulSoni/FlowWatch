@@ -1,6 +1,8 @@
+import type { Client } from "@elastic/elasticsearch"
 import type { Pool } from "pg"
 import { createTraceSpan, finishTraceSpan, type TraceSpanType, type TraceStatus } from "../../persistence/repositories/traces/traceRepository.js"
 import { getCurrentSpanId, getCurrentTraceId, runWithSpanContext } from "../../runtime/tracing/traceContext.js"
+import { indexTraceSpan } from "../../search/elasticsearch/indexer.js"
 
 export interface ActiveTraceSpan {
     id: string
@@ -30,7 +32,14 @@ export interface TraceEngine {
     trace: TraceFunction
 }
 
-export function createTraceEngine(pool: Pool): TraceEngine {
+export interface TraceEngineOptions {
+    pool: Pool
+    elasticsearchClient: Client
+}
+
+export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
+    const { pool, elasticsearchClient } = options
+
     async function trace<T>(
         name: string,
         type: TraceSpanType,
@@ -41,18 +50,18 @@ export function createTraceEngine(pool: Pool): TraceEngine {
 
         try {
             const result = await runInsideSpan(span, callback)
-            await endSpan(pool, span, "ok")
+            await endSpan(pool, elasticsearchClient, span, "ok")
             return result
         }
         catch (error) {
-            await endSpan(pool, span, "error")
+            await endSpan(pool, elasticsearchClient, span, "error")
             throw error
         }
     }
 
     return {
         startSpan: (name, type, metadata) => startSpan(pool, name, type, { metadata }),
-        endSpan: (span, status, metadata) => endSpan(pool, span, status, { metadata }),
+        endSpan: (span, status, metadata) => endSpan(pool, elasticsearchClient, span, status, { metadata }),
         trace,
     }
 }
@@ -83,22 +92,28 @@ export async function startSpan(
     }
 }
 
-export async function endSpan(
-    pool: Pool,
-    span: ActiveTraceSpan | undefined,
-    status: TraceStatus,
-    options: EndSpanOptions = {}
-): Promise<void> {
+export async function endSpan(pool: Pool,elasticsearchClient: Client,span: ActiveTraceSpan | undefined,status: TraceStatus,options: EndSpanOptions = {}): Promise<void> {
     if (!span) {
         return
     }
 
-    await finishTraceSpan(pool, {
+    const finishedSpan = await finishTraceSpan(pool, {
         spanId: span.id,
         status,
         durationMs: Date.now() - span.startedAt,
         metadata: options.metadata,
     })
+
+    if (!finishedSpan) {
+        return
+    }
+
+    try {
+        await indexTraceSpan(elasticsearchClient, finishedSpan)
+    }
+    catch (traceIndexingFailure) {
+        console.error("[Pilot] Failed to index trace span", traceIndexingFailure)
+    }
 }
 
 export function runInsideSpan<T>(

@@ -40,7 +40,10 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const redisClient = new Redis(normalizedConfig.redis.url)
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
     const workflowQueue= createWorkflowQueue(normalizedConfig.redis.url);
-    const traceEngine = createTraceEngine(postgresPool)
+    const traceEngine = createTraceEngine({
+        pool: postgresPool,
+        elasticsearchClient,
+    })
     const workflowEngine = createWorkflowEngine({
         pool: postgresPool,
         workflowQueue,
@@ -48,7 +51,10 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     })
     const flagEngine = createFlagEngine(postgresPool, traceEngine)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
-    const errorHandler=createErrorHandler(postgresPool);
+    const errorHandler = createErrorHandler({
+        pool: postgresPool,
+        elasticsearchClient,
+    })
 
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({

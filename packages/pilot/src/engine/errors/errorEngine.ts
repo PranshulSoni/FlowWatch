@@ -1,14 +1,24 @@
 import type { ErrorRequestHandler } from "express"
 import type { Pool } from "pg"
+import type { Client } from "@elastic/elasticsearch"
 import { getCurrentTraceId, getCurrentSpanId } from "../../runtime/tracing/traceContext.js"
 import { createError, type ErrorCategory } from "../../persistence/repositories/errors/errorRepository.js"
+import { indexError } from "../../search/elasticsearch/indexer.js"
+
 export interface NormalizedError {
     name: string
     message: string
     stack?: string
 }
 
-export function createErrorHandler(pool: Pool): ErrorRequestHandler {
+export interface ErrorHandlerOptions {
+    pool: Pool
+    elasticsearchClient: Client
+}
+
+export function createErrorHandler(options: ErrorHandlerOptions): ErrorRequestHandler {
+    const { pool, elasticsearchClient } = options
+
     return async function pilotErrorHandler(error, req, res, next) {
         const normalizedError = normalizeError(error)
         const statusCode = getStatusCode(error, res.statusCode)
@@ -16,7 +26,7 @@ export function createErrorHandler(pool: Pool): ErrorRequestHandler {
         const spanId = getCurrentSpanId()
         const category = getErrorCategory(statusCode);
         try {
-            await createError(pool, {
+            const storedError = await createError(pool, {
                 traceId,
                 spanId,
                 source: "http",
@@ -31,6 +41,13 @@ export function createErrorHandler(pool: Pool): ErrorRequestHandler {
                     path: req.originalUrl || req.path,
                 },
             })
+
+            try {
+                await indexError(elasticsearchClient, storedError)
+            }
+            catch (errorIndexingFailure) {
+                console.error("Failed to index error", errorIndexingFailure)
+            }
         }
         catch (errorCaptureFailure) {
             console.error("Failed to capture error", errorCaptureFailure)
