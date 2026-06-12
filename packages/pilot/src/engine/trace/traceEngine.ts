@@ -40,12 +40,7 @@ export interface TraceEngineOptions {
 export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
     const { pool, elasticsearchClient } = options
 
-    async function trace<T>(
-        name: string,
-        type: TraceSpanType,
-        callback: TraceCallback<T>,
-        metadata?: unknown
-    ): Promise<T> {
+    async function trace<T>(name: string,type: TraceSpanType,callback: TraceCallback<T>,metadata?: unknown): Promise<T> {
         const span = await startSpan(pool, name, type, { metadata })
 
         try {
@@ -66,12 +61,7 @@ export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
     }
 }
 
-export async function startSpan(
-    pool: Pool,
-    name: string,
-    type: TraceSpanType,
-    options: StartSpanOptions = {}
-): Promise<ActiveTraceSpan | undefined> {
+export async function startSpan(pool: Pool,name: string,type: TraceSpanType,options: StartSpanOptions = {}): Promise<ActiveTraceSpan | undefined> {
     const traceId = getCurrentTraceId()
 
     if (!traceId) {
@@ -116,9 +106,7 @@ export async function endSpan(pool: Pool,elasticsearchClient: Client,span: Activ
     }
 }
 
-export function runInsideSpan<T>(
-    span: ActiveTraceSpan | undefined,
-    callback: TraceCallback<T>
+export function runInsideSpan<T>(span: ActiveTraceSpan | undefined,callback: TraceCallback<T>
 ): T | Promise<T> {
     if (!span) {
         return callback()
