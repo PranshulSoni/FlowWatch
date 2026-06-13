@@ -18,6 +18,8 @@ import { createTraceEngine, type ActiveTraceSpan, type TraceFunction } from "./e
 import type { TraceSpanType, TraceStatus } from "./persistence/repositories/traces/traceRepository.js"
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
+import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
+
 export interface Pilot {
     dashboard: Router
     workflow: RegisterWorkflow
@@ -58,6 +60,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const capturePilotError: CaptureErrorFunction = (error, options) => {
         return captureError(errorEngineOptions, error, options)
     }
+    await createMissingMappings(elasticsearchClient)
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({
             redisUrl: normalizedConfig.redis.url,
