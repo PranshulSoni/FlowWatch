@@ -1,5 +1,7 @@
+import { fileURLToPath } from "node:url"
+import { dirname, join } from "node:path"
 import type { Client } from "@elastic/elasticsearch"
-import { json, Router } from "express"
+import express, { json, Router } from "express"
 import type { Redis } from "ioredis"
 import type { Pool } from "pg"
 import type { NormalizedPilotConfig } from "../../types/index.js"
@@ -34,6 +36,16 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const { config, postgresPool, redisClient, elasticsearchClient } = options
     router.use(json())
     router.use(createRequestTracingMiddleware(postgresPool))
+
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    const staticPath = join(__dirname, "../static")
+
+    router.use(express.static(staticPath))
+
+    router.get("/", (req, res) => {
+        res.sendFile(join(staticPath, "index.html"))
+    })
 
     router.get("/api/health", async (req, res) => {
 
@@ -208,5 +220,42 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         res.json({ auditLogs })
     })
 
+    router.get("/api/workflows", async (req, res) => {
+        try {
+            const result = await postgresPool.query("SELECT * FROM pilot_workflows ORDER BY name ASC")
+            res.json({ workflows: result.rows })
+        } catch (error: any) {
+            res.status(500).json({ error: error.message })
+        }
+    })
+
+    router.get("/api/executions", async (req, res) => {
+        try {
+            const result = await postgresPool.query("SELECT * FROM pilot_workflow_executions ORDER BY created_at DESC LIMIT 50")
+            res.json({ executions: result.rows })
+        } catch (error: any) {
+            res.status(500).json({ error: error.message })
+        }
+    })
+
+    router.get("/api/traces", async (req, res) => {
+        try {
+            const result = await postgresPool.query("SELECT * FROM pilot_request_traces ORDER BY started_at DESC LIMIT 50")
+            res.json({ traces: result.rows })
+        } catch (error: any) {
+            res.status(500).json({ error: error.message })
+        }
+    })
+
+    router.get("/api/errors", async (req, res) => {
+        try {
+            const result = await postgresPool.query("SELECT * FROM pilot_errors ORDER BY occurred_at DESC LIMIT 50")
+            res.json({ errors: result.rows })
+        } catch (error: any) {
+            res.status(500).json({ error: error.message })
+        }
+    })
+
     return router
 }
+

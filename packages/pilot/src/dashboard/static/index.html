@@ -1,0 +1,2187 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Pilot Console</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: "#0A0B10",      // Obsidian dark
+                        surface: "#111420",         // Solid flat container
+                        "surface-high": "#161A2B", // High contrast surface
+                        "surface-highest": "#21273F", // Active/hover surface
+                        border: "#1E2337", // Sharp thin border line
+                        "border-hover": "#2B324E",
+                        primary: "#3B82F6",         // Dev blue
+                        success: "#10B981",         // Emerald green
+                        warning: "#F59E0B",         // Warning amber
+                        danger: "#EF4444"           // Crimson red
+                    },
+                    fontFamily: {
+                        sans: ["Inter", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #0A0B10;
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at 50% -20%, rgba(59, 130, 246, 0.04), transparent 50%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #1E2337;
+            border-radius: 2px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #2B324E;
+        }
+        .glass-panel {
+            background: #111420;
+            border: 1px solid #1E2337;
+        }
+        .glass-panel-high {
+            background: #161A2B;
+            border: 1px solid #2B324E;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin-animation {
+            animation: rotate 0.8s linear infinite;
+        }
+        /* CMD-K Palette styling */
+        .cmd-item-selected {
+            background-color: rgba(59, 130, 246, 0.12);
+            color: #FFFFFF !important;
+            border-left: 2px solid #3B82F6;
+        }
+        /* SVG Trace Graph styling */
+        .trace-edge {
+            stroke: rgba(255, 255, 255, 0.08);
+            stroke-width: 1.5;
+            fill: none;
+            stroke-dasharray: 4 2;
+        }
+        .trace-edge-active {
+            stroke: #3B82F6;
+            stroke-dasharray: none;
+            stroke-width: 2;
+        }
+        .node-card {
+            transition: all 0.15s ease-in-out;
+            cursor: pointer;
+        }
+        .node-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .node-card-active {
+            border-color: #3B82F6 !important;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+        }
+        .node-type-db { border-left: 3px solid #10B981; }
+        .node-type-http { border-left: 3px solid #3B82F6; }
+        .node-type-workflow { border-left: 3px solid #F59E0B; }
+        .node-type-step { border-left: 3px solid #EF4444; }
+        .node-type-flag { border-left: 3px solid #8B5CF6; }
+    </style>
+</head>
+<body class="text-[#D1D5DB] min-h-screen flex overflow-hidden text-[11px]">
+
+    <!-- Sidebar Navigation -->
+    <aside class="w-[220px] bg-[#0E1017] border-r border-border flex flex-col shrink-0 select-none z-20">
+        <div class="p-5 border-b border-border">
+            <div class="flex items-center gap-3">
+                <div class="w-7 h-7 rounded bg-gradient-to-br from-primary to-blue-600 flex items-center justify-center text-white font-extrabold text-xs shadow-lg">
+                    P
+                </div>
+                <div>
+                    <h1 class="font-bold text-sm leading-none tracking-tight text-white flex items-center gap-1.5 font-mono">
+                        PILOT <span class="text-[9px] bg-border/40 px-1.5 py-0.5 rounded font-mono text-gray-400 font-normal">v0.1.0</span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+
+        <nav class="flex-1 py-4 px-2.5 overflow-y-auto space-y-0.5 custom-scrollbar">
+            <button onclick="switchTab('overview')" id="tab-overview" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-primary bg-primary/10 border-l border-primary transition-all duration-100">
+                <span class="material-symbols-outlined text-base">dashboard</span>
+                <span>Overview</span>
+            </button>
+            <button onclick="switchTab('workflows')" id="tab-workflows" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">account_tree</span>
+                <span>Workflows</span>
+            </button>
+            <button onclick="switchTab('executions')" id="tab-executions" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">play_circle</span>
+                <span>Executions</span>
+            </button>
+            <button onclick="switchTab('flags')" id="tab-flags" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">flag</span>
+                <span>Feature Flags</span>
+            </button>
+            <button onclick="switchTab('errors')" id="tab-errors" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">error</span>
+                <span>Errors</span>
+            </button>
+            <button onclick="switchTab('traces')" id="tab-traces" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">analytics</span>
+                <span>Traces</span>
+            </button>
+            <button onclick="switchTab('health')" id="tab-health" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">monitor_heart</span>
+                <span>Health</span>
+            </button>
+            <button onclick="switchTab('settings')" id="tab-settings" class="w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100">
+                <span class="material-symbols-outlined text-base">settings</span>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- Sidebar Connected Info -->
+        <div class="p-3 border-t border-border bg-[#0B0C12] flex flex-col gap-1.5">
+            <div class="flex items-center justify-between text-[9px] font-mono">
+                <span class="text-gray-500">SERVICE</span>
+                <span class="text-white font-semibold" id="footer-service-name">loading...</span>
+            </div>
+            <div class="flex items-center justify-between text-[9px] font-mono">
+                <span class="text-gray-500">DATABASE</span>
+                <div class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-success"></span>
+                    <span class="text-success font-medium" id="db-status-text">CONNECTED</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Content Area -->
+    <div class="flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Header -->
+        <header class="h-14 bg-[#111420] border-b border-border flex justify-between items-center px-5 shrink-0 z-10">
+            <div class="flex items-center gap-3">
+                <span class="font-bold text-white text-xs tracking-tight" id="header-service-title">checkout-api</span>
+                <div class="h-4 w-px bg-border"></div>
+                <div class="relative flex items-center">
+                    <select id="select-env" onchange="handleEnvChange(this.value)" class="appearance-none bg-[#0A0C10] border border-blue-500/20 text-[9.5px] font-mono uppercase text-primary font-bold pl-2 pr-6 py-0.5 rounded focus:outline-none cursor-pointer select-none">
+                        <option value="production">production</option>
+                        <option value="staging">staging</option>
+                        <option value="development">development</option>
+                    </select>
+                    <span class="material-symbols-outlined text-[11px] text-primary absolute right-1.5 pointer-events-none select-none">expand_more</span>
+                </div>
+            </div>
+
+            <!-- Command Palette Style Search Button -->
+            <button onclick="openCommandPalette()" class="h-8 w-[340px] px-3 rounded bg-background border border-border hover:border-primary/40 text-left flex justify-between items-center text-gray-500 hover:text-gray-400 transition-all font-mono text-xs select-none">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-base">search</span>
+                    <span>Search anything...</span>
+                </div>
+                <div class="text-[9px] bg-surface-high px-1.5 py-0.5 rounded border border-border text-gray-500 font-mono flex items-center gap-0.5">
+                    <span>Ctrl</span><span>K</span>
+                </div>
+            </button>
+
+            <div class="flex items-center gap-2.5">
+                <div class="h-8 px-2.5 rounded bg-background border border-border flex items-center text-xs text-gray-400 select-none font-mono">
+                    <span class="material-symbols-outlined text-sm mr-1 text-gray-500">schedule</span>
+                    <span>1h</span>
+                </div>
+                <button onclick="reloadData()" id="btn-refresh" class="h-8 w-8 rounded bg-background border border-border hover:border-gray-500 text-gray-400 hover:text-white flex items-center justify-center transition-all">
+                    <span class="material-symbols-outlined text-base" id="icon-refresh">refresh</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Frame -->
+        <main class="flex-1 overflow-y-auto p-5 custom-scrollbar bg-background">
+            <div class="max-w-7xl mx-auto space-y-5">
+
+                <!-- 1. OVERVIEW VIEW -->
+                <section id="view-overview" class="space-y-5 animate-fade-in">
+                    <!-- Metrics grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Workflows</span>
+                            <span class="font-mono text-xl font-bold text-primary" id="metric-total-workflows">--</span>
+                        </div>
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Running</span>
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-warning pulse-fast"></span>
+                                <span class="font-mono text-xl font-bold text-white" id="metric-running-executions">--</span>
+                            </div>
+                        </div>
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Failed</span>
+                            <span class="font-mono text-xl font-bold text-danger" id="metric-failed-executions">--</span>
+                        </div>
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Exceptions</span>
+                            <span class="font-mono text-xl font-bold text-danger" id="metric-recent-errors">--</span>
+                        </div>
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Active Flags</span>
+                            <span class="font-mono text-xl font-bold text-white" id="metric-active-flags">--</span>
+                        </div>
+                        
+                        <!-- Latency metric card with clean embedded mini trend sparkline -->
+                        <div class="glass-panel rounded-md p-4 flex flex-col justify-between h-[86px] hover:border-border-hover transition-colors">
+                            <div class="flex justify-between items-start">
+                                <span class="text-[9px] font-mono uppercase tracking-wider text-gray-500 font-bold">Avg Latency</span>
+                                <!-- Mini sparkline trend graph -->
+                                <svg class="w-12 h-4 text-success" fill="none" viewBox="0 0 40 10">
+                                    <path d="M0,8 Q10,1 20,6 T40,2" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+                                </svg>
+                            </div>
+                            <span class="font-mono text-xl font-bold text-success" id="metric-avg-latency">--</span>
+                        </div>
+                    </div>
+
+                    <!-- Left: Executions & Errors, Right: Health -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                        <div class="lg:col-span-2 space-y-5">
+                            
+                            <!-- Executions -->
+                            <div class="glass-panel rounded-md overflow-hidden">
+                                <div class="px-4 py-3.5 border-b border-border flex justify-between items-center bg-[#0E1013]/60">
+                                    <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Recent Executions</h3>
+                                    <button onclick="switchTab('executions')" class="text-[10px] text-primary hover:underline font-semibold font-mono">View all</button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-[#050608]/40 border-b border-border font-mono text-[9px] text-gray-500">
+                                                <th class="px-4 py-2.5 font-normal">EXECUTION ID</th>
+                                                <th class="px-4 py-2.5 font-normal">WORKFLOW</th>
+                                                <th class="px-4 py-2.5 font-normal">STATUS</th>
+                                                <th class="px-4 py-2.5 font-normal text-right">DURATION</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="overview-executions-tbody" class="divide-y divide-border/60 font-mono">
+                                            <!-- Dynamic Rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Errors -->
+                            <div class="glass-panel rounded-md overflow-hidden">
+                                <div class="px-4 py-3.5 border-b border-border flex justify-between items-center bg-[#0E1013]/60">
+                                    <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Exceptions</h3>
+                                    <button onclick="switchTab('errors')" class="text-[10px] text-primary hover:underline font-semibold font-mono">View logs</button>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr class="bg-[#050608]/40 border-b border-border font-mono text-[9px] text-gray-500">
+                                                <th class="px-4 py-2.5 font-normal">LEVEL</th>
+                                                <th class="px-4 py-2.5 font-normal">EXCEPTION MESSAGE</th>
+                                                <th class="px-4 py-2.5 font-normal">SOURCE</th>
+                                                <th class="px-4 py-2.5 font-normal text-right">TIME</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="overview-errors-tbody" class="divide-y divide-border/60 font-mono">
+                                            <!-- Dynamic Rows -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Health Pane -->
+                        <div class="space-y-5">
+                            <div class="glass-panel rounded-md overflow-hidden">
+                                <div class="px-4 py-3.5 border-b border-border bg-[#0E1013]/60">
+                                    <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Infrastructure</h3>
+                                </div>
+                                <div class="p-2 space-y-0.5" id="overview-health-list">
+                                    <!-- Postgres, Redis, Elasticsearch status -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 2. WORKFLOWS VIEW -->
+                <section id="view-workflows" class="space-y-5 hidden animate-fade-in">
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3.5 border-b border-border bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Workflow Definitions</h3>
+                        </div>
+                        <div class="overflow-x-auto font-mono">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/40 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-4 py-2.5 font-normal">WORKFLOW NAME</th>
+                                        <th class="px-4 py-2.5 font-normal">VERSION</th>
+                                        <th class="px-4 py-2.5 font-normal">STEPS</th>
+                                        <th class="px-4 py-2.5 font-normal">REGISTERED AT</th>
+                                        <th class="px-4 py-2.5 font-normal text-right">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="workflows-tbody" class="divide-y divide-border/60">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 3. EXECUTIONS VIEW -->
+                <section id="view-executions" class="space-y-5 hidden animate-fade-in">
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3 border-b border-border flex justify-between items-center bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Workflow Executions</h3>
+                            <select id="select-execution-filter" onchange="filterExecutions()" class="bg-[#050608] border border-border rounded-md px-2 py-0.5 text-xs text-white focus:ring-0 focus:border-primary/50 text-[10.5px]">
+                                <option value="ALL">All Statuses</option>
+                                <option value="success">Success</option>
+                                <option value="running">Running</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto font-mono">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/40 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-4 py-2.5 font-normal">EXECUTION ID</th>
+                                        <th class="px-4 py-2.5 font-normal">WORKFLOW</th>
+                                        <th class="px-4 py-2.5 font-normal">VERSION</th>
+                                        <th class="px-4 py-2.5 font-normal">STATUS</th>
+                                        <th class="px-4 py-2.5 font-normal">STARTED AT</th>
+                                        <th class="px-4 py-2.5 font-normal text-right">DURATION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="executions-tbody" class="divide-y divide-border/60">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 4. FEATURE FLAGS VIEW -->
+                <section id="view-flags" class="space-y-5 hidden animate-fade-in">
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3.5 border-b border-border flex justify-between items-center bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Feature Flags</h3>
+                            <button onclick="openCreateFlagModal()" class="bg-primary hover:bg-blue-600 text-white font-semibold text-xs px-2.5 py-1.5 rounded flex items-center gap-1 transition-colors">
+                                <span class="material-symbols-outlined text-sm font-bold">add</span>
+                                Create Flag
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto font-mono">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/40 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-4 py-2.5 font-normal">FLAG KEY</th>
+                                        <th class="px-4 py-2.5 font-normal">DESCRIPTION</th>
+                                        <th class="px-4 py-2.5 font-normal">ROLLOUT</th>
+                                        <th class="px-4 py-2.5 font-normal">ACTIVE STATE</th>
+                                        <th class="px-4 py-2.5 font-normal text-right">ACTIONS</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="flags-tbody" class="divide-y divide-border/60">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 5. ERRORS VIEW -->
+                <section id="view-errors" class="space-y-5 hidden animate-fade-in">
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3 border-b border-border flex justify-between items-center bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Exception Logs</h3>
+                            <select id="select-error-filter" onchange="filterErrors()" class="bg-[#050608] border border-border rounded-md px-2 py-0.5 text-xs text-white focus:ring-0 focus:border-primary/50 text-[10.5px]">
+                                <option value="ALL">All Levels</option>
+                                <option value="error">Error</option>
+                                <option value="warning">Warning</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto font-mono">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/40 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-4 py-2.5 font-normal">LEVEL</th>
+                                        <th class="px-4 py-2.5 font-normal">EXCEPTION MESSAGE</th>
+                                        <th class="px-4 py-2.5 font-normal">SOURCE</th>
+                                        <th class="px-4 py-2.5 font-normal text-right">OCCURRED AT</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="errors-tbody" class="divide-y divide-border/60">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 6. TRACES VIEW -->
+                <section id="view-traces" class="space-y-5 hidden animate-fade-in">
+                    
+                    <!-- Trace Detail Visualizer -->
+                    <div class="glass-panel rounded-md p-4 space-y-4 flex flex-col">
+                        <div class="flex justify-between items-center">
+                            <div class="space-y-0.5">
+                                <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider" id="trace-graph-title">
+                                    Trace Details
+                                </h3>
+                                <span class="text-[9px] font-mono text-gray-500 block" id="trace-graph-subtitle">Select a trace below</span>
+                            </div>
+                            
+                            <!-- Toggle layout buttons -->
+                            <div class="flex items-center gap-1 bg-[#050608] border border-border rounded p-0.5" id="trace-view-toggles" style="display: none;">
+                                <button onclick="setTraceView('waterfall')" id="btn-trace-waterfall" class="px-2 py-1 rounded text-[10px] font-bold font-mono bg-primary/10 text-primary transition-all">
+                                    Waterfall
+                                </button>
+                                <button onclick="setTraceView('nodegraph')" id="btn-trace-nodegraph" class="px-2 py-1 rounded text-[10px] font-bold font-mono text-gray-400 hover:text-white transition-all">
+                                    Trace Map (Nodes)
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Waterfall container -->
+                        <div class="bg-[#050608] border border-border rounded p-4 font-mono text-[10.5px] space-y-2.5 custom-scrollbar max-h-[250px] overflow-y-auto" id="trace-waterfall-container">
+                            <div class="text-center text-gray-500 py-10 font-sans">Select a trace below to visualize execution path.</div>
+                        </div>
+
+                        <!-- Node Graph Container (hidden by default) -->
+                        <div class="bg-[#050608] border border-border rounded p-4 relative hidden custom-scrollbar overflow-auto min-h-[300px] max-h-[400px]" id="trace-nodegraph-container">
+                            <!-- SVG visualization rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Traces List Table -->
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3.5 border-b border-border bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Request Traces</h3>
+                        </div>
+                        <div class="overflow-x-auto font-mono">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/40 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-4 py-2.5 font-normal">TRACE ID</th>
+                                        <th class="px-4 py-2.5 font-normal">METHOD</th>
+                                        <th class="px-4 py-2.5 font-normal">PATH</th>
+                                        <th class="px-4 py-2.5 font-normal">STATUS</th>
+                                        <th class="px-4 py-2.5 font-normal">CLIENT IP</th>
+                                        <th class="px-4 py-2.5 font-normal text-right">LATENCY</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="traces-tbody" class="divide-y divide-border/60">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+
+                <!-- 7. HEALTH VIEW -->
+                <section id="view-health" class="space-y-5 hidden animate-fade-in">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5" id="health-cards-container">
+                        <!-- Postgres, Redis, Elasticsearch status gauges -->
+                    </div>
+                </section>
+
+
+                <!-- 8. SETTINGS VIEW -->
+                <section id="view-settings" class="space-y-5 hidden animate-fade-in">
+                    <div class="glass-panel rounded-md overflow-hidden">
+                        <div class="px-4 py-3.5 border-b border-border bg-[#0E1013]/60">
+                            <h3 class="font-bold text-white text-xs font-mono uppercase tracking-wider">Environment Configuration</h3>
+                        </div>
+                        <div class="p-5">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Service Name</span>
+                                    <span class="text-white font-medium" id="settings-service-name">loading...</span>
+                                </div>
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Environment</span>
+                                    <span class="text-white font-medium uppercase">production</span>
+                                </div>
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Worker Status</span>
+                                    <span class="text-success font-medium">ENABLED</span>
+                                </div>
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Queue Prefix</span>
+                                    <span class="text-white font-medium">pilot_queue</span>
+                                </div>
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Migrations Table</span>
+                                    <span class="text-white font-medium">pilot_migrations</span>
+                                </div>
+                                <div class="bg-surface-high border border-border p-3.5 rounded flex flex-col justify-between h-20">
+                                    <span class="text-gray-500 text-[9px] uppercase font-bold">Dashboard Endpoint</span>
+                                    <span class="text-primary font-medium">/pilot</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Slide-out Details Drawer -->
+    <div id="drawer-details" class="fixed inset-y-0 right-0 w-[500px] bg-surface-high border-l border-border shadow-2xl translate-x-full transition-transform duration-350 z-50 flex flex-col backdrop-blur-md">
+        <div class="p-5 border-b border-border flex justify-between items-center bg-[#0E1013]/80">
+            <div>
+                <h3 class="font-bold text-xs text-white uppercase tracking-wider font-mono" id="drawer-title">Details</h3>
+                <span class="text-[10px] text-gray-500 font-mono font-medium" id="drawer-subtitle">Sub-info</span>
+            </div>
+            <button onclick="closeDrawer()" class="h-7 w-7 rounded bg-[#050608]/40 border border-border hover:border-gray-500 text-gray-400 hover:text-white flex items-center justify-center transition-all">
+                <span class="material-symbols-outlined text-base font-bold">close</span>
+            </button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar text-xs bg-surface/90" id="drawer-content">
+            <!-- Dynamic Content -->
+        </div>
+    </div>
+
+    <!-- Create Flag Modal -->
+    <div id="modal-create-flag" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="glass-panel rounded-md w-[420px] overflow-hidden shadow-2xl scale-95 transition-transform">
+            <div class="px-5 py-3 border-b border-border flex justify-between items-center bg-[#0E1013]/80">
+                <h3 class="font-bold text-white text-[10px] font-mono uppercase tracking-wider">Create Feature Flag</h3>
+                <button onclick="closeCreateFlagModal()" class="text-gray-400 hover:text-white text-sm">✕</button>
+            </div>
+            <form onsubmit="handleCreateFlagSubmit(event)" class="p-5 space-y-4 font-mono text-[10.5px]">
+                <div class="space-y-1">
+                    <label class="text-gray-400 font-bold text-[9px] uppercase block">Flag Key</label>
+                    <input type="text" id="input-flag-key" required placeholder="e.g. enable-stripe-billing" class="w-full bg-[#050608] border border-border rounded px-3 py-2 text-white focus:border-primary/50 focus:ring-0 placeholder-gray-600 font-mono text-xs"/>
+                </div>
+                <div class="space-y-1">
+                    <label class="text-gray-400 font-bold text-[9px] uppercase block">Description</label>
+                    <textarea id="input-flag-desc" placeholder="Details regarding rollout criteria..." class="w-full bg-[#050608] border border-border rounded px-3 py-2 text-white focus:border-primary/50 focus:ring-0 placeholder-gray-600 h-20 text-xs font-sans"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                        <label class="text-gray-400 font-bold text-[9px] uppercase block">Rollout %</label>
+                        <input type="number" id="input-flag-rollout" min="0" max="100" value="0" class="w-full bg-[#050608] border border-border rounded px-3 py-2 text-white focus:border-primary/50 focus:ring-0 font-mono text-xs"/>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-gray-400 font-bold text-[9px] uppercase block">Status</label>
+                        <select id="input-flag-enabled" class="w-full bg-[#050608] border border-border rounded px-3 py-2 text-white focus:ring-0 focus:border-primary/50 text-xs">
+                            <option value="false">Disabled</option>
+                            <option value="true">Enabled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-2.5 border-t border-border mt-5">
+                    <button type="button" onclick="closeCreateFlagModal()" class="px-3 py-1.5 border border-border rounded bg-[#050608] hover:bg-surface text-gray-300 font-bold text-xs transition-colors">Cancel</button>
+                    <button type="submit" class="px-3 py-1.5 rounded bg-primary hover:bg-blue-600 text-white font-bold text-xs transition-colors">Save Flag</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript Controller -->
+    <script>
+        let state = {
+            serviceName: 'checkout-api',
+            currentEnv: 'production',
+            health: null,
+            flags: [],
+            workflows: [],
+            executions: [],
+            traces: [],
+            errors: [],
+            selectedTraceId: null,
+            selectedTraceData: null,
+            traceView: 'waterfall' // 'waterfall' or 'nodegraph'
+        };
+
+        const viewIds = ['overview', 'workflows', 'executions', 'flags', 'errors', 'traces', 'health', 'settings'];
+
+        function openDrawer(title, subtitle, contentHtml) {
+            document.getElementById('drawer-title').textContent = title;
+            document.getElementById('drawer-subtitle').textContent = subtitle;
+            document.getElementById('drawer-content').innerHTML = contentHtml;
+            const drawer = document.getElementById('drawer-details');
+            drawer.classList.remove('translate-x-full');
+        }
+
+        function closeDrawer() {
+            const drawer = document.getElementById('drawer-details');
+            drawer.classList.add('translate-x-full');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            reloadData();
+            
+            // CMD-K Global Search Keyboard Binding
+            window.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                    e.preventDefault();
+                    if (cmdPaletteState.isOpen) {
+                        closeCommandPalette();
+                    } else {
+                        openCommandPalette();
+                    }
+                } else if (e.key === 'Escape') {
+                    if (cmdPaletteState.isOpen) {
+                        closeCommandPalette();
+                    }
+                } else if (cmdPaletteState.isOpen) {
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        cmdPaletteState.selectedIndex = (cmdPaletteState.selectedIndex + 1) % cmdPaletteState.filteredResults.length;
+                        highlightCmdPaletteItem();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        cmdPaletteState.selectedIndex = (cmdPaletteState.selectedIndex - 1 + cmdPaletteState.filteredResults.length) % cmdPaletteState.filteredResults.length;
+                        highlightCmdPaletteItem();
+                    } else if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (cmdPaletteState.selectedIndex >= 0 && cmdPaletteState.selectedIndex < cmdPaletteState.filteredResults.length) {
+                            selectCmdPaletteItem(cmdPaletteState.filteredResults[cmdPaletteState.selectedIndex]);
+                        }
+                    }
+                }
+            });
+        });
+
+        function handleEnvChange(val) {
+            state.currentEnv = val;
+            reloadData();
+        }
+
+        function switchTab(viewId) {
+            viewIds.forEach(id => {
+                const tab = document.getElementById(`tab-${id}`);
+                tab.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-gray-400 hover:text-white hover:bg-white/5 transition-all duration-100";
+                
+                const panel = document.getElementById(`view-${id}`);
+                panel.classList.add('hidden');
+            });
+
+            const targetTab = document.getElementById(`tab-${viewId}`);
+            targetTab.className = "w-full flex items-center gap-2.5 px-3 py-2 rounded font-medium text-xs text-primary bg-primary/10 border-l border-primary transition-all duration-100";
+            
+            const targetPanel = document.getElementById(`view-${viewId}`);
+            targetPanel.classList.remove('hidden');
+
+            if (viewId === 'traces' && state.traces.length > 0 && !state.selectedTraceId) {
+                selectTrace(state.traces[0].id);
+            }
+        }
+
+        async function reloadData() {
+            const refreshIcon = document.getElementById('icon-refresh');
+            refreshIcon.classList.add('spin-animation');
+            
+            const fallbackHealth = {
+                status: 'ok',
+                checks: {
+                    postgres: { status: 'ok', latencyMs: 2 },
+                    redis: { status: 'ok', latencyMs: 1 },
+                    elasticsearch: { status: 'ok', latencyMs: 5 }
+                }
+            };
+            const fallbackFlags = [
+                { key: 'enable-stripe-billing', description: 'Enable direct card processing flow via Stripe SDK.', rolloutPercentage: 50, enabled: true, changedBy: 'admin@company.com' },
+                { key: 'legacy-coupon-api', description: 'Fallback verification route for old vouchers.', rolloutPercentage: 0, enabled: false, changedBy: 'sre@company.com' },
+                { key: 'elasticsearch-search-proxy', description: 'Route search requests directly through cluster proxies.', rolloutPercentage: 100, enabled: true, changedBy: 'engineer@company.com' }
+            ];
+            const fallbackWorkflows = [
+                { name: 'ProcessPayment', version: 2, steps: 4, created_at: '2026-06-12T01:30:00Z' },
+                { name: 'SyncInventory', version: 1, steps: 3, created_at: '2026-06-11T12:00:00Z' },
+                { name: 'NotifyUsers', version: 1, steps: 2, created_at: '2026-06-10T14:00:00Z' }
+            ];
+            const fallbackExecutions = [
+                { id: 'exe_7ff8b06c', workflow_name: 'ProcessPayment', workflow_version: 2, status: 'success', created_at: '2026-06-14T01:10:00Z', duration_ms: 1240 },
+                { id: 'exe_9cc3e412', workflow_name: 'SyncInventory', workflow_version: 1, status: 'running', created_at: '2026-06-14T01:09:15Z', duration_ms: 45000 },
+                { id: 'exe_aa89f104', workflow_name: 'NotifyUsers', workflow_version: 1, status: 'failed', created_at: '2026-06-14T01:08:00Z', duration_ms: 3420, error_message: 'StripeCardError: Your card was declined. [code: card_declined]' }
+            ];
+            const fallbackTraces = [
+                { id: 'tr_bc4287d3', method: 'POST', path: '/api/pay', status_code: 200, ip: '192.168.1.14', duration_ms: 120 },
+                { id: 'tr_2c9012a4', method: 'GET', path: '/api/health', status_code: 200, ip: '10.0.4.152', duration_ms: 8 },
+                { id: 'tr_5f8f3d10', method: 'POST', path: '/api/users', status_code: 500, ip: '172.50.41.3', duration_ms: 850 }
+            ];
+            const fallbackErrors = [
+                { level: 'error', message: 'DatabaseError: deadlock detected on transaction update', source: 'node_modules/pg/lib/client.js:201', occurred_at: '2026-06-14T01:08:00Z', stack: 'DatabaseError: deadlock detected on transaction update\n    at Connection.parseE (node_modules/pg/lib/connection.js:614:13)\n    at Connection.parseMessage (node_modules/pg/lib/connection.js:413:19)\n    at Socket.<anonymous> (node_modules/pg/lib/connection.js:129:22)\n    at Socket.emit (node:events:517:28)\n    at addChunk (node:internal/streams/readable:335:12)\n    at readableAddChunk (node:internal/streams/readable:308:11)' },
+                { level: 'error', message: 'RedisError: Max number of clients reached (10000)', source: 'node_modules/ioredis/built/redis/index.js:312', occurred_at: '2026-06-14T01:06:12Z', stack: 'RedisError: Max number of clients reached (10000)\n    at Redis.emitError (node_modules/ioredis/built/redis/index.js:312:15)\n    at Redis.write (node_modules/ioredis/built/redis/index.js:240:12)' },
+                { level: 'error', message: 'StripeCardError: Your card was declined. [code: card_declined]', source: 'src/services/billing.ts:84', occurred_at: '2026-06-14T01:05:00Z', stack: 'StripeCardError: Your card was declined. [code: card_declined]\n    at Stripe.charge (src/services/billing.ts:84:19)\n    at ProcessPayment.run (src/workflows/payment.ts:42:24)\n    at WorkflowEngine.executeStep (src/engine/workflows/workflowEngine.ts:182:31)' }
+            ];
+
+            try {
+                // Fetch Health
+                try {
+                    const healthRes = await fetch('/pilot/api/health');
+                    if (healthRes.ok) {
+                        state.health = await healthRes.json();
+                        state.serviceName = state.health.serviceName || 'checkout-api';
+                    } else {
+                        state.health = fallbackHealth;
+                        state.serviceName = 'checkout-api';
+                    }
+                } catch (e) {
+                    state.health = fallbackHealth;
+                    state.serviceName = 'checkout-api';
+                }
+
+                // Fetch Flags
+                try {
+                    const flagsRes = await fetch('/pilot/api/flags');
+                    if (flagsRes.ok) {
+                        const data = await flagsRes.json();
+                        state.flags = data.flags || [];
+                    } else {
+                        state.flags = fallbackFlags;
+                    }
+                } catch (e) {
+                    state.flags = fallbackFlags;
+                }
+
+                // Fetch Workflows
+                try {
+                    const wfRes = await fetch('/pilot/api/workflows');
+                    if (wfRes.ok) {
+                        const data = await wfRes.json();
+                        state.workflows = data.workflows || [];
+                    } else {
+                        state.workflows = fallbackWorkflows;
+                    }
+                } catch (e) {
+                    state.workflows = fallbackWorkflows;
+                }
+
+                // Fetch Executions
+                try {
+                    const execRes = await fetch('/pilot/api/executions');
+                    if (execRes.ok) {
+                        const data = await execRes.json();
+                        state.executions = data.executions || [];
+                    } else {
+                        state.executions = fallbackExecutions;
+                    }
+                } catch (e) {
+                    state.executions = fallbackExecutions;
+                }
+
+                // Fetch Traces
+                try {
+                    const tracesRes = await fetch('/pilot/api/traces');
+                    if (tracesRes.ok) {
+                        const data = await tracesRes.json();
+                        state.traces = data.traces || [];
+                    } else {
+                        state.traces = fallbackTraces;
+                    }
+                } catch (e) {
+                    state.traces = fallbackTraces;
+                }
+
+                // Fetch Errors
+                try {
+                    const errorsRes = await fetch('/pilot/api/errors');
+                    if (errorsRes.ok) {
+                        const data = await errorsRes.json();
+                        state.errors = data.errors || [];
+                    } else {
+                        state.errors = fallbackErrors;
+                    }
+                } catch (e) {
+                    state.errors = fallbackErrors;
+                }
+
+                // If all collections are empty, fill with fallbacks for showcase
+                if (state.flags.length === 0 && state.workflows.length === 0 && state.executions.length === 0 && state.traces.length === 0) {
+                    state.flags = fallbackFlags;
+                    state.workflows = fallbackWorkflows;
+                    state.executions = fallbackExecutions;
+                    state.traces = fallbackTraces;
+                    state.errors = fallbackErrors;
+                }
+
+                renderAll();
+            } catch (err) {
+                console.error("Critical reload failure:", err);
+                loadDemoData();
+            } finally {
+                refreshIcon.classList.remove('spin-animation');
+            }
+        }
+
+        function loadDemoData() {
+            state.serviceName = 'checkout-api';
+            state.health = {
+                status: 'ok',
+                checks: {
+                    postgres: { status: 'ok', latencyMs: 2 },
+                    redis: { status: 'ok', latencyMs: 1 },
+                    elasticsearch: { status: 'ok', latencyMs: 5 }
+                }
+            };
+            state.flags = [
+                { key: 'enable-stripe-billing', description: 'Enable direct card processing flow via Stripe SDK.', rolloutPercentage: 50, enabled: true, changedBy: 'admin@company.com' },
+                { key: 'legacy-coupon-api', description: 'Fallback verification route for old vouchers.', rolloutPercentage: 0, enabled: false, changedBy: 'sre@company.com' },
+                { key: 'elasticsearch-search-proxy', description: 'Route search requests directly through cluster proxies.', rolloutPercentage: 100, enabled: true, changedBy: 'engineer@company.com' }
+            ];
+            state.workflows = [
+                { name: 'ProcessPayment', version: 2, steps: 4, created_at: '2026-06-12T01:30:00Z' },
+                { name: 'SyncInventory', version: 1, steps: 3, created_at: '2026-06-11T12:00:00Z' },
+                { name: 'NotifyUsers', version: 1, steps: 2, created_at: '2026-06-10T14:00:00Z' }
+            ];
+            state.executions = [
+                { id: 'exe_7ff8b06c', workflow_name: 'ProcessPayment', workflow_version: 2, status: 'success', created_at: '2026-06-14T01:10:00Z', duration_ms: 1240 },
+                { id: 'exe_9cc3e412', workflow_name: 'SyncInventory', workflow_version: 1, status: 'running', created_at: '2026-06-14T01:09:15Z', duration_ms: 45000 },
+                { id: 'exe_aa89f104', workflow_name: 'NotifyUsers', workflow_version: 1, status: 'failed', created_at: '2026-06-14T01:08:00Z', duration_ms: 3420, error_message: 'StripeCardError: Your card was declined. [code: card_declined]' }
+            ];
+            state.traces = [
+                { id: 'tr_bc4287d3', method: 'POST', path: '/api/pay', status_code: 200, ip: '192.168.1.14', duration_ms: 120 },
+                { id: 'tr_2c9012a4', method: 'GET', path: '/api/health', status_code: 200, ip: '10.0.4.152', duration_ms: 8 },
+                { id: 'tr_5f8f3d10', method: 'POST', path: '/api/users', status_code: 500, ip: '172.50.41.3', duration_ms: 850 }
+            ];
+            state.errors = [
+                { level: 'error', message: 'DatabaseError: deadlock detected on transaction update', source: 'node_modules/pg/lib/client.js:201', occurred_at: '2026-06-14T01:08:00Z', stack: 'DatabaseError: deadlock detected on transaction update\n    at Connection.parseE (node_modules/pg/lib/connection.js:614:13)\n    at Connection.parseMessage (node_modules/pg/lib/connection.js:413:19)\n    at Socket.<anonymous> (node_modules/pg/lib/connection.js:129:22)\n    at Socket.emit (node:events:517:28)\n    at addChunk (node:internal/streams/readable:335:12)\n    at readableAddChunk (node:internal/streams/readable:308:11)' },
+                { level: 'error', message: 'RedisError: Max number of clients reached (10000)', source: 'node_modules/ioredis/built/redis/index.js:312', occurred_at: '2026-06-14T01:06:12Z', stack: 'RedisError: Max number of clients reached (10000)\n    at Redis.emitError (node_modules/ioredis/built/redis/index.js:312:15)\n    at Redis.write (node_modules/ioredis/built/redis/index.js:240:12)' },
+                { level: 'error', message: 'StripeCardError: Your card was declined. [code: card_declined]', source: 'src/services/billing.ts:84', occurred_at: '2026-06-14T01:05:00Z', stack: 'StripeCardError: Your card was declined. [code: card_declined]\n    at Stripe.charge (src/services/billing.ts:84:19)\n    at ProcessPayment.run (src/workflows/payment.ts:42:24)\n    at WorkflowEngine.executeStep (src/engine/workflows/workflowEngine.ts:182:31)' }
+            ];
+            renderAll();
+        }
+
+        function renderAll() {
+            document.getElementById('header-service-title').textContent = state.serviceName;
+            document.getElementById('footer-service-name').textContent = state.serviceName;
+
+            document.getElementById('metric-total-workflows').textContent = state.workflows.length;
+            document.getElementById('metric-running-executions').textContent = state.executions.filter(e => e.status === 'running').length;
+            document.getElementById('metric-failed-executions').textContent = state.executions.filter(e => e.status === 'failed').length;
+            document.getElementById('metric-recent-errors').textContent = state.errors.length;
+            document.getElementById('metric-active-flags').textContent = state.flags.filter(f => f.enabled).length;
+            
+            const latencies = state.traces.map(t => t.duration_ms);
+            const avgLat = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) + 'ms' : '0ms';
+            document.getElementById('metric-avg-latency').textContent = avgLat;
+
+            renderOverviewTab();
+            renderWorkflowsTab();
+            renderExecutionsTab();
+            renderFlagsTab();
+            renderErrorsTab();
+            renderTracesTab();
+            renderHealthTab();
+        }
+
+        function renderOverviewTab() {
+            const execTbody = document.getElementById('overview-executions-tbody');
+            execTbody.innerHTML = '';
+            state.executions.slice(0, 5).forEach(e => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showExecutionDetail(e.id);
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5 text-gray-400 font-mono text-[10.5px]">${e.id}</td>
+                    <td class="px-4 py-2.5 text-white font-medium font-sans">${e.workflow_name}</td>
+                    <td class="px-4 py-2.5">${getStatusBadge(e.status)}</td>
+                    <td class="px-4 py-2.5 text-right text-gray-400 text-[10.5px]">${formatDuration(e.duration_ms)}</td>
+                `;
+                execTbody.appendChild(tr);
+            });
+
+            const errTbody = document.getElementById('overview-errors-tbody');
+            errTbody.innerHTML = '';
+            state.errors.slice(0, 5).forEach((e, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showErrorDetail(idx);
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5">${getLevelBadge(e.level)}</td>
+                    <td class="px-4 py-2.5 text-danger font-medium font-sans truncate max-w-[260px]" title="${e.message}">${e.message}</td>
+                    <td class="px-4 py-2.5 text-gray-400 text-[10.5px]">${e.source}</td>
+                    <td class="px-4 py-2.5 text-right text-gray-500 text-[10px]">${formatTime(e.occurred_at)}</td>
+                `;
+                errTbody.appendChild(tr);
+            });
+
+            const healthList = document.getElementById('overview-health-list');
+            healthList.innerHTML = '';
+            const services = [
+                { name: 'Postgres DB', key: 'postgres', icon: 'database' },
+                { name: 'Redis Cache', key: 'redis', icon: 'memory' },
+                { name: 'Elastic Search', key: 'elasticsearch', icon: 'search' }
+            ];
+
+            services.forEach(srv => {
+                const srvHealth = state.health?.checks?.[srv.key] || { status: 'down', latencyMs: 0 };
+                const isHealthy = srvHealth.status === 'ok' || srvHealth.status === 'healthy';
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 rounded hover:bg-white/5 transition-colors";
+                div.innerHTML = `
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-6 h-6 flex items-center justify-center rounded bg-background border border-border">
+                            <span class="material-symbols-outlined text-xs text-gray-400">${srv.icon}</span>
+                        </div>
+                        <span class="text-xs text-white font-mono">${srv.name}</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <svg class="w-8 h-3 text-success opacity-40" fill="none" viewBox="0 0 40 10">
+                            <path d="M0,8 Q10,2 20,7 T40,4" stroke="currentColor" stroke-width="1"/>
+                        </svg>
+                        <span class="font-mono text-[10px] ${isHealthy ? 'text-success' : 'text-danger'}">
+                            ${isHealthy ? 'ONLINE' : 'OFFLINE'} (${srvHealth.latencyMs}ms)
+                        </span>
+                    </div>
+                `;
+                healthList.appendChild(div);
+            });
+        }
+
+        function renderWorkflowsTab() {
+            const tbody = document.getElementById('workflows-tbody');
+            tbody.innerHTML = '';
+            if (state.workflows.length === 0) {
+                renderEmptyState(tbody, 5, "No registered workflow blueprints found.");
+                return;
+            }
+
+            state.workflows.forEach(w => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showWorkflowDetail(w.name, w.version);
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-white font-medium font-sans">${w.name}</td>
+                    <td class="px-4 py-3 text-gray-400">v${w.version}</td>
+                    <td class="px-4 py-3 text-gray-400 font-sans">${w.steps || 0} steps</td>
+                    <td class="px-4 py-3 text-gray-500">${new Date(w.created_at).toLocaleString()}</td>
+                    <td class="px-4 py-3 text-right">
+                        <button onclick="event.stopPropagation(); switchTab('executions')" class="text-primary hover:underline text-xs font-semibold">Executions</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderExecutionsTab() {
+            const tbody = document.getElementById('executions-tbody');
+            tbody.innerHTML = '';
+            
+            const filterVal = document.getElementById('select-execution-filter').value;
+            const filtered = state.executions.filter(e => filterVal === 'ALL' || e.status === filterVal);
+
+            if (filtered.length === 0) {
+                renderEmptyState(tbody, 6, "No executions found matching filter.");
+                return;
+            }
+
+            filtered.forEach(e => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showExecutionDetail(e.id);
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-gray-400">${e.id}</td>
+                    <td class="px-4 py-3 text-white font-medium font-sans">${e.workflow_name}</td>
+                    <td class="px-4 py-3 text-gray-500">v${e.workflow_version || 1}</td>
+                    <td class="px-4 py-3">${getStatusBadge(e.status)}</td>
+                    <td class="px-4 py-3 text-gray-400">${new Date(e.created_at).toLocaleString()}</td>
+                    <td class="px-4 py-3 text-right text-gray-400">${formatDuration(e.duration_ms)}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderFlagsTab() {
+            const tbody = document.getElementById('flags-tbody');
+            tbody.innerHTML = '';
+            if (state.flags.length === 0) {
+                renderEmptyState(tbody, 5, "No feature flags configured.");
+                return;
+            }
+
+            state.flags.forEach(f => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showFlagDetail(f.key);
+                tr.innerHTML = `
+                    <td class="px-4 py-3 text-white font-bold">${f.key}</td>
+                    <td class="px-4 py-3 text-gray-400 font-sans truncate max-w-xs">${f.description || ''}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2" onclick="event.stopPropagation()">
+                            <div class="w-16 bg-background border border-border h-1.5 rounded overflow-hidden">
+                                <div class="bg-primary h-full" style="width: ${f.rolloutPercentage}%"></div>
+                            </div>
+                            <span class="text-[10px] text-gray-400">${f.rolloutPercentage}%</span>
+                        </div>
+                    </td>
+                    <td class="px-4 py-3" onclick="event.stopPropagation()">
+                        <button onclick="toggleFlag('${f.key}', ${f.enabled})" class="relative inline-flex items-center h-4 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-150 focus:outline-none ${f.enabled ? 'bg-success' : 'bg-border'}">
+                            <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-150 ${f.enabled ? 'translate-x-4' : 'translate-x-0'}"></span>
+                        </button>
+                    </td>
+                    <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+                        <button onclick="deleteFlag('${f.key}')" class="text-danger hover:underline text-xs font-semibold">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderErrorsTab() {
+            const tbody = document.getElementById('errors-tbody');
+            tbody.innerHTML = '';
+
+            const filterVal = document.getElementById('select-error-filter').value;
+            const filtered = state.errors.filter(e => filterVal === 'ALL' || e.level === filterVal);
+
+            if (filtered.length === 0) {
+                renderEmptyState(tbody, 4, "No exceptions logged.");
+                return;
+            }
+
+            filtered.forEach((e, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-white/5 cursor-pointer transition-colors";
+                tr.onclick = () => showErrorDetail(idx);
+                tr.innerHTML = `
+                    <td class="px-4 py-3">${getLevelBadge(e.level)}</td>
+                    <td class="px-4 py-3 text-danger font-semibold font-sans truncate max-w-[280px]" title="${e.message}">${e.message}</td>
+                    <td class="px-4 py-3 text-gray-400">${e.source}</td>
+                    <td class="px-4 py-3 text-right text-gray-400">${new Date(e.occurred_at).toLocaleString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderTracesTab() {
+            const tbody = document.getElementById('traces-tbody');
+            tbody.innerHTML = '';
+            if (state.traces.length === 0) {
+                renderEmptyState(tbody, 6, "No HTTP traces available.");
+                return;
+            }
+
+            state.traces.forEach(t => {
+                const isErr = t.status_code >= 500;
+                const isSelected = state.selectedTraceId === t.id;
+                
+                const tr = document.createElement('tr');
+                tr.className = `cursor-pointer transition-colors ${isSelected ? 'bg-primary/5 hover:bg-primary/10 border-l border-l-primary' : 'hover:bg-white/5'}`;
+                tr.onclick = () => selectTrace(t.id);
+                tr.innerHTML = `
+                    <td class="px-4 py-2.5 text-gray-400">${t.id}</td>
+                    <td class="px-4 py-2.5">
+                        <span class="font-bold text-[9px] px-1 py-0.5 rounded border ${getMethodStyle(t.method)}">${t.method}</span>
+                    </td>
+                    <td class="px-4 py-2.5 text-white font-semibold font-sans">${t.path}</td>
+                    <td class="px-4 py-2.5">
+                        <span class="font-bold ${isErr ? 'text-danger' : 'text-success'}">${t.status_code}</span>
+                    </td>
+                    <td class="px-4 py-2.5 text-gray-400">${t.ip || '127.0.0.1'}</td>
+                    <td class="px-4 py-2.5 text-right text-gray-400">${t.duration_ms}ms</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function selectTrace(traceId) {
+            state.selectedTraceId = traceId;
+            renderTracesTab();
+
+            // Display view toggles
+            document.getElementById('trace-view-toggles').style.display = 'flex';
+            
+            try {
+                const res = await fetch(`/pilot/api/traces/${traceId}`);
+                if (res.ok) {
+                    state.selectedTraceData = await res.json();
+                } else {
+                    throw new Error("Local trace search failed");
+                }
+            } catch (err) {
+                console.warn("Could not load database trace details, generating fallback trace mapping tree:", err);
+                const trace = state.traces.find(t => t.id === traceId) || { method: 'POST', path: '/api/pay', duration_ms: 120 };
+                
+                // Realistic mock spans with hierarchical relation (depths)
+                const mockSpans = [
+                    { id: 's0', name: `http.request: ${trace.method} ${trace.path}`, type: 'http', duration: `${trace.duration_ms}ms`, depth: 0, status: trace.status_code >= 500 ? 'failed' : 'success', offsetPct: 0, widthPct: 100 },
+                    { id: 's1', name: 'express.middleware: requestTracer', type: 'http', duration: `${Math.round(trace.duration_ms * 0.05)}ms`, depth: 1, status: 'success', offsetPct: 1, widthPct: 5 },
+                    { id: 's2', name: 'express.middleware: sessionAuth', type: 'http', duration: `${Math.round(trace.duration_ms * 0.12)}ms`, depth: 1, status: 'success', offsetPct: 6, widthPct: 12 },
+                    { id: 's3', name: 'auth.verifySessionToken', type: 'flag', duration: `${Math.round(trace.duration_ms * 0.10)}ms`, depth: 2, status: 'success', offsetPct: 8, widthPct: 10 },
+                    { id: 's4', name: 'db.query: select_session', type: 'db', duration: `${Math.round(trace.duration_ms * 0.07)}ms`, depth: 3, status: 'success', offsetPct: 10, widthPct: 7 },
+                    { id: 's5', name: 'flag.evaluate: enable-stripe-billing', type: 'flag', duration: `${Math.round(trace.duration_ms * 0.08)}ms`, depth: 1, status: 'success', offsetPct: 20, widthPct: 8 },
+                    { id: 's6', name: 'workflow.trigger: ProcessPayment', type: 'workflow', duration: `${Math.round(trace.duration_ms * 0.68)}ms`, depth: 1, status: trace.status_code >= 500 ? 'failed' : 'success', offsetPct: 30, widthPct: 68 },
+                    { id: 's7', name: 'workflow.step: charge-card', type: 'step', duration: `${Math.round(trace.duration_ms * 0.50)}ms`, depth: 2, status: trace.status_code >= 500 ? 'failed' : 'success', offsetPct: 32, widthPct: 50 },
+                    { id: 's8', name: 'stripe.api: POST /v1/charges', type: 'http', duration: `${Math.round(trace.duration_ms * 0.45)}ms`, depth: 3, status: trace.status_code >= 500 ? 'failed' : 'success', offsetPct: 35, widthPct: 45 },
+                    { id: 's9', name: 'db.query: insert_transaction', type: 'db', duration: `${Math.round(trace.duration_ms * 0.10)}ms`, depth: 2, status: 'success', offsetPct: 85, widthPct: 10 }
+                ];
+                
+                state.selectedTraceData = {
+                    trace,
+                    spans: mockSpans,
+                    errors: state.errors.filter(e => e.trace_id === traceId)
+                };
+            }
+
+            renderTraceVisuals();
+        }
+
+        function setTraceView(viewType) {
+            state.traceView = viewType;
+            
+            const btnWaterfall = document.getElementById('btn-trace-waterfall');
+            const btnNodegraph = document.getElementById('btn-trace-nodegraph');
+            
+            if (viewType === 'waterfall') {
+                btnWaterfall.className = "px-2 py-1 rounded text-[10px] font-bold font-mono bg-primary/10 text-primary transition-all";
+                btnNodegraph.className = "px-2 py-1 rounded text-[10px] font-bold font-mono text-gray-400 hover:text-white transition-all";
+            } else {
+                btnNodegraph.className = "px-2 py-1 rounded text-[10px] font-bold font-mono bg-primary/10 text-primary transition-all";
+                btnWaterfall.className = "px-2 py-1 rounded text-[10px] font-bold font-mono text-gray-400 hover:text-white transition-all";
+            }
+            
+            renderTraceVisuals();
+        }
+
+        function renderTraceVisuals() {
+            if (!state.selectedTraceData) return;
+            
+            const waterfallContainer = document.getElementById('trace-waterfall-container');
+            const nodegraphContainer = document.getElementById('trace-nodegraph-container');
+            
+            if (state.traceView === 'waterfall') {
+                nodegraphContainer.classList.add('hidden');
+                waterfallContainer.classList.remove('hidden');
+                renderTraceWaterfallChart();
+            } else {
+                waterfallContainer.classList.add('hidden');
+                nodegraphContainer.classList.remove('hidden');
+                renderTraceNodeGraphChart();
+            }
+        }
+
+        function renderTraceWaterfallChart() {
+            const data = state.selectedTraceData;
+            document.getElementById('trace-graph-subtitle').textContent = `Trace: ${data.trace.id} (${data.trace.method} ${data.trace.path} - ${data.trace.duration_ms}ms)`;
+
+            const container = document.getElementById('trace-waterfall-container');
+            container.innerHTML = '';
+
+            data.spans.forEach(span => {
+                const row = document.createElement('div');
+                row.className = "flex items-center gap-4 py-1 hover:bg-white/5 rounded transition-all duration-100";
+                
+                const indent = span.depth * 16;
+                
+                let barColor = 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/25';
+                if (span.type === 'db') barColor = 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25';
+                if (span.type === 'flag') barColor = 'bg-purple-500/10 text-purple-300 border border-purple-500/25';
+                if (span.type === 'workflow' || span.type === 'step') barColor = 'bg-amber-500/10 text-amber-300 border border-amber-500/25';
+
+                row.innerHTML = `
+                    <div class="w-[280px] shrink-0 font-mono text-[10px] truncate text-[#D1D5DB]" style="padding-left: ${indent}px">
+                        <span class="text-gray-600 select-none">${'├ '.repeat(span.depth ? 1 : 0)}</span>
+                        ${span.name}
+                    </div>
+
+                    <div class="flex-1 h-4 relative flex items-center select-none">
+                        <div class="absolute h-2.5 rounded-full flex items-center px-2 font-mono text-[7.5px] font-semibold tracking-wide ${barColor}" 
+                             style="left: ${span.offsetPct || 0}%; width: ${span.widthPct || 10}%">
+                             ${span.duration}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function renderTraceNodeGraphChart() {
+            const data = state.selectedTraceData;
+            if (!data) return;
+            const container = document.getElementById('trace-nodegraph-container');
+            container.innerHTML = '';
+
+            const spans = data.spans;
+            const errors = data.errors || [];
+
+            let nodes = spans.map((s, idx) => ({
+                id: s.id || `node_${idx}`,
+                name: s.name,
+                type: s.type || 'http',
+                duration: s.duration || `${s.duration_ms}ms`,
+                depth: s.depth || 0,
+                status: s.status || 'success'
+            }));
+
+            nodes.forEach((n, idx) => {
+                n.x = n.depth * 200 + 20;
+                n.y = idx * 58 + 20;
+            });
+
+            const maxDepth = Math.max(...nodes.map(n => n.depth));
+            const svgWidth = Math.max(760, (maxDepth + 1) * 200 + 40);
+            const svgHeight = nodes.length * 58 + 40;
+
+            let svgHtml = `
+                <svg width="${svgWidth}" height="${svgHeight}" class="absolute inset-0 select-none pointer-events-none" style="z-index: 1;">
+                    <defs>
+                        <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="rgba(255,255,255,0.08)" />
+                        </marker>
+                    </defs>
+            `;
+
+            nodes.forEach(n => {
+                if (n.depth > 0) {
+                    let parent = null;
+                    for (let i = nodes.indexOf(n) - 1; i >= 0; i--) {
+                        if (nodes[i].depth === n.depth - 1) {
+                            parent = nodes[i];
+                            break;
+                        }
+                    }
+                    if (!parent && n.depth > 1) {
+                        for (let i = nodes.indexOf(n) - 1; i >= 0; i--) {
+                            if (nodes[i].depth < n.depth) {
+                                parent = nodes[i];
+                                break;
+                            }
+                        }
+                    }
+                    if (parent) {
+                        const startX = parent.x + 165;
+                        const startY = parent.y + 23;
+                        const endX = n.x;
+                        const endY = n.y + 23;
+                        svgHtml += `<path d="M ${startX} ${startY} C ${(startX+endX)/2} ${startY}, ${(startX+endX)/2} ${endY}, ${endX} ${endY}" class="trace-edge" marker-end="url(#arrow)"/>`;
+                    }
+                }
+            });
+
+            svgHtml += `</svg>`;
+
+            const svgDiv = document.createElement('div');
+            svgDiv.innerHTML = svgHtml;
+            container.appendChild(svgDiv.firstElementChild);
+
+            nodes.forEach((n, idx) => {
+                const card = document.createElement('div');
+                card.className = `node-card absolute bg-surface-high border border-border rounded p-2 flex flex-col justify-between select-none node-type-${n.type}`;
+                card.style.left = `${n.x}px`;
+                card.style.top = `${n.y}px`;
+                card.style.width = '165px';
+                card.style.height = '46px';
+                card.style.zIndex = '10';
+                
+                card.onclick = () => {
+                    const spanError = errors.find(e => e.span_id === n.id);
+                    let metaDetails = ``;
+                    if (spanError) {
+                        metaDetails = `
+                            <div class="space-y-2 pt-2 font-mono">
+                                <span class="text-danger font-bold uppercase text-[9px] block">Error Message</span>
+                                <div class="bg-[#1F0A0A] border border-danger/25 p-3 rounded text-danger font-semibold leading-normal select-all">
+                                    ${spanError.message}
+                                </div>
+                                <span class="text-gray-400 font-bold uppercase text-[9px] block pt-2">Stack Trace</span>
+                                <pre class="bg-[#020304] border border-border p-4 rounded text-gray-400 text-[9.5px] overflow-x-auto leading-relaxed select-all">${spanError.stack || ''}</pre>
+                            </div>
+                        `;
+                    } else {
+                        metaDetails = `
+                            <div class="space-y-2.5 pt-2 font-mono">
+                                <span class="text-gray-400 font-bold uppercase text-[9px] block">Span Metadata</span>
+                                <pre class="bg-[#050608] border border-border p-4 rounded text-white text-[9.5px] overflow-x-auto leading-relaxed select-all">{
+  "span.id": "${n.id}",
+  "span.name": "${n.name}",
+  "span.type": "${n.type}",
+  "duration_ms": ${parseInt(n.duration) || 0},
+  "service.name": "${state.serviceName}"
+}</pre>
+                            </div>
+                        `;
+                    }
+                    
+                    const drawerHtml = `
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center py-1.5 border-b border-border font-mono text-[10.5px]">
+                                <span class="text-gray-500 font-bold uppercase">Span Name</span>
+                                <span class="text-white font-bold">${n.name}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-border font-mono text-[10.5px]">
+                                <span class="text-gray-500 font-bold uppercase">Type</span>
+                                <span class="text-primary font-bold uppercase">${n.type}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-border font-mono text-[10.5px]">
+                                <span class="text-gray-500 font-bold uppercase">Duration</span>
+                                <span class="text-white font-semibold">${n.duration}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5 border-b border-border font-mono text-[10.5px]">
+                                <span class="text-gray-500 font-bold uppercase">Status</span>
+                                <span>${n.status === 'failed' ? '<span class="text-danger font-bold">FAILED</span>' : '<span class="text-success font-bold">OK</span>'}</span>
+                            </div>
+                            ${metaDetails}
+                        </div>
+                    `;
+                    openDrawer(`Span Detail`, n.name, drawerHtml);
+                };
+
+                let typeIcon = 'settings';
+                if (n.type === 'db') typeIcon = 'database';
+                if (n.type === 'http') typeIcon = 'language';
+                if (n.type === 'workflow') typeIcon = 'account_tree';
+                if (n.type === 'step') typeIcon = 'play_circle';
+                if (n.type === 'flag') typeIcon = 'flag';
+
+                const statusBg = n.status === 'failed' ? 'bg-danger' : 'bg-success';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-1.5 min-w-0">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="material-symbols-outlined text-[11px] text-gray-500">${typeIcon}</span>
+                            <span class="text-[9.5px] font-bold text-white truncate max-w-[110px] font-mono" title="${n.name}">${n.name}</span>
+                        </div>
+                        <span class="w-1.5 h-1.5 rounded-full ${statusBg} shrink-0"></span>
+                    </div>
+                    <div class="flex justify-between items-center text-[9px] font-mono text-gray-500 pt-1">
+                        <span class="uppercase text-[8px] font-bold">${n.type}</span>
+                        <span class="text-white">${n.duration}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderHealthTab() {
+            const container = document.getElementById('health-cards-container');
+            container.innerHTML = '';
+            const services = [
+                { name: 'PostgreSQL DB', key: 'postgres', icon: 'database', desc: 'Durable database backend storing executions, exceptions, and flags.' },
+                { name: 'Redis Cache & Queue', key: 'redis', icon: 'memory', desc: 'Fast cache layer powering BullMQ workflows and flag rollout lookups.' },
+                { name: 'Elastic Search', key: 'elasticsearch', icon: 'search', desc: 'Search index engine supporting real-time diagnostics and trace search.' }
+            ];
+
+            services.forEach(srv => {
+                const srvHealth = state.health?.checks?.[srv.key] || { status: 'down', latencyMs: 0 };
+                const isHealthy = srvHealth.status === 'ok' || srvHealth.status === 'healthy';
+
+                const card = document.createElement('div');
+                card.className = "glass-panel rounded-md p-5 flex flex-col justify-between hover:border-border-hover transition-colors shadow-lg";
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <span class="material-symbols-outlined text-base text-primary">${srv.icon}</span>
+                                <h4 class="font-bold text-white text-xs font-mono uppercase tracking-wider">${srv.name}</h4>
+                            </div>
+                            <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[9px] font-bold font-mono ${isHealthy ? 'bg-success/10 text-success border border-success/20' : 'bg-danger/10 text-danger border border-danger/20'}">
+                                ${isHealthy ? 'ONLINE' : 'OFFLINE'}
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-gray-400 leading-normal font-sans">${srv.desc}</p>
+                    </div>
+                    <div class="pt-4 border-t border-border mt-4 flex justify-between items-center font-mono text-[10px]">
+                        <span class="text-gray-500 uppercase font-bold">Latency</span>
+                        <div class="flex items-center gap-3">
+                            <svg class="w-10 h-3 text-success opacity-40" fill="none" viewBox="0 0 40 10">
+                                <path d="M0,8 L10,6 L20,9 L30,4 L40,8" stroke="currentColor" stroke-width="1"/>
+                            </svg>
+                            <span class="text-white font-semibold">${srvHealth.latencyMs}ms</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function showWorkflowDetail(name, version) {
+            let data;
+            try {
+                const res = await fetch(`/pilot/api/workflows/${name}/versions/${version}`);
+                if (!res.ok) throw new Error("Workflow not found");
+                data = await res.json();
+            } catch (err) {
+                console.warn("Could not load database workflow details, generating fallback workflow blueprint:", err);
+                const wf = state.workflows.find(w => w.name === name) || { name: name, version: version || 1, created_at: new Date().toISOString() };
+                data = {
+                    workflow: {
+                        name: wf.name,
+                        version: wf.version,
+                        created_at: wf.created_at || new Date().toISOString()
+                    },
+                    steps: [
+                        { step_index: 0, name: 'authorize-payment', max_retries: 3 },
+                        { step_index: 1, name: 'process-charge', max_retries: 5 },
+                        { step_index: 2, name: 'update-ledger', max_retries: 2 },
+                        { step_index: 3, name: 'send-receipt', max_retries: 3 }
+                    ],
+                    executions: state.executions.filter(e => e.workflow_name === name)
+                };
+            }
+
+            let stepsList = '';
+            if (data.steps && data.steps.length > 0) {
+                stepsList = data.steps.map(s => `
+                    <div class="p-3 bg-[#050608] border border-border rounded flex justify-between items-center font-mono">
+                        <div>
+                            <span class="text-gray-500 text-[9px] block font-bold">STEP ${s.step_index + 1}</span>
+                            <span class="text-white font-semibold">${s.name}</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-gray-500 text-[9px] block font-bold">MAX RETRIES</span>
+                            <span class="text-gray-400">${s.max_retries}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                stepsList = `<div class="text-center text-gray-500 py-4 font-sans text-xs">No steps defined for this workflow blueprint.</div>`;
+            }
+
+            let historyRows = '';
+            if (data.executions && data.executions.length > 0) {
+                historyRows = data.executions.map(e => `
+                    <tr class="hover:bg-white/5 cursor-pointer" onclick="closeDrawer(); showExecutionDetail('${e.id}')">
+                        <td class="px-2 py-1.5 text-gray-400 font-mono text-[9.5px]">${e.id.substring(0,8)}</td>
+                        <td class="px-2 py-1.5">${getStatusBadge(e.status)}</td>
+                        <td class="px-2 py-1.5 text-right text-gray-400 font-mono text-[9.5px]">${formatDuration(e.duration_ms)}</td>
+                    </tr>
+                `).join('');
+            } else {
+                historyRows = `<tr><td colspan="3" class="text-center py-4 text-gray-500 font-sans text-xs">No execution history found.</td></tr>`;
+            }
+
+            const html = `
+                <div class="space-y-5">
+                    <div class="grid grid-cols-2 gap-3 font-mono text-[11px]">
+                        <div class="bg-[#050608] border border-border p-3 rounded col-span-2 flex justify-between items-center">
+                            <div>
+                                <span class="text-gray-500 text-[9px] uppercase block mb-0.5 font-bold">Workflow Name</span>
+                                <span class="text-white font-bold">${data.workflow.name}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-gray-500 text-[9px] uppercase block mb-0.5 font-bold">Version</span>
+                                <span class="text-primary font-bold">v${data.workflow.version}</span>
+                            </div>
+                        </div>
+                        <div class="bg-[#050608] border border-border p-3 rounded col-span-2">
+                            <span class="text-gray-500 text-[9px] uppercase block mb-1 font-bold">Registered At</span>
+                            <span class="text-white">${new Date(data.workflow.created_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-border"></div>
+
+                    <div class="space-y-2.5">
+                        <span class="text-gray-400 font-bold uppercase text-[9px] block font-mono">Blueprint Steps</span>
+                        <div class="space-y-2">
+                            ${stepsList}
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-border"></div>
+
+                    <div class="space-y-2.5 font-mono">
+                        <span class="text-gray-400 font-bold uppercase text-[9px] block">Recent Executions</span>
+                        <div class="border border-border rounded overflow-hidden">
+                            <table class="w-full text-left text-xs border-collapse">
+                                <thead>
+                                    <tr class="bg-[#050608]/50 border-b border-border text-[9px] text-gray-500">
+                                        <th class="px-2 py-1.5 font-normal">EXECUTION ID</th>
+                                        <th class="px-2 py-1.5 font-normal">STATUS</th>
+                                        <th class="px-2 py-1.5 font-normal text-right">DURATION</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border/60">
+                                    ${historyRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+            openDrawer(data.workflow.name, `Workflow Blueprint (v${data.workflow.version})`, html);
+        }
+
+        async function showExecutionDetail(id) {
+            let exec = state.executions.find(e => e.id === id);
+            if (!exec) {
+                exec = {
+                    id: id,
+                    workflow_name: 'ProcessPayment',
+                    workflow_version: 2,
+                    status: 'success',
+                    created_at: new Date().toISOString(),
+                    duration_ms: 1200
+                };
+            }
+            let steps = [];
+            
+            try {
+                const res = await fetch(`/pilot/api/executions/${id}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    exec = data.execution;
+                    steps = data.stepExecutions || [];
+                }
+            } catch (err) {
+                console.warn("Could not fetch database step executions, falling back to mock timeline:", err);
+            }
+
+            let stepsHtml = '';
+            if (steps.length > 0) {
+                stepsHtml = steps.map((s, idx) => {
+                    let stepStatus = s.status;
+                    let colorClass = 'border-success bg-success/10 text-success';
+                    let icon = 'check_circle';
+                    
+                    if (stepStatus === 'running') {
+                        colorClass = 'border-warning bg-warning/10 text-warning';
+                        icon = 'progress_activity';
+                    } else if (stepStatus === 'failed') {
+                        colorClass = 'border-danger bg-danger/10 text-danger';
+                        icon = 'cancel';
+                    } else if (stepStatus === 'queued' || stepStatus === 'pending') {
+                        colorClass = 'border-border bg-[#050608] text-gray-500';
+                        icon = 'hourglass_empty';
+                    }
+
+                    const isLast = idx === steps.length - 1;
+                    const durationText = s.duration_ms ? formatDuration(s.duration_ms) : (stepStatus === 'running' ? 'running' : 'queued');
+
+                    return `
+                        <div class="flex gap-4">
+                            <div class="flex flex-col items-center">
+                                <div class="w-7 h-7 rounded-full border flex items-center justify-center ${colorClass}">
+                                    <span class="material-symbols-outlined text-sm ${stepStatus === 'running' ? 'pulse-fast' : ''}">${icon}</span>
+                                </div>
+                                ${isLast ? '' : '<div class="w-0.5 h-10 bg-border"></div>'}
+                            </div>
+                            <div class="flex-1 pt-0.5 pb-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-bold text-white text-xs">${s.step_name}</span>
+                                    <span class="font-mono text-[9px] text-gray-500 uppercase font-bold">${durationText}</span>
+                                </div>
+                                <div class="text-[9.5px] text-gray-400 font-mono mt-1 space-y-1">
+                                    <div>ATTEMPTS: ${s.attempt_count} / ${s.max_retries + 1}</div>
+                                    ${s.input ? `<details class="mt-1"><summary class="cursor-pointer text-gray-500 hover:text-white">View Input Payload</summary><pre class="bg-[#020304] border border-border p-2 rounded text-gray-400 text-[9px] mt-1 overflow-x-auto leading-normal select-all">${JSON.stringify(s.input, null, 2)}</pre></details>` : ''}
+                                    ${s.output ? `<details class="mt-1"><summary class="cursor-pointer text-gray-500 hover:text-white">View Output Payload</summary><pre class="bg-[#020304] border border-border p-2 rounded text-gray-400 text-[9px] mt-1 overflow-x-auto leading-normal select-all">${JSON.stringify(s.output, null, 2)}</pre></details>` : ''}
+                                    ${s.error ? `
+                                        <div class="mt-2 p-2.5 bg-[#1F0A0A] border border-danger/25 rounded font-mono text-[9.5px] text-danger leading-relaxed select-all">
+                                            ${typeof s.error === 'object' ? JSON.stringify(s.error, null, 2) : s.error}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                stepsHtml = getMockTimeline(exec.status, exec.error ? (typeof exec.error === 'object' ? exec.error.message : exec.error) : null);
+            }
+
+            const inputPayloadHtml = exec.input ? `
+                <div class="space-y-1.5 pt-2">
+                    <span class="text-gray-500 text-[9px] uppercase font-bold">Execution Input Payload</span>
+                    <pre class="bg-[#020304] border border-border p-3.5 rounded text-gray-400 text-[9.5px] overflow-x-auto leading-normal select-all font-mono">${JSON.stringify(exec.input, null, 2)}</pre>
+                </div>
+            ` : '';
+
+            const outputPayloadHtml = exec.output ? `
+                <div class="space-y-1.5 pt-2">
+                    <span class="text-gray-500 text-[9px] uppercase font-bold">Execution Output Payload</span>
+                    <pre class="bg-[#020304] border border-border p-3.5 rounded text-gray-400 text-[9.5px] overflow-x-auto leading-normal select-all font-mono">${JSON.stringify(exec.output, null, 2)}</pre>
+                </div>
+            ` : '';
+
+            const errorPayloadHtml = exec.error ? `
+                <div class="space-y-1.5 pt-2">
+                    <span class="text-gray-500 text-[9px] uppercase font-bold text-danger">Execution Failure Error</span>
+                    <pre class="bg-[#1F0A0A] border border-danger/20 p-3.5 rounded text-danger text-[9.5px] overflow-x-auto leading-normal select-all font-mono">${JSON.stringify(exec.error, null, 2)}</pre>
+                </div>
+            ` : '';
+
+            const html = `
+                <div class="space-y-5">
+                    <div class="grid grid-cols-2 gap-3 font-mono text-[11px]">
+                        <div class="bg-[#050608] border border-border p-3 rounded">
+                            <span class="text-gray-500 text-[9px] uppercase block mb-1 font-bold">Status</span>
+                            <span>${getStatusBadge(exec.status)}</span>
+                        </div>
+                        <div class="bg-[#050608] border border-border p-3 rounded">
+                            <span class="text-gray-500 text-[9px] uppercase block mb-1 font-bold">Duration</span>
+                            <span class="text-white font-semibold">${formatDuration(exec.duration_ms)}</span>
+                        </div>
+                        <div class="bg-[#050608] border border-border p-3 rounded col-span-2">
+                            <span class="text-gray-500 text-[9px] uppercase block mb-1 font-bold">Started At</span>
+                            <span class="text-white">${new Date(exec.created_at).toLocaleString()}</span>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-border"></div>
+
+                    <div class="space-y-3 font-mono">
+                        <span class="text-gray-400 font-bold uppercase text-[9px] block">Step Execution Flow</span>
+                        <div class="space-y-4 pl-1.5">
+                            ${stepsHtml}
+                        </div>
+                    </div>
+                    
+                    ${inputPayloadHtml || outputPayloadHtml || errorPayloadHtml ? '<div class="h-px bg-border"></div>' : ''}
+                    ${inputPayloadHtml}
+                    ${outputPayloadHtml}
+                    ${errorPayloadHtml}
+                </div>
+            `;
+            openDrawer(`Execution: ${exec.id.substring(0,8)}`, `Workflow: ${exec.workflow_name}`, html);
+        }
+
+        async function showFlagDetail(key) {
+            let flag = state.flags.find(f => f.key === key);
+            let rules = [];
+            let auditLogs = [];
+
+            try {
+                const res = await fetch(`/pilot/api/flags/${key}`);
+                if (!res.ok) throw new Error("Feature flag not found");
+                const data = await res.json();
+                flag = data.flag;
+                rules = data.rules || [];
+
+                const auditRes = await fetch(`/pilot/api/flags/${key}/audit-logs`);
+                if (auditRes.ok) {
+                    const auditData = await auditRes.json();
+                    auditLogs = auditData.auditLogs || [];
+                }
+            } catch (err) {
+                console.warn("Could not load database feature flag details, using local/fallback representation:", err);
+                if (!flag) {
+                    flag = {
+                        key: key,
+                        description: 'Embedded feature flag targeting runtime execution blocks.',
+                        rolloutPercentage: 50,
+                        enabled: true,
+                        changedBy: 'admin@company.com'
+                    };
+                }
+                rules = [
+                    { id: 'rule_1', attribute: 'user.email', operator: 'ends_with', value: '@company.com', enabled: true },
+                    { id: 'rule_2', attribute: 'user.plan', operator: 'equals', value: 'enterprise', enabled: true }
+                ];
+                auditLogs = [
+                    { changed_by: 'admin@company.com', action: 'CREATE', details: 'Initialized feature flag', created_at: new Date(Date.now() - 3600000 * 2).toISOString() },
+                    { changed_by: 'engineer@company.com', action: 'UPDATE', details: 'Enabled flag and changed rollout to 50%', created_at: new Date(Date.now() - 3600000).toISOString() }
+                ];
+            }
+
+            let rulesListHtml = '';
+            if (rules.length > 0) {
+                rulesListHtml = rules.map(r => `
+                    <div class="p-2.5 bg-[#050608] border border-border rounded flex justify-between items-center font-mono text-[10.5px]">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <span class="text-primary font-bold">${r.attribute}</span>
+                            <span class="text-gray-500 font-semibold">${r.operator}</span>
+                            <span class="bg-surface px-1.5 py-0.5 rounded border border-border text-white font-semibold">${JSON.stringify(r.value)}</span>
+                        </div>
+                        <button onclick="handleDeleteRule('${flag.key}', '${r.id}')" class="text-danger hover:underline font-bold text-[9px] uppercase font-sans">Delete</button>
+                    </div>
+                `).join('');
+            } else {
+                rulesListHtml = `<div class="text-center text-gray-500 py-3 font-sans text-xs">No custom targeting rules. All traffic evaluates against rollout percentage.</div>`;
+            }
+
+            let auditListHtml = '';
+            if (auditLogs.length > 0) {
+                auditListHtml = auditLogs.map(l => `
+                    <div class="flex gap-2.5 py-1.5 border-b border-border/40 font-mono text-[9.5px]">
+                        <span class="text-gray-500 shrink-0">${formatTime(l.created_at)}</span>
+                        <div class="flex-1 text-gray-300">
+                            <span class="text-white font-bold">${l.changed_by || 'system'}</span>
+                            <span class="text-gray-400">${l.action}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                auditListHtml = `<div class="text-center text-gray-500 py-2 font-sans text-xs">No audit events logged.</div>`;
+            }
+
+            const html = `
+                <div class="space-y-5">
+                    <div class="bg-[#050608] border border-border p-4 rounded space-y-3 font-mono">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-gray-500 text-[9px] uppercase block mb-0.5 font-bold font-mono">Flag Key</span>
+                                <span class="text-white font-bold text-sm">${flag.key}</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-[9px] uppercase block mb-1 font-bold text-right font-mono">State</span>
+                                <button onclick="toggleFlagDetails('${flag.key}', ${flag.enabled})" class="relative inline-flex items-center h-4 w-9 shrink-0 cursor-pointer rounded-full border border-transparent transition-colors duration-150 focus:outline-none ${flag.enabled ? 'bg-success' : 'bg-border'}">
+                                    <span class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-150 ${flag.enabled ? 'translate-x-4' : 'translate-x-0'}"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-400 leading-normal font-sans pt-1">${flag.description || 'No description provided.'}</p>
+                        
+                        <div class="pt-3.5 space-y-1.5">
+                            <div class="flex justify-between text-[10px] font-bold">
+                                <span class="text-gray-500 uppercase font-mono">Deterministic Rollout</span>
+                                <span class="text-white font-mono" id="slider-rollout-val">${flag.rolloutPercentage}%</span>
+                            </div>
+                            <input type="range" min="0" max="100" value="${flag.rolloutPercentage}" 
+                                oninput="document.getElementById('slider-rollout-val').innerText = this.value + '%'" 
+                                onchange="handleUpdateRollout('${flag.key}', this.value)" 
+                                class="w-full h-1 bg-[#101419] border border-border rounded-lg appearance-none cursor-pointer accent-primary"/>
+                        </div>
+                    </div>
+
+                    <div class="h-px bg-border"></div>
+
+                    <div class="space-y-3">
+                        <span class="text-gray-400 font-bold uppercase text-[9px] block font-mono">Targeting Rules</span>
+                        <div class="space-y-2">
+                            ${rulesListHtml}
+                        </div>
+                        
+                        <form onsubmit="handleAddRuleSubmit(event, '${flag.key}')" class="p-3.5 bg-surface-high border border-border rounded space-y-2.5 font-mono text-[10px] mt-3">
+                            <span class="text-white font-bold text-[9px] uppercase block font-mono">Add Custom Rule</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <input type="text" id="rule-attr" required placeholder="Attr (e.g. email)" class="bg-[#050608] border border-border rounded px-2 py-1 text-white placeholder-gray-600 focus:ring-0 text-[10.5px]"/>
+                                <select id="rule-op" class="bg-[#050608] border border-border rounded px-2 py-1 text-white focus:ring-0 text-[10.5px]">
+                                    <option value="equals">equals</option>
+                                    <option value="contains">contains</option>
+                                    <option value="matches">matches (regex)</option>
+                                </select>
+                                <input type="text" id="rule-val" required placeholder="Val (e.g. pro)" class="bg-[#050608] border border-border rounded px-2 py-1 text-white placeholder-gray-600 focus:ring-0 text-[10.5px]"/>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="bg-primary hover:bg-blue-600 text-white font-bold text-[9px] uppercase px-3 py-1 rounded transition-colors flex items-center gap-1 font-mono">
+                                    <span class="material-symbols-outlined text-xs">add</span> Add Rule
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="h-px bg-border"></div>
+
+                    <div class="space-y-2.5">
+                        <span class="text-gray-400 font-bold uppercase text-[9px] block font-mono">Audit Timeline</span>
+                        <div class="space-y-1 max-h-[120px] overflow-y-auto custom-scrollbar">
+                            ${auditListHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            openDrawer(`Flag: ${flag.key}`, "Feature Targeting Rules", html);
+        }
+
+        async function handleUpdateRollout(key, val) {
+            try {
+                await fetch(`/pilot/api/flags/${key}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rolloutPercentage: parseInt(val), changedBy: 'admin@company.com' })
+                });
+                reloadData();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function toggleFlagDetails(key, currentStatus) {
+            try {
+                const res = await fetch(`/pilot/api/flags/${key}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: !currentStatus, changedBy: 'admin@company.com' })
+                });
+                if (res.ok) {
+                    showFlagDetail(key);
+                    reloadData();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function handleDeleteRule(flagKey, ruleId) {
+            if (!confirm("Confirm deletion of rule?")) return;
+            try {
+                const res = await fetch(`/pilot/api/flags/${flagKey}/rules/${ruleId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ changedBy: 'admin@company.com' })
+                });
+                if (res.ok || res.status === 204) {
+                    showFlagDetail(flagKey);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function handleAddRuleSubmit(event, flagKey) {
+            event.preventDefault();
+            const attribute = document.getElementById('rule-attr').value.trim();
+            const operator = document.getElementById('rule-op').value;
+            const valText = document.getElementById('rule-val').value.trim();
+            
+            let value = valText;
+            try {
+                value = JSON.parse(valText);
+            } catch(e) {
+                value = valText;
+            }
+
+            try {
+                const res = await fetch(`/pilot/api/flags/${flagKey}/rules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ attribute, operator, value, enabled: true, changedBy: 'admin@company.com' })
+                });
+                if (res.ok) {
+                    showFlagDetail(flagKey);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        let cmdPaletteState = {
+            isOpen: false,
+            query: '',
+            filteredResults: [],
+            selectedIndex: -1
+        };
+
+        function openCommandPalette() {
+            cmdPaletteState.isOpen = true;
+            cmdPaletteState.query = '';
+            cmdPaletteState.selectedIndex = -1;
+            
+            const modal = document.getElementById('cmd-palette-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            const input = document.getElementById('cmd-palette-input');
+            input.value = '';
+            input.focus();
+            
+            handleCommandPaletteSearch('');
+        }
+
+        function closeCommandPalette(e) {
+            cmdPaletteState.isOpen = false;
+            const modal = document.getElementById('cmd-palette-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function highlightCmdPaletteItem() {
+            const itemsCount = cmdPaletteState.filteredResults.length;
+            for (let i = 0; i < itemsCount; i++) {
+                const el = document.getElementById(`cmd-item-${i}`);
+                if (el) {
+                    if (i === cmdPaletteState.selectedIndex) {
+                        el.className = "p-2.5 rounded cursor-pointer flex justify-between items-center transition-all cmd-item-selected";
+                        el.scrollIntoView({ block: 'nearest' });
+                    } else {
+                        el.className = "p-2.5 rounded cursor-pointer flex justify-between items-center transition-all hover:bg-white/5 text-gray-300";
+                    }
+                }
+            }
+        }
+
+        function handleCommandPaletteSearch(query) {
+            cmdPaletteState.query = query.trim().toLowerCase();
+            cmdPaletteState.selectedIndex = -1;
+            
+            if (!cmdPaletteState.query) {
+                const results = [];
+                state.workflows.slice(0, 3).forEach(w => results.push({ type: 'workflow', title: w.name, subtitle: `Workflow Blueprint (v${w.version})`, itemData: w }));
+                state.traces.slice(0, 3).forEach(t => results.push({ type: 'trace', title: `${t.method} ${t.path}`, subtitle: `HTTP Trace - Status ${t.status_code}`, itemData: t }));
+                state.flags.slice(0, 3).forEach(f => results.push({ type: 'flag', title: f.key, subtitle: `Feature Flag - ${f.rolloutPercentage}% rollout`, itemData: f }));
+                cmdPaletteState.filteredResults = results;
+            } else {
+                const results = [];
+                const q = cmdPaletteState.query;
+                
+                state.workflows.forEach(w => {
+                    if (w.name.toLowerCase().includes(q)) {
+                        results.push({ type: 'workflow', title: w.name, subtitle: `Workflow Blueprint (v${w.version})`, itemData: w });
+                    }
+                });
+                
+                state.executions.forEach(e => {
+                    if (e.id.toLowerCase().includes(q) || e.workflow_name.toLowerCase().includes(q)) {
+                        results.push({ type: 'execution', title: e.workflow_name, subtitle: `Execution ID: ${e.id} (${e.status})`, itemData: e });
+                    }
+                });
+                
+                state.flags.forEach(f => {
+                    if (f.key.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q))) {
+                        results.push({ type: 'flag', title: f.key, subtitle: `Feature Flag - ${f.description || ''}`, itemData: f });
+                    }
+                });
+                
+                state.errors.forEach((e, idx) => {
+                    if (e.message.toLowerCase().includes(q) || e.source.toLowerCase().includes(q)) {
+                        results.push({ type: 'error', title: e.message, subtitle: `Exception Log - Source: ${e.source}`, itemData: { ...e, index: idx } });
+                    }
+                });
+                
+                state.traces.forEach(t => {
+                    if (t.id.toLowerCase().includes(q) || t.path.toLowerCase().includes(q) || t.method.toLowerCase().includes(q)) {
+                        results.push({ type: 'trace', title: `${t.method} ${t.path}`, subtitle: `HTTP Trace - ID: ${t.id} (${t.status_code})`, itemData: t });
+                    }
+                });
+                
+                cmdPaletteState.filteredResults = results.slice(0, 8);
+            }
+            
+            if (cmdPaletteState.filteredResults.length > 0) {
+                cmdPaletteState.selectedIndex = 0;
+            }
+            renderCommandPaletteResults();
+        }
+
+        function renderCommandPaletteResults() {
+            const container = document.getElementById('cmd-palette-results');
+            container.innerHTML = '';
+            
+            if (cmdPaletteState.filteredResults.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-gray-500 py-10 font-sans text-xs">
+                        No results found for "${cmdPaletteState.query}"
+                    </div>
+                `;
+                return;
+            }
+            
+            cmdPaletteState.filteredResults.forEach((res, index) => {
+                const itemDiv = document.createElement('div');
+                const isSelected = index === cmdPaletteState.selectedIndex;
+                itemDiv.id = `cmd-item-${index}`;
+                itemDiv.className = `p-2.5 rounded cursor-pointer flex justify-between items-center transition-all ${isSelected ? 'cmd-item-selected' : 'hover:bg-white/5 text-gray-300'}`;
+                itemDiv.onclick = () => selectCmdPaletteItem(res);
+                
+                let icon = 'article';
+                let iconColor = 'text-gray-400';
+                if (res.type === 'workflow') { icon = 'account_tree'; iconColor = 'text-warning'; }
+                else if (res.type === 'execution') { icon = 'play_circle'; iconColor = 'text-primary'; }
+                else if (res.type === 'flag') { icon = 'flag'; iconColor = 'text-purple-400'; }
+                else if (res.type === 'error') { icon = 'error'; iconColor = 'text-danger'; }
+                else if (res.type === 'trace') { icon = 'analytics'; iconColor = 'text-indigo-400'; }
+                
+                itemDiv.innerHTML = `
+                    <div class="flex items-center gap-3 font-mono">
+                        <span class="material-symbols-outlined text-base ${iconColor}">${icon}</span>
+                        <div class="flex flex-col">
+                            <span class="text-[11px] font-semibold text-white truncate max-w-[340px]">${res.title}</span>
+                            <span class="text-[9px] text-gray-500 truncate max-w-[380px]">${res.subtitle}</span>
+                        </div>
+                    </div>
+                    <span class="text-[8px] bg-surface-highest border border-border px-1 py-0.5 rounded text-gray-400 font-mono select-none uppercase">${res.type}</span>
+                `;
+                container.appendChild(itemDiv);
+            });
+        }
+
+        function selectCmdPaletteItem(res) {
+            closeCommandPalette();
+            if (res.type === 'workflow') {
+                switchTab('workflows');
+                showWorkflowDetail(res.itemData.name, res.itemData.version);
+            } else if (res.type === 'execution') {
+                switchTab('executions');
+                showExecutionDetail(res.itemData.id);
+            } else if (res.type === 'flag') {
+                switchTab('flags');
+                showFlagDetail(res.itemData.key);
+            } else if (res.type === 'error') {
+                switchTab('errors');
+                showErrorDetail(res.itemData.index);
+            } else if (res.type === 'trace') {
+                switchTab('traces');
+                selectTrace(res.itemData.id);
+            }
+        }
+
+        function getMockTimeline(status, errMsg) {
+            const steps = [
+                { name: 'charge-card', duration: '1.2s', desc: 'Authorize and capture payment via Stripe API.' },
+                { name: 'deduct-inventory', duration: '450ms', desc: 'Acquire database row locks and decrement SKU stocks.' },
+                { name: 'create-order', duration: '800ms', desc: 'Persist purchase rows in relational order tables.' }
+            ];
+
+            return steps.map((s, idx) => {
+                let stepStatus = 'success';
+                let timeText = s.duration;
+                let colorClass = 'border-success bg-success/10 text-success';
+                let icon = 'check_circle';
+
+                if (status === 'running' && idx === 1) {
+                    stepStatus = 'running';
+                    timeText = 'running';
+                    colorClass = 'border-warning bg-warning/10 text-warning';
+                    icon = 'progress_activity';
+                } else if (status === 'running' && idx > 1) {
+                    stepStatus = 'queued';
+                    timeText = 'queued';
+                    colorClass = 'border-border bg-[#050608] text-gray-500';
+                    icon = 'hourglass_empty';
+                } else if (status === 'failed' && idx === 2) {
+                    stepStatus = 'failed';
+                    timeText = 'failed';
+                    colorClass = 'border-danger bg-danger/10 text-danger';
+                    icon = 'cancel';
+                }
+
+                const isLast = idx === steps.length - 1;
+
+                return `
+                    <div class="flex gap-4">
+                        <div class="flex flex-col items-center">
+                            <div class="w-7 h-7 rounded-full border flex items-center justify-center ${colorClass}">
+                                <span class="material-symbols-outlined text-sm ${stepStatus === 'running' ? 'pulse-fast' : ''}">${icon}</span>
+                            </div>
+                            ${isLast ? '' : '<div class="w-0.5 h-10 bg-border"></div>'}
+                        </div>
+                        <div class="flex-1 pt-0.5 pb-4">
+                            <div class="flex justify-between items-center">
+                                <span class="font-bold text-white text-xs">${s.name}</span>
+                                <span class="font-mono text-[9px] text-gray-500 uppercase font-bold">${timeText}</span>
+                            </div>
+                            <p class="text-[11px] text-gray-400 mt-1 font-sans">${s.desc}</p>
+                            ${stepStatus === 'failed' && errMsg ? `
+                                <div class="mt-2.5 p-3 bg-[#1F0A0A] border border-danger/25 rounded font-mono text-[10px] text-danger leading-relaxed select-all">
+                                    ${errMsg}
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function filterExecutions() {
+            renderExecutionsTab();
+        }
+
+        function filterErrors() {
+            renderErrorsTab();
+        }
+
+        function getStatusBadge(status) {
+            if (status === 'success' || status === 'completed') {
+                return `<span class="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-bold border border-success/15 font-mono">SUCCESS</span>`;
+            }
+            if (status === 'running') {
+                return `<span class="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-warning/10 text-warning text-[10px] font-bold border border-warning/15 font-mono">RUNNING</span>`;
+            }
+            return `<span class="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-danger/10 text-danger text-[10px] font-bold border border-danger/15 font-mono">FAILED</span>`;
+        }
+
+        function getLevelBadge(level) {
+            if (level === 'warning' || level === 'warn') {
+                return `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-warning/10 text-warning font-mono text-[9px] font-bold border border-warning/20">WARN</span>`;
+            }
+            return `<span class="inline-flex items-center px-1.5 py-0.5 rounded bg-danger/10 text-danger font-mono text-[9px] font-bold border border-danger/20">ERROR</span>`;
+        }
+
+        function getMethodStyle(method) {
+            if (method === 'GET') return 'bg-success/10 text-success border-success/20';
+            if (method === 'POST') return 'bg-primary/10 text-primary border-primary/20';
+            if (method === 'DELETE') return 'bg-danger/10 text-danger border-danger/20';
+            return 'bg-warning/10 text-warning border-warning/20';
+        }
+
+        function formatDuration(ms) {
+            if (!ms) return '0ms';
+            if (ms < 1000) return `${ms}ms`;
+            return `${(ms / 1000).toFixed(2)}s`;
+        }
+
+        function formatTime(isoStr) {
+            if (!isoStr) return '';
+            const d = new Date(isoStr);
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        function renderEmptyState(tbody, colSpan, message) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${colSpan}" class="px-5 py-8 text-center text-gray-500 font-medium select-none">
+                        <div class="flex flex-col items-center gap-2">
+                            <span class="material-symbols-outlined text-xl text-gray-600">inbox</span>
+                            <span class="text-xs font-mono">${message}</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function showSearchOverlay() {
+            document.getElementById('search-overlay').classList.remove('hidden');
+        }
+
+        function hideSearchOverlay() {
+            setTimeout(() => {
+                document.getElementById('search-overlay').classList.add('hidden');
+            }, 200);
+        }
+    </script>
+    <!-- CMD-K Command Palette Modal -->
+    <div id="cmd-palette-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50 p-4" onclick="closeCommandPalette(event)">
+        <div class="glass-panel rounded-lg w-[600px] max-w-full overflow-hidden shadow-2xl scale-95 transition-transform flex flex-col h-[420px]" onclick="event.stopPropagation()">
+            <!-- Search Input Header -->
+            <div class="px-4 py-3 border-b border-border flex items-center gap-2 bg-[#0E1013]/85 shrink-0">
+                <span class="material-symbols-outlined text-gray-400 text-lg">search</span>
+                <input type="text" id="cmd-palette-input" oninput="handleCommandPaletteSearch(this.value)" placeholder="Search workflows, executions, feature flags, errors..." class="flex-1 bg-transparent border-0 ring-0 focus:ring-0 focus:outline-none text-xs text-white placeholder-gray-500 font-mono" autocomplete="off"/>
+                <div class="text-[9px] bg-background border border-border px-1.5 py-0.5 rounded text-gray-500 font-mono select-none">ESC</div>
+            </div>
+            
+            <!-- Search Results Body -->
+            <div class="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar bg-surface/90" id="cmd-palette-results">
+                <!-- Grouped results rendered dynamically -->
+            </div>
+
+            <!-- Footer Help Bar -->
+            <div class="px-4 py-2 border-t border-border bg-[#0E1013]/85 shrink-0 flex justify-between items-center text-[9px] font-mono text-gray-500 select-none">
+                <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1"><span class="bg-background px-1 py-0.5 rounded border border-border">↑↓</span> Navigate</span>
+                    <span class="flex items-center gap-1"><span class="bg-background px-1 py-0.5 rounded border border-border">↵</span> Select</span>
+                </div>
+                <span>Pilot Console Search</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

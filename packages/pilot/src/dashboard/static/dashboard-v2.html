@@ -1,0 +1,2897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pilot Dashboard</title>
+    <style>
+        :root {
+            --bg: #090b0f;
+            --panel: #11151b;
+            --panel-2: #171c24;
+            --panel-3: #1d2430;
+            --line: #27303d;
+            --line-soft: #1e2631;
+            --text: #eef2f7;
+            --muted: #8d98a8;
+            --subtle: #5f6b7c;
+            --blue: #4f8cff;
+            --green: #22c55e;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --cyan: #22d3ee;
+            --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+            color-scheme: dark;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        @keyframes flowPacket {
+            0% {
+                left: -3px;
+                opacity: 0;
+                transform: scale(0.72);
+            }
+            12%,
+            78% {
+                opacity: 1;
+            }
+            100% {
+                left: calc(100% - 3px);
+                opacity: 0;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes nodeGlow {
+            0%,
+            100% {
+                box-shadow: 0 0 0 rgba(34, 197, 94, 0);
+            }
+            50% {
+                box-shadow: 0 0 22px rgba(34, 197, 94, 0.18);
+            }
+        }
+
+        @keyframes failurePulse {
+            0%,
+            100% {
+                box-shadow: 0 0 0 rgba(239, 68, 68, 0);
+            }
+            50% {
+                box-shadow: 0 0 24px rgba(239, 68, 68, 0.26);
+            }
+        }
+
+        button,
+        input,
+        select,
+        textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            height: 100vh;
+            transition: grid-template-columns 220ms cubic-bezier(0.2, 0, 0, 1);
+        }
+
+        .app:has(.sidebar:hover),
+        .app:has(.sidebar:focus-within) {
+            grid-template-columns: 244px minmax(0, 1fr);
+        }
+
+        .sidebar {
+            width: 100%;
+            background: #0d1117;
+            border-right: 1px solid var(--line-soft);
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            overflow: hidden;
+            transition: box-shadow 220ms ease;
+            z-index: 25;
+        }
+
+        .sidebar:hover,
+        .sidebar:focus-within {
+            box-shadow: 18px 0 46px rgba(0, 0, 0, 0.32);
+        }
+
+        .brand {
+            height: 58px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: flex-start;
+            padding: 0 19px;
+            border-bottom: 1px solid var(--line-soft);
+            position: relative;
+        }
+
+        .brand-copy,
+        .nav-label,
+        .sidebar-footer {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateX(-6px);
+            pointer-events: none;
+            transition: opacity 130ms ease 70ms, transform 130ms ease 70ms, visibility 0s linear 220ms;
+        }
+
+        .sidebar:hover .brand-copy,
+        .sidebar:hover .nav-label,
+        .sidebar:hover .sidebar-footer,
+        .sidebar:focus-within .brand-copy,
+        .sidebar:focus-within .nav-label,
+        .sidebar:focus-within .sidebar-footer {
+            visibility: visible;
+            opacity: 1;
+            transform: translateX(0);
+            pointer-events: auto;
+            transition-delay: 90ms, 90ms, 0s;
+        }
+
+        .brand-copy,
+        .nav-label {
+            white-space: nowrap;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            flex: 0 0 38px;
+            border-radius: 10px;
+            background:
+                radial-gradient(circle at 72% 22%, rgba(34, 211, 238, 0.42), transparent 34%),
+                linear-gradient(135deg, #1d4ed8, #111827 74%);
+            display: grid;
+            place-items: center;
+            color: #fff;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 10px 22px rgba(29, 78, 216, 0.24);
+        }
+
+        .brand-mark svg {
+            width: 25px;
+            height: 25px;
+        }
+
+        .brand-title {
+            font-size: 15px;
+            font-weight: 750;
+            line-height: 1;
+        }
+
+        .brand-subtitle {
+            margin-top: 4px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 11px;
+            white-space: nowrap;
+        }
+
+        .nav {
+            padding: 12px 0;
+            display: grid;
+            gap: 4px;
+            overflow: hidden;
+            align-content: start;
+        }
+
+        .nav-button {
+            width: 100%;
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--muted);
+            display: grid;
+            grid-template-columns: 76px minmax(0, 1fr);
+            align-items: center;
+            gap: 0;
+            padding: 9px 0;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        .nav-button:hover {
+            color: var(--text);
+            background: #131922;
+            border-color: var(--line-soft);
+        }
+
+        .nav-button.active {
+            color: #dbeafe;
+            background: rgba(79, 140, 255, 0.14);
+            border-color: rgba(79, 140, 255, 0.36);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
+            background: #151b24;
+            color: currentColor;
+            justify-self: center;
+        }
+
+        .nav-icon svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 14px;
+            border-top: 1px solid var(--line-soft);
+            display: grid;
+            gap: 10px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .health-line {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .main {
+            min-width: 0;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background:
+                linear-gradient(180deg, rgba(79, 140, 255, 0.04), transparent 260px),
+                var(--bg);
+        }
+
+        .topbar {
+            height: 58px;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(13, 17, 23, 0.92);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            gap: 16px;
+        }
+
+        .topbar-left,
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+        }
+
+        .service-name {
+            font-weight: 700;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .env-pill {
+            border: 1px solid rgba(34, 197, 94, 0.28);
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.1);
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 11px;
+        }
+
+        .search {
+            width: min(360px, 36vw);
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #0b0f15;
+            color: var(--text);
+            padding: 0 11px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .search:focus {
+            border-color: rgba(79, 140, 255, 0.72);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.12);
+        }
+
+        .global-search {
+            position: relative;
+            width: min(470px, 42vw);
+        }
+
+        .global-search .search {
+            width: 100%;
+            height: 38px;
+            padding-left: 34px;
+            padding-right: 70px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                #090d13;
+            border-color: #303948;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 11px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--subtle);
+            font-size: 13px;
+            font-weight: 900;
+            pointer-events: none;
+        }
+
+        .search-kbd {
+            position: absolute;
+            right: 9px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 1px solid var(--line);
+            background: #111722;
+            color: var(--subtle);
+            border-radius: 6px;
+            padding: 2px 6px;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            pointer-events: none;
+        }
+
+        .search-results {
+            position: absolute;
+            z-index: 50;
+            left: 0;
+            right: 0;
+            top: calc(100% + 8px);
+            display: none;
+            background: #0d1117;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.46);
+            overflow: hidden;
+        }
+
+        .global-search.open .search-results {
+            display: block;
+        }
+
+        .search-result {
+            display: grid;
+            grid-template-columns: 82px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line-soft);
+            cursor: pointer;
+        }
+
+        .search-result:last-child {
+            border-bottom: 0;
+        }
+
+        .search-result:hover {
+            background: rgba(79, 140, 255, 0.08);
+        }
+
+        .result-type {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .result-title {
+            color: var(--text);
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .select,
+        .button,
+        .icon-button {
+            height: 36px;
+            border-radius: 9px;
+            border: 1px solid #303948;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+                #0b0f15;
+            color: var(--text);
+            padding: 0 10px;
+            font-size: 12px;
+            transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+        }
+
+        .select {
+            appearance: none;
+            padding-right: 34px;
+            background-image:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.01)),
+                url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.5 1.75 6 6.25l4.5-4.5' stroke='%238d98a8' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+            background-repeat: repeat, no-repeat;
+            background-position: 0 0, right 11px center;
+        }
+
+        .button:hover,
+        .icon-button:hover,
+        .select:hover {
+            border-color: #455164;
+            background-color: #101722;
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.08);
+        }
+
+        .button.primary {
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent),
+                var(--blue);
+            border-color: var(--blue);
+            color: #fff;
+            font-weight: 700;
+            box-shadow: 0 10px 24px rgba(79, 140, 255, 0.2);
+        }
+
+        .icon-button {
+            width: 34px;
+            padding: 0;
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+        }
+
+        .content {
+            padding: 18px;
+            flex: 1;
+            min-height: 0;
+            height: calc(100vh - 58px);
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #344054 #0a0e14;
+        }
+
+        .content::-webkit-scrollbar,
+        .drawer-body::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        .content::-webkit-scrollbar-track,
+        .drawer-body::-webkit-scrollbar-track {
+            background: #0a0e14;
+        }
+
+        .content::-webkit-scrollbar-thumb,
+        .drawer-body::-webkit-scrollbar-thumb {
+            background: #344054;
+            border-radius: 999px;
+        }
+
+        .page {
+            display: none;
+            max-width: 1480px;
+            margin: 0 auto;
+            min-height: calc(100vh - 94px);
+            padding-bottom: 56px;
+            animation: appear 140ms ease-out;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes appear {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 16px;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 20px;
+            line-height: 1.2;
+            letter-spacing: 0;
+        }
+
+        .page-meta {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .metric {
+            background: var(--panel);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            padding: 13px;
+            min-height: 86px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .metric-label {
+            color: var(--subtle);
+            font-size: 11px;
+            text-transform: uppercase;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        }
+
+        .metric-value {
+            font-size: 26px;
+            font-weight: 760;
+            letter-spacing: 0;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.55fr);
+            gap: 14px;
+        }
+
+        .grid-even {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .panel {
+            background: rgba(17, 21, 27, 0.96);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        .panel-header {
+            min-height: 46px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: rgba(23, 28, 36, 0.72);
+        }
+
+        .panel-title {
+            font-size: 13px;
+            font-weight: 760;
+        }
+
+        .panel-tools {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ops-strip {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .ops-item {
+            border: 1px solid var(--line-soft);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                #0d1219;
+            border-radius: 8px;
+            padding: 11px 12px;
+            min-width: 0;
+        }
+
+        .ops-label {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .ops-value {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 720;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .overview-summary {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .summary-primary,
+        .summary-side {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(239, 68, 68, 0.1), transparent 38%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                #0d1219;
+            padding: 16px;
+            min-width: 0;
+        }
+
+        .summary-kicker {
+            color: #fca5a5;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 760;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .summary-title {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+            letter-spacing: 0;
+        }
+
+        .summary-copy {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+            max-width: 720px;
+        }
+
+        .summary-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .summary-side {
+            display: grid;
+            gap: 10px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                #0d1219;
+        }
+
+        .summary-stat {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            border-bottom: 1px solid var(--line-soft);
+            padding-bottom: 10px;
+        }
+
+        .summary-stat:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .summary-stat span {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .summary-stat strong {
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .metric-delta {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            margin-top: 5px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 760px;
+            font-size: 12px;
+        }
+
+        th {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            background: #151a22;
+            border-bottom: 1px solid var(--line-soft);
+            text-align: left;
+            padding: 10px 12px;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 11px 12px;
+            border-bottom: 1px solid rgba(39, 48, 61, 0.58);
+            color: #d8dee8;
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            transition: background 120ms ease, box-shadow 120ms ease;
+        }
+
+        tbody tr:hover {
+            background: rgba(79, 140, 255, 0.06);
+        }
+
+        .mono {
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        }
+
+        .muted {
+            color: var(--muted);
+        }
+
+        .subtle {
+            color: var(--subtle);
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            height: 22px;
+            border-radius: 999px;
+            padding: 0 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 99px;
+            background: currentColor;
+        }
+
+        .ok {
+            color: #86efac;
+            background: rgba(34, 197, 94, 0.1);
+            border-color: rgba(34, 197, 94, 0.22);
+        }
+
+        .warn {
+            color: #fbbf24;
+            background: rgba(245, 158, 11, 0.11);
+            border-color: rgba(245, 158, 11, 0.24);
+        }
+
+        .bad {
+            color: #fca5a5;
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.26);
+        }
+
+        .info {
+            color: #bfdbfe;
+            background: rgba(79, 140, 255, 0.12);
+            border-color: rgba(79, 140, 255, 0.28);
+        }
+
+        .cyan {
+            color: #a5f3fc;
+            background: rgba(34, 211, 238, 0.1);
+            border-color: rgba(34, 211, 238, 0.22);
+        }
+
+        .stack {
+            display: grid;
+            gap: 14px;
+        }
+
+        .health-list {
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+            grid-template-rows: repeat(auto-fit, minmax(96px, max-content));
+            align-content: start;
+        }
+
+        .health-row {
+            border: 1px solid var(--line-soft);
+            background: #0d1219;
+            border-radius: 8px;
+            padding: 11px;
+            display: grid;
+            gap: 8px;
+            min-height: 96px;
+        }
+
+        .health-list.dynamic-fill {
+            height: 100%;
+            grid-template-rows: repeat(auto-fit, minmax(102px, 1fr));
+        }
+
+        .health-list.dynamic-fill .health-row {
+            min-height: 0;
+            align-content: center;
+        }
+
+        .health-list.dynamic-fill.is-compact {
+            grid-template-rows: none;
+            align-content: start;
+            overflow-y: auto;
+            max-height: min(560px, calc(100vh - 260px));
+        }
+
+        .health-list.dynamic-fill.is-compact .health-row {
+            min-height: 96px;
+            align-content: start;
+        }
+
+        .health-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+
+        .health-panel .health-list {
+            flex: 1;
+        }
+
+        .health-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .health-name {
+            font-size: 13px;
+            font-weight: 760;
+        }
+
+        .bar {
+            height: 7px;
+            border-radius: 999px;
+            background: #202734;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: var(--blue);
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .detail-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 0.62fr) minmax(360px, 0.38fr);
+            gap: 14px;
+        }
+
+        .timeline {
+            padding: 14px;
+            display: grid;
+            gap: 0;
+        }
+
+        .timeline-item {
+            display: grid;
+            grid-template-columns: 32px minmax(0, 1fr);
+            gap: 12px;
+        }
+
+        .timeline-rail {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .timeline-node {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 1px solid currentColor;
+            display: grid;
+            place-items: center;
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .timeline-line {
+            width: 1px;
+            min-height: 44px;
+            background: var(--line);
+        }
+
+        .timeline-content {
+            padding-bottom: 15px;
+        }
+
+        .timeline-title {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 760;
+        }
+
+        .timeline-desc {
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+
+        .pinned-workflows {
+            margin-bottom: 14px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            overflow: hidden;
+            background: rgba(17, 21, 27, 0.72);
+        }
+
+        .pinned-workflows .panel-header {
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .pinned-workflows .workflow-grid {
+            padding: 14px;
+            margin-bottom: 0;
+        }
+
+        .pin-button {
+            min-width: 76px;
+            height: 28px;
+            border-radius: 7px;
+            border: 1px solid var(--line);
+            background: #0b0f15;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .pin-button.active {
+            color: #bfdbfe;
+            background: rgba(79, 140, 255, 0.14);
+            border-color: rgba(79, 140, 255, 0.36);
+        }
+
+        .workflow-card {
+            background: rgba(17, 21, 27, 0.96);
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+            transition: border-color 160ms ease, transform 160ms ease;
+        }
+
+        .workflow-card:hover {
+            border-color: #344054;
+            transform: translateY(-1px);
+        }
+
+        .workflow-card-head {
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line-soft);
+            background: rgba(23, 28, 36, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .workflow-card-title {
+            font-size: 14px;
+            font-weight: 760;
+        }
+
+        .workflow-chain {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px;
+            overflow-x: auto;
+            min-height: 92px;
+            background:
+                linear-gradient(rgba(39, 48, 61, 0.22) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(39, 48, 61, 0.22) 1px, transparent 1px),
+                #0a0e14;
+            background-size: 24px 24px;
+        }
+
+        .workflow-chain::-webkit-scrollbar,
+        .trace-board::-webkit-scrollbar {
+            height: 8px;
+        }
+
+        .workflow-chain::-webkit-scrollbar-track,
+        .trace-board::-webkit-scrollbar-track {
+            background: #0a0e14;
+        }
+
+        .workflow-chain::-webkit-scrollbar-thumb,
+        .trace-board::-webkit-scrollbar-thumb {
+            background: #344054;
+            border-radius: 999px;
+        }
+
+        .workflow-step {
+            flex: 0 0 152px;
+            min-height: 58px;
+            border: 1px solid #344054;
+            background: #101720;
+            border-radius: 8px;
+            padding: 10px;
+        }
+
+        .workflow-step.live {
+            border-color: rgba(34, 197, 94, 0.52);
+            animation: nodeGlow 2.8s ease-in-out infinite;
+        }
+
+        .workflow-step.failed {
+            border-color: rgba(239, 68, 68, 0.75);
+            background: #1b1115;
+            animation: failurePulse 2.2s ease-in-out infinite;
+        }
+
+        .workflow-step.running {
+            border-color: rgba(245, 158, 11, 0.7);
+            background: #1a1510;
+        }
+
+        .workflow-step-name {
+            font-size: 12px;
+            font-weight: 720;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .workflow-step-meta {
+            margin-top: 6px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+        }
+
+        .chain-arrow {
+            flex: 0 0 24px;
+            height: 1px;
+            background: #3b4658;
+            position: relative;
+        }
+
+        .chain-arrow.live {
+            background: rgba(34, 197, 94, 0.46);
+        }
+
+        .chain-arrow.failed {
+            background: rgba(239, 68, 68, 0.72);
+        }
+
+        .chain-arrow.live::before,
+        .chain-arrow.failed::before {
+            content: "";
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 12px rgba(34, 197, 94, 0.85);
+            animation: flowPacket 1.65s linear infinite;
+        }
+
+        .chain-arrow.failed::before {
+            background: var(--red);
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+            animation-duration: 1.05s;
+        }
+
+        .chain-arrow::after {
+            content: "";
+            position: absolute;
+            right: -1px;
+            top: -4px;
+            border-left: 7px solid #3b4658;
+            border-top: 4px solid transparent;
+            border-bottom: 4px solid transparent;
+        }
+
+        .chain-arrow.live::after {
+            border-left-color: rgba(34, 197, 94, 0.72);
+        }
+
+        .chain-arrow.failed::after {
+            border-left-color: rgba(239, 68, 68, 0.86);
+        }
+
+        .trace-board {
+            position: relative;
+            height: 360px;
+            padding: 16px;
+            background:
+                linear-gradient(rgba(39, 48, 61, 0.32) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(39, 48, 61, 0.32) 1px, transparent 1px),
+                radial-gradient(circle at 20% 20%, rgba(79, 140, 255, 0.11), transparent 30%),
+                #0a0e14;
+            background-size: 28px 28px, 28px 28px, auto, auto;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .trace-request-card {
+            position: absolute;
+            left: 14px;
+            bottom: 12px;
+            max-width: 330px;
+            border: 1px solid var(--line-soft);
+            border-radius: 9px;
+            background: rgba(7, 10, 15, 0.9);
+            box-shadow: 0 16px 32px rgba(0, 0, 0, 0.28);
+            padding: 9px 11px;
+            pointer-events: none;
+        }
+
+        .trace-request-title {
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 780;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .trace-request-meta {
+            margin-top: 4px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .trace-scroll-note {
+            position: absolute;
+            right: 14px;
+            bottom: 10px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            background: rgba(10, 14, 20, 0.82);
+            border: 1px solid var(--line-soft);
+            border-radius: 999px;
+            padding: 4px 8px;
+            pointer-events: none;
+        }
+
+        .trace-svg {
+            width: 1180px;
+            height: 310px;
+            min-width: 1180px;
+        }
+
+        .trace-edge {
+            stroke: #3b4658;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .trace-edge.hot {
+            stroke: var(--red);
+            stroke-dasharray: 7 5;
+        }
+
+        .trace-edge.success {
+            stroke: rgba(34, 197, 94, 0.72);
+        }
+
+        .trace-edge.branch {
+            stroke: #475569;
+            stroke-dasharray: 5 5;
+        }
+
+        .trace-packet {
+            r: 4;
+            fill: var(--green);
+            filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.9));
+        }
+
+        .trace-packet.hot {
+            fill: var(--red);
+            filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+        }
+
+        .trace-node rect {
+            fill: #101720;
+            stroke: #344054;
+            stroke-width: 1.2;
+            rx: 9;
+        }
+
+        .trace-node.active rect {
+            stroke: rgba(79, 140, 255, 0.92);
+            fill: #111c2d;
+        }
+
+        .trace-node.failed rect {
+            stroke: rgba(239, 68, 68, 0.82);
+            fill: #1b1115;
+        }
+
+        .trace-node.success rect {
+            stroke: rgba(34, 197, 94, 0.58);
+            fill: #0d1914;
+        }
+
+        .trace-node.warning rect {
+            stroke: rgba(79, 140, 255, 0.62);
+            fill: #111827;
+        }
+
+        .trace-node text {
+            fill: #e5edf8;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+            font-weight: 760;
+            text-anchor: middle;
+            dominant-baseline: middle;
+        }
+
+        .trace-lane-label {
+            fill: #7f8da1;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .trace-caption {
+            fill: #cbd5e1;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+        }
+
+        .trace-inspector {
+            padding: 14px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .span-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .span-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--line-soft);
+            background: #0a0f16;
+            border-radius: 8px;
+            padding: 9px 10px;
+        }
+
+        .span-name {
+            font-size: 12px;
+            font-weight: 720;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .span-type {
+            margin-top: 4px;
+            color: var(--subtle);
+            font-size: 10px;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+        }
+
+        .code-box {
+            margin-top: 10px;
+            border: 1px solid var(--line-soft);
+            background: #080b10;
+            border-radius: 8px;
+            padding: 10px;
+            color: #c7d2fe;
+            font-size: 11px;
+            line-height: 1.55;
+            overflow: auto;
+            max-height: 180px;
+        }
+
+        .drawer {
+            position: fixed;
+            inset: 0 0 0 auto;
+            width: min(520px, 100vw);
+            background: #0d1117;
+            border-left: 1px solid var(--line);
+            box-shadow: -18px 0 46px rgba(0, 0, 0, 0.38);
+            transform: translateX(105%);
+            transition: transform 180ms ease;
+            z-index: 30;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .drawer-title {
+            font-size: 16px;
+            font-weight: 780;
+        }
+
+        .drawer-body {
+            padding: 16px;
+            overflow: auto;
+        }
+
+        .field-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .field {
+            border: 1px solid var(--line-soft);
+            background: #0a0e14;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 0;
+        }
+
+        .field-label {
+            color: var(--subtle);
+            font-size: 10px;
+            text-transform: uppercase;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            margin-bottom: 7px;
+        }
+
+        .field-value {
+            font-size: 12px;
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.58);
+            padding: 18px;
+        }
+
+        .modal.open {
+            display: flex;
+        }
+
+        .modal-panel {
+            width: min(520px, 100%);
+            background: #0d1117;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+
+        .modal-header,
+        .modal-footer {
+            padding: 14px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--line-soft);
+            border-bottom: 0;
+            justify-content: flex-end;
+        }
+
+        .form {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .form-row {
+            display: grid;
+            gap: 6px;
+        }
+
+        .form-row label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .input {
+            min-height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--line);
+            background: #090d13;
+            color: var(--text);
+            padding: 8px 10px;
+            outline: none;
+            font-size: 13px;
+        }
+
+        .input:focus {
+            border-color: rgba(79, 140, 255, 0.72);
+        }
+
+        .switch {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #242b36;
+            padding: 0;
+        }
+
+        .switch::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #aab4c2;
+            transition: transform 160ms ease, background 160ms ease;
+        }
+
+        .switch.on {
+            background: rgba(34, 197, 94, 0.24);
+            border-color: rgba(34, 197, 94, 0.44);
+        }
+
+        .switch.on::after {
+            transform: translateX(17px);
+            background: #86efac;
+        }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .setting-card {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                #0d1219;
+            overflow: hidden;
+        }
+
+        .setting-card-head {
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .setting-card-title {
+            font-size: 13px;
+            font-weight: 760;
+        }
+
+        .setting-card-desc {
+            margin-top: 5px;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .setting-list {
+            display: grid;
+        }
+
+        .setting-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 14px;
+            align-items: center;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--line-soft);
+        }
+
+        .setting-row:last-child {
+            border-bottom: 0;
+        }
+
+        .setting-name {
+            font-size: 12px;
+            font-weight: 720;
+        }
+
+        .setting-help {
+            margin-top: 4px;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.4;
+        }
+
+        .setting-value {
+            min-width: 118px;
+            min-height: 32px;
+            border: 1px solid #303948;
+            border-radius: 8px;
+            background: #090d13;
+            color: var(--text);
+            padding: 7px 9px;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        @media (max-width: 1060px) {
+            .app {
+                grid-template-columns: 76px minmax(0, 1fr);
+            }
+
+            .metrics {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .ops-strip {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .overview-summary,
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2,
+            .detail-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 740px) {
+            body {
+                overflow: auto;
+            }
+
+            .app {
+                height: auto;
+                min-height: 100vh;
+                grid-template-columns: 1fr;
+            }
+
+            .app:has(.sidebar:hover) {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                width: 100%;
+                overflow: visible;
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                border-right: 0;
+                border-bottom: 1px solid var(--line-soft);
+            }
+
+            .sidebar:hover {
+                width: 100%;
+                box-shadow: none;
+            }
+
+            .brand {
+                height: 58px;
+                justify-content: flex-start;
+                padding: 0 14px;
+            }
+
+            .brand-copy {
+                display: block;
+                width: auto;
+                visibility: visible;
+                opacity: 1;
+                transform: none;
+                pointer-events: auto;
+            }
+
+            .nav {
+                display: flex;
+                overflow-x: auto;
+                padding: 8px;
+            }
+
+            .nav-button {
+                width: auto;
+                min-width: 44px;
+                display: grid;
+                grid-template-columns: 24px;
+                padding: 9px 10px;
+            }
+
+            .nav-label {
+                display: none;
+            }
+
+            .sidebar-footer {
+                display: none;
+            }
+
+            .main {
+                min-height: 0;
+            }
+
+            .topbar {
+                height: auto;
+                padding: 12px;
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .topbar-left,
+            .topbar-right {
+                width: 100%;
+            }
+
+            .search {
+                width: 100%;
+            }
+
+            .global-search {
+                width: 100%;
+            }
+
+            .content {
+                padding: 12px;
+            }
+
+            .metrics,
+            .ops-strip,
+            .overview-summary,
+            .grid-even,
+            .field-grid,
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-header {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 32 32">
+                        <path d="M7 9.5h7.5c4.6 0 7.5 2.6 7.5 6.5s-2.9 6.5-7.5 6.5H12v5H7v-18Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
+                        <circle cx="23.5" cy="7.5" r="2.5" fill="currentColor"/>
+                        <path d="M20.5 9.5 14 16l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="brand-copy">
+                    <div class="brand-title">Pilot</div>
+                    <div class="brand-subtitle">Reliability console</div>
+                </div>
+            </div>
+            <nav class="nav" aria-label="Dashboard navigation">
+                <button class="nav-button active" data-page-button="overview"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z"/></svg></span><span class="nav-label">Overview</span></button>
+                <button class="nav-button" data-page-button="workflows"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 7h5m2 0h5M8.5 7v5m0 5h7M15.5 12v5M5 12h7v5H5v-5Zm7-10h8v5h-8V2Zm0 10h8v5h-8v-5Z"/></svg></span><span class="nav-label">Workflows</span></button>
+                <button class="nav-button" data-page-button="executions"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7ZM4 5v14"/></svg></span><span class="nav-label">Executions</span></button>
+                <button class="nav-button" data-page-button="flags"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 21V4m0 0h11l-1.5 4L17 12H6"/></svg></span><span class="nav-label">Feature Flags</span></button>
+                <button class="nav-button" data-page-button="errors"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 3.8 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg></span><span class="nav-label">Errors</span></button>
+                <button class="nav-button" data-page-button="traces"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></span><span class="nav-label">Traces</span></button>
+                <button class="nav-button" data-page-button="health"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-8 8-8 8s-8-3-8-8V5l8-3 8 3v8Zm-12-1h2l1.5-3 2.5 6 1.5-3H18"/></svg></span><span class="nav-label">Health</span></button>
+                <button class="nav-button" data-page-button="settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .9l-.03.08A2 2 0 0 1 12.13 21h-.26a2 2 0 0 1-1.84-1.22l-.03-.08a1.7 1.7 0 0 0-1-.9 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.9-1l-.08-.03A2 2 0 0 1 3 12.13v-.26a2 2 0 0 1 1.22-1.84l.08-.03a1.7 1.7 0 0 0 .9-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.9l.03-.08A2 2 0 0 1 11.87 3h.26a2 2 0 0 1 1.84 1.22l.03.08a1.7 1.7 0 0 0 1 .9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.14.38.46.7.9.9l.08.03A2 2 0 0 1 21 11.87v.26a2 2 0 0 1-1.22 1.84l-.08.03a1.7 1.7 0 0 0-.3 1Z"/></svg></span><span class="nav-label">Settings</span></button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="health-line"><span>Service</span><strong id="sidebar-service">checkout-api</strong></div>
+                <div class="health-line"><span>Postgres</span><span class="badge ok"><span class="dot"></span>online</span></div>
+                <div class="health-line"><span>Worker</span><span class="badge info"><span class="dot"></span>enabled</span></div>
+            </div>
+        </aside>
+
+        <div class="main">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <div class="service-name" id="top-service">checkout-api</div>
+                    <span class="env-pill">production</span>
+                </div>
+                <div class="topbar-right">
+                    <div class="global-search" id="global-search-shell">
+                        <span class="search-icon">/</span>
+                        <input id="global-search" class="search" type="search" placeholder="Search errors, traces, workflow IDs">
+                        <span class="search-kbd">Ctrl K</span>
+                        <div class="search-results" id="global-search-results"></div>
+                    </div>
+                    <select id="time-range" class="select" aria-label="Time range">
+                        <option>Last 1 hour</option>
+                        <option>Last 24 hours</option>
+                        <option>Last 7 days</option>
+                    </select>
+                    <button id="refresh-button" class="icon-button" title="Refresh">R</button>
+                </div>
+            </header>
+
+            <main class="content">
+                <section id="page-overview" class="page active">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Overview</h1>
+                            <div class="page-meta">System health, workflow failures, feature flag state, and recent captured errors.</div>
+                        </div>
+                    </div>
+                    <div class="overview-summary">
+                        <div class="summary-primary">
+                            <div class="summary-kicker">Current priority</div>
+                            <h2 class="summary-title">Checkout is failing while creating orders after payment succeeds.</h2>
+                            <p class="summary-copy">The active trace points to the checkout workflow. Payment and inventory steps are completing, but create-order is failing and generating retries.</p>
+                            <div class="summary-actions">
+                                <span class="badge bad"><span class="dot"></span>5 failed executions</span>
+                                <span class="badge warn"><span class="dot"></span>18 queued jobs</span>
+                                <span class="badge info">trc_72a1 critical trace</span>
+                            </div>
+                        </div>
+                        <div class="summary-side">
+                            <div class="summary-stat"><span>Queue depth</span><strong>18 jobs waiting</strong></div>
+                            <div class="summary-stat"><span>Index freshness</span><strong>errors synced 24s ago</strong></div>
+                            <div class="summary-stat"><span>Worker state</span><strong style="color: var(--green);">enabled</strong></div>
+                            <div class="summary-stat"><span>Slowest span</span><strong>warehouse-api 2210ms</strong></div>
+                        </div>
+                    </div>
+                    <div class="metrics">
+                        <div class="metric"><div class="metric-label">Total workflows</div><div><div class="metric-value">8</div><div class="metric-delta">+1 this week</div></div></div>
+                        <div class="metric"><div class="metric-label">Running executions</div><div><div class="metric-value" style="color: var(--amber)">3</div><div class="metric-delta">oldest 42s</div></div></div>
+                        <div class="metric"><div class="metric-label">Failed executions</div><div><div class="metric-value" style="color: var(--red)">5</div><div class="metric-delta">3 checkout retries</div></div></div>
+                        <div class="metric"><div class="metric-label">Recent errors</div><div><div class="metric-value" style="color: var(--red)">14</div><div class="metric-delta">last 60 min</div></div></div>
+                        <div class="metric"><div class="metric-label">Active flags</div><div><div class="metric-value">6</div><div class="metric-delta">2 partial rollout</div></div></div>
+                        <div class="metric"><div class="metric-label">Avg latency</div><div><div class="metric-value" style="color: var(--green)">138ms</div><div class="metric-delta">p95 441ms</div></div></div>
+                    </div>
+                    <div class="grid-2">
+                        <div class="stack">
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <div class="panel-title">Recent workflow executions</div>
+                                    <button class="button" data-go="executions">View all</button>
+                                </div>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead><tr><th>Execution</th><th>Workflow</th><th>Status</th><th>Failed step</th><th class="right">Duration</th></tr></thead>
+                                        <tbody id="overview-executions"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="panel">
+                                <div class="panel-header">
+                                    <div class="panel-title">Recent errors</div>
+                                    <button class="button" data-go="errors">Search errors</button>
+                                </div>
+                                <div class="table-wrap">
+                                    <table>
+                                        <thead><tr><th>Error</th><th>Category</th><th>Source</th><th>Trace</th><th class="right">Occurred</th></tr></thead>
+                                        <tbody id="overview-errors"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel health-panel">
+                            <div class="panel-header"><div class="panel-title">Infrastructure health</div></div>
+                            <div class="health-list dynamic-fill" id="overview-health"></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-workflows" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Workflows</h1>
+                            <div class="page-meta">Registered through code with pilot.workflow(...). Creation is intentionally not exposed here.</div>
+                        </div>
+                    </div>
+                    <div class="pinned-workflows">
+                        <div class="panel-header">
+                            <div>
+                                <div class="panel-title">Pinned workflow chains</div>
+                                <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin up to 4 workflows from the table below</div>
+                            </div>
+                            <span class="badge info" id="pinned-count">0 / 4 pinned</span>
+                        </div>
+                        <div class="workflow-grid" id="workflow-chain-grid"></div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">Registered workflows</div></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Name</th><th>Version</th><th>Steps</th><th>Created</th><th>Last status</th><th>Pinned</th><th class="right">Failures</th></tr></thead>
+                                <tbody id="workflow-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-executions" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Executions</h1>
+                            <div class="page-meta">Inspect workflow runs, retries, inputs, failed steps, and timing.</div>
+                        </div>
+                    </div>
+                    <div class="filters">
+                        <select id="execution-status-filter" class="select">
+                            <option value="all">All statuses</option>
+                            <option value="queued">Queued</option>
+                            <option value="running">Running</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                        <input id="execution-search" class="search" type="search" placeholder="Filter workflow or execution ID">
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">Workflow executions</div></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Execution</th><th>Workflow</th><th>Status</th><th>Started</th><th>Finished</th><th>Failed step</th><th class="right">Attempts</th></tr></thead>
+                                <tbody id="execution-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-flags" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Feature Flags</h1>
+                            <div class="page-meta">Manage enabled state, deterministic rollout percentage, rules, and audit history.</div>
+                        </div>
+                        <button id="open-flag-modal" class="button primary">Create flag</button>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">Flags</div></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Key</th><th>Enabled</th><th>Rollout</th><th>Rules</th><th>Changed by</th><th class="right">Actions</th></tr></thead>
+                                <tbody id="flag-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-errors" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Errors</h1>
+                            <div class="page-meta">Captured from Express middleware, workflows, flags, traces, and manual pilot.captureError(...).</div>
+                        </div>
+                    </div>
+                    <div class="filters">
+                        <input id="error-search" class="search" type="search" placeholder="Search message, stack, source">
+                        <select id="error-category-filter" class="select">
+                            <option value="all">All categories</option>
+                            <option value="server">Server</option>
+                            <option value="database">Database</option>
+                            <option value="dependency">Dependency</option>
+                            <option value="configuration">Configuration</option>
+                            <option value="client">Client</option>
+                        </select>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">Captured errors</div><span class="badge cyan"><span class="dot"></span>Elasticsearch search</span></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Message</th><th>Name</th><th>Category</th><th>Level</th><th>Source</th><th>Status</th><th>Trace</th><th class="right">Occurred</th></tr></thead>
+                                <tbody id="error-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-traces" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Traces</h1>
+                            <div class="page-meta">Request traces and spans for HTTP, workflow, feature flag, database, external API, and custom blocks.</div>
+                        </div>
+                    </div>
+                    <div class="grid-2" style="margin-bottom: 14px;">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <div class="panel-title">Trace graph</div>
+                                <span class="badge bad"><span class="dot"></span>failed path highlighted</span>
+                            </div>
+                            <div class="trace-board" id="trace-graph"></div>
+                        </div>
+                        <div class="panel">
+                            <div class="panel-header">
+                                <div class="panel-title">Span inspector</div>
+                                <span class="badge info">selected trace</span>
+                            </div>
+                            <div class="trace-inspector">
+                                <div class="field-grid">
+                                    <div class="field"><div class="field-label">Trace</div><div class="field-value mono" id="trace-inspector-id">trc_72a1</div></div>
+                                    <div class="field"><div class="field-label">Critical path</div><div class="field-value mono" id="trace-inspector-critical">7420ms</div></div>
+                                </div>
+                                <div class="span-list" id="trace-span-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="filters">
+                        <input id="trace-search" class="search" type="search" placeholder="Search path, trace ID, IP">
+                        <select id="trace-status-filter" class="select">
+                            <option value="all">All status codes</option>
+                            <option value="2">2xx</option>
+                            <option value="4">4xx</option>
+                            <option value="5">5xx</option>
+                        </select>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header"><div class="panel-title">Request traces</div><span class="badge cyan"><span class="dot"></span>Indexed spans</span></div>
+                        <div class="table-wrap">
+                            <table>
+                                <thead><tr><th>Trace ID</th><th>Method</th><th>Path</th><th>Status</th><th>IP</th><th class="right">Duration</th></tr></thead>
+                                <tbody id="trace-table"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-health" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Health</h1>
+                            <div class="page-meta">Postgres, Redis, Elasticsearch, and worker runtime health.</div>
+                        </div>
+                    </div>
+                    <div class="grid-even" id="health-cards"></div>
+                </section>
+
+                <section id="page-settings" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">Settings</h1>
+                            <div class="page-meta">Runtime settings exposed by Pilot. Secrets and connection strings stay hidden.</div>
+                        </div>
+                    </div>
+                    <div class="settings-grid">
+                        <div class="setting-card">
+                            <div class="setting-card-head">
+                                <div class="setting-card-title">Dashboard</div>
+                                <div class="setting-card-desc">Where the embedded dashboard is mounted and how access is guarded.</div>
+                            </div>
+                            <div class="setting-list">
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Mount path</div><div class="setting-help">Express route used by app.use(...).</div></div>
+                                    <div class="setting-value">/pilot</div>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Environment</div><div class="setting-help">Shown in the header and attached to traces.</div></div>
+                                    <div class="setting-value">production</div>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Dashboard auth</div><div class="setting-help">Token protection for internal routes.</div></div>
+                                    <button class="switch on" title="Dashboard auth enabled"></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-card-head">
+                                <div class="setting-card-title">Background Engine</div>
+                                <div class="setting-card-desc">BullMQ worker behavior for workflow execution jobs.</div>
+                            </div>
+                            <div class="setting-list">
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Worker enabled</div><div class="setting-help">Consumes jobs from the workflow queue.</div></div>
+                                    <button class="switch on" title="Worker enabled"></button>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Workflow concurrency</div><div class="setting-help">Maximum active workflow jobs per worker process.</div></div>
+                                    <div class="setting-value">5</div>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Queue prefix</div><div class="setting-help">Redis key namespace for Pilot queues.</div></div>
+                                    <div class="setting-value">pilot</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-card-head">
+                                <div class="setting-card-title">Observability</div>
+                                <div class="setting-card-desc">Trace and error capture settings used by middleware and package internals.</div>
+                            </div>
+                            <div class="setting-list">
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Request tracing</div><div class="setting-help">Creates a trace record for incoming HTTP requests.</div></div>
+                                    <button class="switch on" title="Request tracing enabled"></button>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Error capture</div><div class="setting-help">Stores thrown errors with trace/span context when available.</div></div>
+                                    <button class="switch on" title="Error capture enabled"></button>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Elasticsearch indexing</div><div class="setting-help">Indexes errors and traces for dashboard search.</div></div>
+                                    <button class="switch on" title="Indexing enabled"></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-card-head">
+                                <div class="setting-card-title">Persistence</div>
+                                <div class="setting-card-desc">Database and retention defaults used by migrations and dashboard queries.</div>
+                            </div>
+                            <div class="setting-list">
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Migration table</div><div class="setting-help">Tracks which Pilot SQL migrations already ran.</div></div>
+                                    <div class="setting-value">pilot_migrations</div>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Trace retention</div><div class="setting-help">How long request traces remain queryable.</div></div>
+                                    <div class="setting-value">30 days</div>
+                                </div>
+                                <div class="setting-row">
+                                    <div><div class="setting-name">Error retention</div><div class="setting-help">How long captured errors stay in Postgres.</div></div>
+                                    <div class="setting-value">90 days</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <aside id="detail-drawer" class="drawer" aria-hidden="true">
+        <div class="drawer-header">
+            <div>
+                <div id="drawer-title" class="drawer-title">Details</div>
+                <div id="drawer-subtitle" class="page-meta">Selected record</div>
+            </div>
+            <button id="close-drawer" class="icon-button" title="Close">X</button>
+        </div>
+        <div id="drawer-body" class="drawer-body"></div>
+    </aside>
+
+    <div id="flag-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="flag-modal-title">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <strong id="flag-modal-title">Create feature flag</strong>
+                <button id="close-flag-modal" class="icon-button" title="Close">X</button>
+            </div>
+            <form id="flag-form">
+                <div class="form">
+                    <div class="form-row">
+                        <label for="flag-key">Flag key</label>
+                        <input id="flag-key" class="input" required placeholder="new-checkout">
+                    </div>
+                    <div class="form-row">
+                        <label for="flag-description">Description</label>
+                        <input id="flag-description" class="input" placeholder="Enable the new checkout workflow">
+                    </div>
+                    <div class="form-row">
+                        <label for="flag-rollout">Rollout percentage</label>
+                        <input id="flag-rollout" class="input" type="number" min="0" max="100" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="button" id="cancel-flag">Cancel</button>
+                    <button type="submit" class="button primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const state = {
+            workflows: [
+                { name: "checkout", version: 3, steps: 5, created: "2026-06-10 14:12", lastStatus: "failed", failures: 4, pinned: true, chain: ["charge-card", "deduct-inventory", "create-order", "send-email", "notify-warehouse"] },
+                { name: "refund-payment", version: 1, steps: 4, created: "2026-06-11 09:31", lastStatus: "completed", failures: 0, pinned: true, chain: ["load-order", "refund-provider", "restore-stock", "send-receipt"] },
+                { name: "warehouse-dispatch", version: 2, steps: 6, created: "2026-06-12 18:45", lastStatus: "running", failures: 1, pinned: true, chain: ["reserve-bin", "print-label", "pack-order", "handoff-courier", "sync-erp", "notify-user"] },
+                { name: "trial-expiry", version: 1, steps: 3, created: "2026-06-13 10:06", lastStatus: "completed", failures: 0, pinned: false, chain: ["find-expired", "disable-access", "send-summary"] },
+                { name: "invoice-sync", version: 2, steps: 5, created: "2026-06-13 13:24", lastStatus: "completed", failures: 0, pinned: false, chain: ["load-invoice", "tax-check", "push-ledger", "mark-paid", "notify-finance"] },
+                { name: "user-onboarding", version: 4, steps: 6, created: "2026-06-14 09:12", lastStatus: "queued", failures: 2, pinned: false, chain: ["create-profile", "send-welcome", "provision-plan", "sync-crm", "schedule-email", "finish"] }
+            ],
+            executions: [
+                { id: "exe_8f31a", workflow: "checkout", status: "failed", started: "10:42:14", finished: "10:42:21", failedStep: "create-order", attempts: 3, duration: "7.2s" },
+                { id: "exe_8f2c9", workflow: "warehouse-dispatch", status: "running", started: "10:41:58", finished: "-", failedStep: "-", attempts: 1, duration: "3.6s" },
+                { id: "exe_8f1b5", workflow: "refund-payment", status: "completed", started: "10:39:03", finished: "10:39:05", failedStep: "-", attempts: 1, duration: "1.8s" },
+                { id: "exe_8ef90", workflow: "checkout", status: "queued", started: "-", finished: "-", failedStep: "-", attempts: 0, duration: "-" },
+                { id: "exe_8ee44", workflow: "trial-expiry", status: "completed", started: "10:33:18", finished: "10:33:19", failedStep: "-", attempts: 1, duration: "910ms" }
+            ],
+            flags: [
+                { key: "new-checkout", enabled: true, rollout: 25, rules: 2, changedBy: "ops@company.com" },
+                { key: "fast-refunds", enabled: false, rollout: 0, rules: 1, changedBy: "dev@company.com" },
+                { key: "warehouse-v2", enabled: true, rollout: 100, rules: 0, changedBy: "ops@company.com" },
+                { key: "pro-plan-upsell", enabled: true, rollout: 10, rules: 3, changedBy: "growth@company.com" }
+            ],
+            errors: [
+                { message: "database timeout while creating order", name: "QueryTimeoutError", category: "database", level: "error", source: "workflow_step", status: 500, trace: "trc_72a1", occurred: "10:42:21" },
+                { message: "payment provider returned 503", name: "ProviderError", category: "dependency", level: "error", source: "external_api", status: 503, trace: "trc_71ee", occurred: "10:38:09" },
+                { message: "missing redis url in config", name: "ConfigError", category: "configuration", level: "critical", source: "runtime", status: 500, trace: "-", occurred: "10:31:44" },
+                { message: "feature flag rule value was invalid", name: "ValidationError", category: "client", level: "warning", source: "feature_flag", status: 400, trace: "trc_70d0", occurred: "10:25:11" }
+            ],
+            traces: [
+                {
+                    id: "trc_72a1",
+                    method: "POST",
+                    path: "/api/orders",
+                    status: 500,
+                    ip: "103.44.18.20",
+                    duration: 7420,
+                    spans: [
+                        { name: "http.request", type: "request", status: "failed", duration: 7420 },
+                        { name: "auth.session", type: "database", status: "completed", duration: 38 },
+                        { name: "pilot.flag(new-checkout)", type: "feature_flag", status: "completed", duration: 12 },
+                        { name: "pilot.workflow(checkout)", type: "workflow", status: "failed", duration: 7240 },
+                        { name: "charge-card", type: "workflow_step", status: "completed", duration: 1180 },
+                        { name: "create-order", type: "workflow_step", status: "failed", duration: 3010 }
+                    ]
+                },
+                {
+                    id: "trc_71ee",
+                    method: "POST",
+                    path: "/api/refunds",
+                    status: 503,
+                    ip: "103.44.18.20",
+                    duration: 1880,
+                    spans: [
+                        { name: "http.request", type: "request", status: "failed", duration: 1880 },
+                        { name: "refund-provider", type: "external_api", status: "failed", duration: 1690 },
+                        { name: "pilot.captureError", type: "custom", status: "completed", duration: 34 }
+                    ]
+                },
+                {
+                    id: "trc_70d0",
+                    method: "GET",
+                    path: "/api/checkout",
+                    status: 200,
+                    ip: "127.0.0.1",
+                    duration: 138,
+                    spans: [
+                        { name: "http.request", type: "request", status: "completed", duration: 138 },
+                        { name: "pilot.flag(new-checkout)", type: "feature_flag", status: "completed", duration: 9 },
+                        { name: "load-cart", type: "database", status: "completed", duration: 41 }
+                    ]
+                },
+                {
+                    id: "trc_7091",
+                    method: "PATCH",
+                    path: "/api/flags/new-checkout",
+                    status: 200,
+                    ip: "127.0.0.1",
+                    duration: 44,
+                    spans: [
+                        { name: "http.request", type: "request", status: "completed", duration: 44 },
+                        { name: "update-feature-flag", type: "database", status: "completed", duration: 18 },
+                        { name: "redis.cache.invalidate", type: "custom", status: "completed", duration: 4 }
+                    ]
+                }
+            ],
+            health: [
+                { name: "Postgres", status: "ok", latency: 12, description: "Primary persistence for workflows, flags, traces, and errors." },
+                { name: "Redis", status: "ok", latency: 4, description: "BullMQ queue transport and feature flag cache." },
+                { name: "Elasticsearch", status: "degraded", latency: 96, description: "Search index for errors and trace spans." },
+                { name: "BullMQ Worker", status: "ok", latency: 8, description: "Background workflow execution worker." }
+            ]
+        };
+
+        const pageButtons = document.querySelectorAll("[data-page-button]");
+        const pages = document.querySelectorAll(".page");
+        const drawer = document.getElementById("detail-drawer");
+        const drawerTitle = document.getElementById("drawer-title");
+        const drawerSubtitle = document.getElementById("drawer-subtitle");
+        const drawerBody = document.getElementById("drawer-body");
+        const flagModal = document.getElementById("flag-modal");
+        const globalSearchShell = document.getElementById("global-search-shell");
+        const globalSearchInput = document.getElementById("global-search");
+        const globalSearchResults = document.getElementById("global-search-results");
+
+        function badgeForStatus(status) {
+            if (status === "completed" || status === "ok") return `<span class="badge ok"><span class="dot"></span>${status}</span>`;
+            if (status === "running" || status === "queued" || status === "degraded") return `<span class="badge warn"><span class="dot"></span>${status}</span>`;
+            return `<span class="badge bad"><span class="dot"></span>${status}</span>`;
+        }
+
+        function badgeForMethod(method) {
+            if (method === "GET") return `<span class="badge ok">${method}</span>`;
+            if (method === "POST") return `<span class="badge info">${method}</span>`;
+            if (method === "PATCH") return `<span class="badge warn">${method}</span>`;
+            return `<span class="badge bad">${method}</span>`;
+        }
+
+        function showPage(pageName) {
+            pageButtons.forEach((button) => button.classList.toggle("active", button.dataset.pageButton === pageName));
+            pages.forEach((page) => page.classList.toggle("active", page.id === `page-${pageName}`));
+        }
+
+        function openDrawer(title, subtitle, html) {
+            drawerTitle.textContent = title;
+            drawerSubtitle.textContent = subtitle;
+            drawerBody.innerHTML = html;
+            drawer.classList.add("open");
+            drawer.setAttribute("aria-hidden", "false");
+        }
+
+        function closeDrawer() {
+            drawer.classList.remove("open");
+            drawer.setAttribute("aria-hidden", "true");
+        }
+
+        function renderOverview() {
+            document.getElementById("overview-executions").innerHTML = state.executions.slice(0, 5).map((execution) => `
+                <tr data-execution="${execution.id}">
+                    <td class="mono">${execution.id}</td>
+                    <td>${execution.workflow}</td>
+                    <td>${badgeForStatus(execution.status)}</td>
+                    <td>${execution.failedStep}</td>
+                    <td class="right mono">${execution.duration}</td>
+                </tr>
+            `).join("");
+
+            document.getElementById("overview-errors").innerHTML = state.errors.slice(0, 4).map((error, index) => `
+                <tr data-error="${index}">
+                    <td>${error.message}</td>
+                    <td>${badgeForStatus(error.category === "client" ? "queued" : "failed")}</td>
+                    <td>${error.source}</td>
+                    <td class="mono">${error.trace}</td>
+                    <td class="right mono">${error.occurred}</td>
+                </tr>
+            `).join("");
+
+            const overviewHealth = document.getElementById("overview-health");
+            overviewHealth.classList.toggle("is-compact", state.health.length > 4);
+            overviewHealth.innerHTML = state.health.map((item) => `
+                <div class="health-row">
+                    <div class="health-top">
+                        <div class="health-name">${item.name}</div>
+                        ${badgeForStatus(item.status)}
+                    </div>
+                    <div class="muted" style="font-size: 12px;">${item.description}</div>
+                    <div class="health-top mono subtle"><span>${item.latency}ms latency</span><span>last checked now</span></div>
+                </div>
+            `).join("");
+        }
+
+        function renderWorkflows() {
+            const pinnedWorkflows = state.workflows.filter((workflow) => workflow.pinned).slice(0, 4);
+            document.getElementById("pinned-count").textContent = `${pinnedWorkflows.length} / 4 pinned`;
+            document.getElementById("workflow-chain-grid").innerHTML = pinnedWorkflows.length ? pinnedWorkflows.map((workflow) => `
+                <div class="workflow-card" data-workflow="${workflow.name}">
+                    <div class="workflow-card-head">
+                        <div>
+                            <div class="workflow-card-title">${workflow.name}</div>
+                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">v${workflow.version} / ${workflow.steps} steps</div>
+                        </div>
+                        ${badgeForStatus(workflow.lastStatus)}
+                    </div>
+                    <div class="workflow-chain">
+                        ${workflow.chain.map((step, index) => `
+                            ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
+                            <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
+                                <div class="workflow-step-name">${step}</div>
+                                <div class="workflow-step-meta">step ${index + 1} / retry ${workflow.failures ? "3" : "0"}</div>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            `).join("") : `
+                <div class="workflow-card" style="grid-column: 1 / -1;">
+                    <div class="workflow-card-head">
+                        <div>
+                            <div class="workflow-card-title">No pinned workflows</div>
+                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin important workflows from the table below.</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("workflow-table").innerHTML = state.workflows.map((workflow) => `
+                <tr data-workflow="${workflow.name}">
+                    <td><strong>${workflow.name}</strong></td>
+                    <td class="mono">v${workflow.version}</td>
+                    <td class="mono">${workflow.steps}</td>
+                    <td class="mono">${workflow.created}</td>
+                    <td>${badgeForStatus(workflow.lastStatus)}</td>
+                    <td><button class="pin-button ${workflow.pinned ? "active" : ""}" data-toggle-pin="${workflow.name}">${workflow.pinned ? "Pinned" : "Pin"}</button></td>
+                    <td class="right mono">${workflow.failures}</td>
+                </tr>
+            `).join("");
+        }
+
+        function getWorkflowStepClass(workflow, step) {
+            if (workflow.lastStatus === "failed" && step === "create-order") return "failed";
+            if (workflow.lastStatus === "running" && step === "pack-order") return "running live";
+            if (workflow.lastStatus === "completed") return "live";
+            return "";
+        }
+
+        function getWorkflowArrowClass(workflow, step) {
+            if (workflow.lastStatus === "failed" && step === "create-order") return "failed";
+            if (workflow.lastStatus === "running") return "live";
+            if (workflow.lastStatus === "completed") return "live";
+            return "";
+        }
+
+        function renderExecutions() {
+            const statusFilter = document.getElementById("execution-status-filter").value;
+            const search = document.getElementById("execution-search").value.toLowerCase();
+            const rows = state.executions.filter((execution) => {
+                const statusMatch = statusFilter === "all" || execution.status === statusFilter;
+                const textMatch = `${execution.id} ${execution.workflow}`.toLowerCase().includes(search);
+                return statusMatch && textMatch;
+            });
+
+            document.getElementById("execution-table").innerHTML = rows.map((execution) => `
+                <tr data-execution="${execution.id}">
+                    <td class="mono">${execution.id}</td>
+                    <td>${execution.workflow}</td>
+                    <td>${badgeForStatus(execution.status)}</td>
+                    <td class="mono">${execution.started}</td>
+                    <td class="mono">${execution.finished}</td>
+                    <td>${execution.failedStep}</td>
+                    <td class="right mono">${execution.attempts}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderFlags() {
+            document.getElementById("flag-table").innerHTML = state.flags.map((flag) => `
+                <tr data-flag="${flag.key}">
+                    <td><strong>${flag.key}</strong></td>
+                    <td><button class="switch ${flag.enabled ? "on" : ""}" data-toggle-flag="${flag.key}" title="Toggle ${flag.key}"></button></td>
+                    <td>
+                        <div class="mono">${flag.rollout}%</div>
+                        <div class="bar" style="margin-top: 6px;"><div class="bar-fill" style="width: ${flag.rollout}%;"></div></div>
+                    </td>
+                    <td class="mono">${flag.rules}</td>
+                    <td>${flag.changedBy}</td>
+                    <td class="right"><button class="button" data-delete-flag="${flag.key}">Delete</button></td>
+                </tr>
+            `).join("");
+        }
+
+        function renderErrors() {
+            const category = document.getElementById("error-category-filter").value;
+            const search = document.getElementById("error-search").value.toLowerCase();
+            const rows = state.errors.filter((error) => {
+                const categoryMatch = category === "all" || error.category === category;
+                const textMatch = `${error.message} ${error.name} ${error.source}`.toLowerCase().includes(search);
+                return categoryMatch && textMatch;
+            });
+
+            document.getElementById("error-table").innerHTML = rows.map((error, index) => `
+                <tr data-error="${state.errors.indexOf(error)}">
+                    <td>${error.message}</td>
+                    <td>${error.name}</td>
+                    <td>${error.category}</td>
+                    <td>${error.level === "critical" ? badgeForStatus("failed") : `<span class="badge warn">${error.level}</span>`}</td>
+                    <td>${error.source}</td>
+                    <td class="mono">${error.status}</td>
+                    <td class="mono">${error.trace}</td>
+                    <td class="right mono">${error.occurred}</td>
+                </tr>
+            `).join("");
+        }
+
+        function renderTraces() {
+            const statusGroup = document.getElementById("trace-status-filter").value;
+            const search = document.getElementById("trace-search").value.toLowerCase();
+            const rows = state.traces.filter((trace) => {
+                const groupMatch = statusGroup === "all" || String(trace.status).startsWith(statusGroup);
+                const textMatch = `${trace.id} ${trace.path} ${trace.ip}`.toLowerCase().includes(search);
+                return groupMatch && textMatch;
+            });
+
+            document.getElementById("trace-table").innerHTML = rows.map((trace) => `
+                <tr data-trace="${trace.id}">
+                    <td class="mono">${trace.id}</td>
+                    <td>${badgeForMethod(trace.method)}</td>
+                    <td>${trace.path}</td>
+                    <td class="mono">${trace.status}</td>
+                    <td class="mono">${trace.ip}</td>
+                    <td class="right mono">${trace.duration}ms</td>
+                </tr>
+            `).join("");
+
+            renderTraceGraph(rows[0] || state.traces[0]);
+        }
+
+        function renderTraceGraph(trace) {
+            if (!trace) return;
+
+            const spans = trace.spans || [];
+            const nodes = spans.map((span, index) => ({
+                ...span,
+                x: 42 + index * 172,
+                y: span.type === "feature_flag" ? 58 : span.type === "database" ? 190 : span.type === "external_api" ? 190 : 124,
+            }));
+
+            const nodeWidth = 142;
+            const nodeHeight = 58;
+            const svgWidth = Math.max(1040, nodes.length * 172 + 120);
+            const truncate = (value, limit = 18) => value.length > limit ? `${value.slice(0, limit)}...` : value;
+            const nodeName = (span) => {
+                if (span.name === "http.request") return "Request";
+                if (span.name.startsWith("pilot.flag")) return "Feature flag";
+                if (span.name.startsWith("pilot.workflow")) return "Workflow";
+                return span.name;
+            };
+            const node = (span, index) => `
+                <g class="trace-node ${span.status === "failed" ? "failed" : span.status === "completed" ? "success" : index === 0 ? "active" : ""}" data-node-span="${index}">
+                    <rect x="${span.x}" y="${span.y}" width="${nodeWidth}" height="${nodeHeight}"></rect>
+                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2}">${truncate(nodeName(span), 20)}</text>
+                </g>
+            `;
+
+            const edge = (from, to) => {
+                const x1 = from.x + nodeWidth;
+                const y1 = from.y + nodeHeight / 2;
+                const x2 = to.x;
+                const y2 = to.y + nodeHeight / 2;
+                const failedPath = to.status === "failed";
+                const successPath = to.status === "completed";
+                const branch = Math.abs(y2 - y1) > 10;
+                const marker = failedPath ? "arrow-hot" : successPath ? "arrow-success" : "arrow";
+                const edgeClass = failedPath ? "hot" : successPath ? "success" : branch ? "branch" : "";
+                const pathD = `M${x1} ${y1} C${x1 + 55} ${y1}, ${x2 - 55} ${y2}, ${x2} ${y2}`;
+
+                return `
+                    <path class="trace-edge ${edgeClass}" marker-end="url(#${marker})" d="${pathD}"></path>
+                    <circle r="4" class="trace-packet ${failedPath ? "hot" : ""}">
+                        <animateMotion dur="${failedPath ? "1.2s" : "2.2s"}" repeatCount="indefinite" path="${pathD}"></animateMotion>
+                    </circle>
+                `;
+            };
+
+            document.getElementById("trace-graph").innerHTML = `
+                <svg class="trace-svg" viewBox="0 0 ${svgWidth} 310" role="img" aria-label="Trace chain graph for ${trace.id}">
+                    <defs>
+                        <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#3b4658"></path>
+                        </marker>
+                        <marker id="arrow-hot" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#ef4444"></path>
+                        </marker>
+                        <marker id="arrow-success" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#22c55e"></path>
+                        </marker>
+                    </defs>
+                    ${nodes.slice(0, -1).map((span, index) => edge(span, nodes[index + 1])).join("")}
+                    ${nodes.map((span, index) => node(span, index)).join("")}
+                </svg>
+                <div class="trace-request-card">
+                    <div class="trace-request-title">${trace.method} ${trace.path}</div>
+                    <div class="trace-request-meta">${trace.id} / ${trace.duration}ms critical path</div>
+                </div>
+                <div class="trace-scroll-note">scroll trace chain</div>
+            `;
+
+            document.getElementById("trace-inspector-id").textContent = trace.id;
+            document.getElementById("trace-inspector-critical").textContent = `${trace.duration}ms`;
+            document.getElementById("trace-span-list").innerHTML = spans.map((span) => `
+                <div class="span-row">
+                    <div>
+                        <div class="span-name">${span.name}</div>
+                        <div class="span-type">${span.type} / ${span.status}</div>
+                    </div>
+                    <span class="mono ${span.status === "failed" ? "bad" : "muted"}">${span.duration}ms</span>
+                </div>
+            `).join("");
+        }
+
+        function renderGlobalSearch() {
+            const query = globalSearchInput.value.trim().toLowerCase();
+
+            if (!query) {
+                globalSearchResults.innerHTML = `
+                    <div class="search-result" data-go="errors">
+                        <span class="result-type">Shortcut</span>
+                        <span class="result-title">Open captured errors</span>
+                        <span class="mono subtle">Errors</span>
+                    </div>
+                    <div class="search-result" data-go="traces">
+                        <span class="result-type">Shortcut</span>
+                        <span class="result-title">Open trace graph and request spans</span>
+                        <span class="mono subtle">Traces</span>
+                    </div>
+                    <div class="search-result" data-go="executions">
+                        <span class="result-type">Shortcut</span>
+                        <span class="result-title">Inspect workflow executions</span>
+                        <span class="mono subtle">Executions</span>
+                    </div>
+                `;
+                return;
+            }
+
+            const results = [
+                ...state.executions.map((item) => ({
+                    type: "execution",
+                    title: `${item.id} / ${item.workflow}`,
+                    meta: item.status,
+                    action: "executions"
+                })),
+                ...state.errors.map((item) => ({
+                    type: "error",
+                    title: item.message,
+                    meta: item.source,
+                    action: "errors"
+                })),
+                ...state.traces.map((item) => ({
+                    type: "trace",
+                    title: `${item.id} ${item.method} ${item.path}`,
+                    meta: `${item.duration}ms`,
+                    action: "traces"
+                })),
+                ...state.flags.map((item) => ({
+                    type: "flag",
+                    title: item.key,
+                    meta: `${item.rollout}% rollout`,
+                    action: "flags"
+                }))
+            ].filter((item) => `${item.type} ${item.title} ${item.meta}`.toLowerCase().includes(query)).slice(0, 6);
+
+            globalSearchResults.innerHTML = results.length ? results.map((item) => `
+                <div class="search-result" data-go="${item.action}">
+                    <span class="result-type">${item.type}</span>
+                    <span class="result-title">${item.title}</span>
+                    <span class="mono subtle">${item.meta}</span>
+                </div>
+            `).join("") : `
+                <div class="search-result">
+                    <span class="result-type">No match</span>
+                    <span class="result-title">No local dashboard result for "${query}"</span>
+                    <span class="mono subtle">search</span>
+                </div>
+            `;
+        }
+
+        function renderHealth() {
+            document.getElementById("health-cards").innerHTML = state.health.map((item) => `
+                <div class="panel">
+                    <div class="panel-header">
+                        <div class="panel-title">${item.name}</div>
+                        ${badgeForStatus(item.status)}
+                    </div>
+                    <div style="padding: 14px; display: grid; gap: 12px;">
+                        <div class="muted">${item.description}</div>
+                        <div class="field-grid">
+                            <div class="field"><div class="field-label">Latency</div><div class="field-value mono">${item.latency}ms</div></div>
+                            <div class="field"><div class="field-label">Last checked</div><div class="field-value mono">now</div></div>
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function renderAll() {
+            renderOverview();
+            renderWorkflows();
+            renderExecutions();
+            renderFlags();
+            renderErrors();
+            renderTraces();
+            renderHealth();
+        }
+
+        function executionDetail(execution) {
+            const steps = [
+                { name: "charge-card", status: "completed", input: { amount: 1200, currency: "USD" }, time: "1.2s" },
+                { name: "deduct-inventory", status: execution.status === "queued" ? "queued" : "completed", input: { sku: "hoodie_black_m" }, time: "420ms" },
+                { name: "create-order", status: execution.status === "failed" ? "failed" : execution.status, input: { userId: "user_123" }, time: execution.status === "failed" ? "3 attempts" : "800ms" },
+                { name: "notify-warehouse", status: execution.status === "completed" ? "completed" : "queued", input: { warehouse: "blr-01" }, time: "-" }
+            ];
+
+            return `
+                <div class="field-grid" style="margin-bottom: 14px;">
+                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${execution.workflow}</div></div>
+                    <div class="field"><div class="field-label">Status</div><div class="field-value">${badgeForStatus(execution.status)}</div></div>
+                    <div class="field"><div class="field-label">Started</div><div class="field-value mono">${execution.started}</div></div>
+                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${execution.duration}</div></div>
+                </div>
+                <div class="panel" style="box-shadow: none;">
+                    <div class="panel-header"><div class="panel-title">Step timeline</div></div>
+                    <div class="timeline">
+                        ${steps.map((step, index) => `
+                            <div class="timeline-item">
+                                <div class="timeline-rail">
+                                    <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${index + 1}</div>
+                                    ${index === steps.length - 1 ? "" : `<div class="timeline-line"></div>`}
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.time}</span></div>
+                                    <div class="timeline-desc">${badgeForStatus(step.status)} <span class="mono subtle">retry policy: max 3</span></div>
+                                    <pre class="code-box">${JSON.stringify(step.input, null, 2)}</pre>
+                                    ${step.status === "failed" ? `<pre class="code-box" style="color: #fca5a5;">QueryTimeoutError: database timeout while creating order</pre>` : ""}
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+        }
+
+        function errorDetail(error) {
+            return `
+                <div class="field-grid" style="margin-bottom: 14px;">
+                    <div class="field"><div class="field-label">Name</div><div class="field-value">${error.name}</div></div>
+                    <div class="field"><div class="field-label">Category</div><div class="field-value">${error.category}</div></div>
+                    <div class="field"><div class="field-label">Level</div><div class="field-value">${error.level}</div></div>
+                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${error.trace}</div></div>
+                </div>
+                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Message</div><div class="field-value">${error.message}</div></div>
+                <pre class="code-box">Error: ${error.message}
+    at runWorkflowStep (workflowWorker.ts:74:15)
+    at executeWorkflow (workflowWorker.ts:39:9)
+    at Worker.processJob (bullmq)</pre>
+            `;
+        }
+
+        function traceDetail(trace) {
+            const spans = trace.spans || [];
+
+            return `
+                <div class="field-grid" style="margin-bottom: 14px;">
+                    <div class="field"><div class="field-label">Request</div><div class="field-value">${trace.method} ${trace.path}</div></div>
+                    <div class="field"><div class="field-label">Status code</div><div class="field-value mono">${trace.status}</div></div>
+                    <div class="field"><div class="field-label">IP address</div><div class="field-value mono">${trace.ip}</div></div>
+                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${trace.duration}ms</div></div>
+                </div>
+                <div class="timeline">
+                    ${spans.map((span, index) => `
+                        <div class="timeline-item">
+                            <div class="timeline-rail">
+                                <div class="timeline-node ${span.status === "failed" ? "bad" : "ok"}">${index + 1}</div>
+                                ${index === spans.length - 1 ? "" : `<div class="timeline-line"></div>`}
+                            </div>
+                            <div class="timeline-content">
+                                <div class="timeline-title"><span>${span.name}</span><span class="mono muted">${span.duration}ms</span></div>
+                                <div class="timeline-desc"><span class="badge info">${span.type}</span> ${badgeForStatus(span.status)}</div>
+                            </div>
+                        </div>
+                    `).join("")}
+                </div>
+            `;
+        }
+
+        pageButtons.forEach((button) => button.addEventListener("click", () => showPage(button.dataset.pageButton)));
+        document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => showPage(button.dataset.go)));
+        document.getElementById("close-drawer").addEventListener("click", closeDrawer);
+        document.getElementById("execution-status-filter").addEventListener("change", renderExecutions);
+        document.getElementById("execution-search").addEventListener("input", renderExecutions);
+        document.getElementById("error-category-filter").addEventListener("change", renderErrors);
+        document.getElementById("error-search").addEventListener("input", renderErrors);
+        document.getElementById("trace-status-filter").addEventListener("change", renderTraces);
+        document.getElementById("trace-search").addEventListener("input", renderTraces);
+        document.getElementById("refresh-button").addEventListener("click", renderAll);
+        document.getElementById("open-flag-modal").addEventListener("click", () => flagModal.classList.add("open"));
+        document.getElementById("close-flag-modal").addEventListener("click", () => flagModal.classList.remove("open"));
+        document.getElementById("cancel-flag").addEventListener("click", () => flagModal.classList.remove("open"));
+        globalSearchInput.addEventListener("focus", () => {
+            globalSearchShell.classList.add("open");
+            renderGlobalSearch();
+        });
+        globalSearchInput.addEventListener("input", renderGlobalSearch);
+
+        document.addEventListener("keydown", (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                globalSearchInput.focus();
+            }
+
+            if (event.key === "Escape") {
+                globalSearchShell.classList.remove("open");
+                closeDrawer();
+                flagModal.classList.remove("open");
+            }
+        });
+
+        document.getElementById("flag-form").addEventListener("submit", (event) => {
+            event.preventDefault();
+            state.flags.unshift({
+                key: document.getElementById("flag-key").value.trim(),
+                enabled: false,
+                rollout: Number(document.getElementById("flag-rollout").value || 0),
+                rules: 0,
+                changedBy: "dashboard"
+            });
+            document.getElementById("flag-form").reset();
+            flagModal.classList.remove("open");
+            renderFlags();
+        });
+
+        document.addEventListener("click", (event) => {
+            const routeTarget = event.target.closest("[data-go]");
+            if (routeTarget) {
+                showPage(routeTarget.dataset.go);
+                globalSearchShell.classList.remove("open");
+            }
+
+            if (!event.target.closest("#global-search-shell")) {
+                globalSearchShell.classList.remove("open");
+            }
+
+            const executionRow = event.target.closest("[data-execution]");
+            if (executionRow) {
+                const execution = state.executions.find((item) => item.id === executionRow.dataset.execution);
+                if (execution) openDrawer(`Execution ${execution.id}`, execution.workflow, executionDetail(execution));
+            }
+
+            const errorRow = event.target.closest("[data-error]");
+            if (errorRow) {
+                const error = state.errors[Number(errorRow.dataset.error)];
+                if (error) openDrawer(error.name, error.message, errorDetail(error));
+            }
+
+            const traceRow = event.target.closest("[data-trace]");
+            if (traceRow) {
+                const trace = state.traces.find((item) => item.id === traceRow.dataset.trace);
+                if (trace) {
+                    renderTraceGraph(trace);
+                    openDrawer(`Trace ${trace.id}`, `${trace.method} ${trace.path}`, traceDetail(trace));
+                }
+            }
+
+            const pinButton = event.target.closest("[data-toggle-pin]");
+            if (pinButton) {
+                event.stopPropagation();
+                const workflow = state.workflows.find((item) => item.name === pinButton.dataset.togglePin);
+
+                if (workflow) {
+                    const pinnedCount = state.workflows.filter((item) => item.pinned).length;
+                    if (!workflow.pinned && pinnedCount >= 4) {
+                        alert("You can pin up to 4 workflows.");
+                        return;
+                    }
+
+                    workflow.pinned = !workflow.pinned;
+                    renderWorkflows();
+                    return;
+                }
+            }
+
+            const workflowRow = event.target.closest("[data-workflow]");
+            if (workflowRow) {
+                const workflow = state.workflows.find((item) => item.name === workflowRow.dataset.workflow);
+                if (workflow) {
+                    openDrawer(workflow.name, `version ${workflow.version}`, `
+                        <div class="field-grid">
+                            <div class="field"><div class="field-label">Step count</div><div class="field-value mono">${workflow.steps}</div></div>
+                            <div class="field"><div class="field-label">Failures</div><div class="field-value mono">${workflow.failures}</div></div>
+                            <div class="field"><div class="field-label">Created</div><div class="field-value mono">${workflow.created}</div></div>
+                            <div class="field"><div class="field-label">Last status</div><div class="field-value">${badgeForStatus(workflow.lastStatus)}</div></div>
+                        </div>
+                        <div class="workflow-chain" style="margin-top: 14px; border: 1px solid var(--line-soft); border-radius: 8px;">
+                            ${workflow.chain.map((step, index) => `
+                                ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
+                                <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
+                                    <div class="workflow-step-name">${step}</div>
+                                    <div class="workflow-step-meta">step ${index + 1}</div>
+                                </div>
+                            `).join("")}
+                        </div>
+                        <pre class="code-box">pilot.workflow("${workflow.name}", [
+  { name: "charge-card", input: {...}, run: async (input) => {} },
+  { name: "create-order", input: {...}, run: async (input) => {} }
+])</pre>
+                    `);
+                }
+            }
+
+            const toggle = event.target.closest("[data-toggle-flag]");
+            if (toggle) {
+                event.stopPropagation();
+                const flag = state.flags.find((item) => item.key === toggle.dataset.toggleFlag);
+                if (flag) {
+                    flag.enabled = !flag.enabled;
+                    renderFlags();
+                }
+            }
+
+            const deleteFlag = event.target.closest("[data-delete-flag]");
+            if (deleteFlag) {
+                event.stopPropagation();
+                state.flags = state.flags.filter((item) => item.key !== deleteFlag.dataset.deleteFlag);
+                renderFlags();
+            }
+        });
+
+        renderAll();
+    </script>
+</body>
+</html>
