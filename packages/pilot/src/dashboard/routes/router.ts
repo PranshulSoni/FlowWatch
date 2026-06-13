@@ -25,6 +25,10 @@ interface DashboardRouterOptions {
     elasticsearchClient: Client
 }
 
+async function invalidateFlagCache(redisClient: Redis, flagKey: string): Promise<void> {
+    await redisClient.del(`pilot:flags:${flagKey}`)
+}
+
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
@@ -62,6 +66,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             changedBy: req.body.changedBy,
         })
 
+        await invalidateFlagCache(redisClient, flag.key)
+
         res.status(201).json({ flag })
     })
 
@@ -94,6 +100,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             return
         }
 
+        await invalidateFlagCache(redisClient, req.params.key)
+
         res.json({ flag })
     })
 
@@ -104,6 +112,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.status(404).json({ message: "Feature flag not found" })
             return
         }
+
+        await invalidateFlagCache(redisClient, req.params.key)
 
         res.status(204).send()
     })
@@ -135,6 +145,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             return
         }
 
+        await invalidateFlagCache(redisClient, req.params.key)
+
         res.status(201).json({ rule })
     })
 
@@ -159,6 +171,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             return
         }
 
+        await invalidateFlagCache(redisClient, req.params.key)
+
         res.json({ rule })
     })
 
@@ -176,6 +190,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.status(404).json({ message: "Feature flag rule not found" })
             return
         }
+
+        await invalidateFlagCache(redisClient, req.params.key)
 
         res.status(204).send()
     })

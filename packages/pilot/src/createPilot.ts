@@ -19,6 +19,7 @@ import type { TraceSpanType, TraceStatus } from "./persistence/repositories/trac
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
+import { createRedisClient } from "./persistence/cache/redisClient.js"
 
 export interface Pilot {
     dashboard: Router
@@ -38,7 +39,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     if (normalizedConfig.migrations.autoRun) {
         await runMigrations(postgresPool, migrations);
     }
-    const redisClient = new Redis(normalizedConfig.redis.url)
+    const redisClient=createRedisClient(normalizedConfig.redis.url);
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
     const workflowQueue = createWorkflowQueue(normalizedConfig.redis.url);
     const traceEngine = createTraceEngine({
@@ -59,7 +60,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const capturePilotError: CaptureErrorFunction = (error, options) => {
         return captureError(errorEngineOptions, error, options)
     }
-    const flagEngine = createFlagEngine(postgresPool, traceEngine, capturePilotError)
+    const flagEngine = createFlagEngine(postgresPool, traceEngine, capturePilotError,redisClient);
     await createMissingMappings(elasticsearchClient)
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({

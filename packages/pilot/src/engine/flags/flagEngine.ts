@@ -4,7 +4,7 @@ import type { CaptureErrorFunction } from "../errors/errorEngine.js"
 import type { TraceEngine } from "../trace/traceEngine.js"
 import { evaluateFlag } from "./evaluateFlag.js"
 import type { EvaluateFlag, FlagContext } from "./types.js"
-
+import type { Redis } from "ioredis"
 export interface FlagEngine {
     flag: EvaluateFlag
 }
@@ -12,19 +12,32 @@ export interface FlagEngine {
 export function createFlagEngine(
     pool: Pool,
     traceEngine: TraceEngine,
-    captureError: CaptureErrorFunction
+    captureError: CaptureErrorFunction,
+    redisClient: Redis
 ): FlagEngine {
     async function flag(key: string, context: FlagContext = {}): Promise<boolean> {
         try {
             return await traceEngine.trace("pilot.feature_flag.evaluate", "feature_flag", async () => {
-                //So the redis function should actually come here and be stored here.
+                const cacheKey = `pilot:flags:${key}`
+                const cachedValue = await redisClient.get(cacheKey)
+                if (cachedValue) {
+                    const cached = JSON.parse(cachedValue)
+                    return evaluateFlag(cached.flag, cached.rules, context)
+                }
                 const storedFlag = await getFlagByKey(pool, key)
-
                 if (!storedFlag) {
                     return false
                 }
-
                 const rules = await listFlagRules(pool, key)
+                await redisClient.set(
+                    cacheKey,
+                    JSON.stringify({
+                        flag: storedFlag,
+                        rules,
+                    }),
+                    "EX",
+                    60  
+                )
 
                 return evaluateFlag(storedFlag, rules, context)
             }, {
