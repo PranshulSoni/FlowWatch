@@ -16,17 +16,17 @@ export function createRequestTracingMiddleware(pool: Pool): RequestHandler {
             })
 
             res.on("finish", () => {
-                void finishRequestTrace(pool, {
+                finishRequestTrace(pool, {
                     traceId: trace.id,
                     statusCode: res.statusCode,
-                    durationMs: Date.now()-startedAt,
+                    durationMs: Date.now() - startedAt,
                 }).catch(() => {
                 })
             })
 
-            runWithTraceContext({traceId: trace.id,ip: clientIp,},
+            runWithTraceContext({ traceId: trace.id, ip: clientIp, },
                 next
-            )
+            )   
         }
         catch {
             next()

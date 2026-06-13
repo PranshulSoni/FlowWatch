@@ -8,6 +8,7 @@ export interface TraceContext {
 }
 
 const traceStorage = new AsyncLocalStorage<TraceContext>()
+//Added a generic class named async local storage with the type tracecontext, as its a generic class all its methods also return the generic type.
 export function runWithTraceContext<T>(context: TraceContext, callback: () => T): T {
     return traceStorage.run(context, callback)
 }

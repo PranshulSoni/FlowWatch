@@ -27,8 +27,6 @@ export type TraceFunction = <T>(
 ) => Promise<T>
 
 export interface TraceEngine {
-    startSpan: (name: string, type: TraceSpanType, metadata?: unknown) => Promise<ActiveTraceSpan | undefined>
-    endSpan: (span: ActiveTraceSpan | undefined, status: TraceStatus, metadata?: unknown) => Promise<void>
     trace: TraceFunction
 }
 
@@ -55,8 +53,6 @@ export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
     }
 
     return {
-        startSpan: (name, type, metadata) => startSpan(pool, name, type, { metadata }),
-        endSpan: (span, status, metadata) => endSpan(pool, elasticsearchClient, span, status, { metadata }),
         trace,
     }
 }
@@ -102,12 +98,11 @@ export async function endSpan(pool: Pool,elasticsearchClient: Client,span: Activ
         await indexTraceSpan(elasticsearchClient, finishedSpan)
     }
     catch (traceIndexingFailure) {
-        console.error("[Pilot] Failed to index trace span", traceIndexingFailure)
+        console.error("Failed to index trace span", traceIndexingFailure)
     }
 }
 
-export function runInsideSpan<T>(span: ActiveTraceSpan | undefined,callback: TraceCallback<T>
-): T | Promise<T> {
+export function runInsideSpan<T>(span: ActiveTraceSpan | undefined,callback: TraceCallback<T>):T|Promise<T> {
     if (!span) {
         return callback()
     }
