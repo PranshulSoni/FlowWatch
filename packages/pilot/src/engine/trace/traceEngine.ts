@@ -3,6 +3,7 @@ import type { Pool } from "pg"
 import { createTraceSpan, finishTraceSpan, type TraceSpanType, type TraceStatus } from "../../persistence/repositories/traces/traceRepository.js"
 import { getCurrentSpanId, getCurrentTraceId, runWithSpanContext } from "../../runtime/tracing/traceContext.js"
 import { indexTraceSpan } from "../../search/elasticsearch/indexer.js"
+import { captureError } from "../errors/errorEngine.js"
 
 export interface ActiveTraceSpan {
     id: string
@@ -38,7 +39,7 @@ export interface TraceEngineOptions {
 export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
     const { pool, elasticsearchClient } = options
 
-    async function trace<T>(name: string,type: TraceSpanType,callback: TraceCallback<T>,metadata?: unknown): Promise<T> {
+    async function trace<T>(name: string, type: TraceSpanType, callback: TraceCallback<T>, metadata?: unknown): Promise<T> {
         const span = await startSpan(pool, name, type, { metadata })
 
         try {
@@ -48,6 +49,17 @@ export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
         }
         catch (error) {
             await endSpan(pool, elasticsearchClient, span, "error")
+            await captureError(options, error, {
+                source: "unknown",
+                category: "server",
+                level: "error",
+                statusCode: 500,
+                metadata: {
+                    spanName: name,
+                    spanType: type,
+                    spanMetadata: metadata,
+                },
+            })
             throw error
         }
     }
@@ -57,7 +69,7 @@ export function createTraceEngine(options: TraceEngineOptions): TraceEngine {
     }
 }
 
-export async function startSpan(pool: Pool,name: string,type: TraceSpanType,options: StartSpanOptions = {}): Promise<ActiveTraceSpan | undefined> {
+export async function startSpan(pool: Pool, name: string, type: TraceSpanType, options: StartSpanOptions = {}): Promise<ActiveTraceSpan | undefined> {
     const traceId = getCurrentTraceId()
 
     if (!traceId) {
@@ -78,7 +90,7 @@ export async function startSpan(pool: Pool,name: string,type: TraceSpanType,opti
     }
 }
 
-export async function endSpan(pool: Pool,elasticsearchClient: Client,span: ActiveTraceSpan | undefined,status: TraceStatus,options: EndSpanOptions = {}): Promise<void> {
+export async function endSpan(pool: Pool, elasticsearchClient: Client, span: ActiveTraceSpan | undefined, status: TraceStatus, options: EndSpanOptions = {}): Promise<void> {
     if (!span) {
         return
     }
@@ -102,7 +114,7 @@ export async function endSpan(pool: Pool,elasticsearchClient: Client,span: Activ
     }
 }
 
-export function runInsideSpan<T>(span: ActiveTraceSpan | undefined,callback: TraceCallback<T>):T|Promise<T> {
+export function runInsideSpan<T>(span: ActiveTraceSpan | undefined, callback: TraceCallback<T>): T | Promise<T> {
     if (!span) {
         return callback()
     }
