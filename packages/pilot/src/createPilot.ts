@@ -50,7 +50,6 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         workflowQueue,
         traceEngine,
     })
-    const flagEngine = createFlagEngine(postgresPool, traceEngine)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
     const errorEngineOptions = {
         pool: postgresPool,
@@ -60,6 +59,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const capturePilotError: CaptureErrorFunction = (error, options) => {
         return captureError(errorEngineOptions, error, options)
     }
+    const flagEngine = createFlagEngine(postgresPool, traceEngine, capturePilotError)
     await createMissingMappings(elasticsearchClient)
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({
