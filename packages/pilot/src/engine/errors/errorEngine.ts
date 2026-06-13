@@ -1,8 +1,15 @@
 import type { ErrorRequestHandler } from "express"
 import type { Pool } from "pg"
 import type { Client } from "@elastic/elasticsearch"
+import { createHash } from "node:crypto"
 import { getCurrentTraceId, getCurrentSpanId } from "../../runtime/tracing/traceContext.js"
-import { createError, type ErrorCategory } from "../../persistence/repositories/errors/errorRepository.js"
+import {
+    createError,
+    type ErrorCategory,
+    type ErrorLevel,
+    type ErrorRow,
+    type ErrorSource,
+} from "../../persistence/repositories/errors/errorRepository.js"
 import { indexError } from "../../search/elasticsearch/indexer.js"
 
 export interface NormalizedError {
@@ -11,47 +18,40 @@ export interface NormalizedError {
     stack?: string
 }
 
-export interface ErrorHandlerOptions {
+export interface ErrorEngineOptions {
     pool: Pool
     elasticsearchClient: Client
 }
 
-export function createErrorHandler(options: ErrorHandlerOptions): ErrorRequestHandler {
-    const { pool, elasticsearchClient } = options
+export interface CaptureErrorOptions {
+    source: ErrorSource
+    category?: ErrorCategory
+    level?: ErrorLevel
+    statusCode?: number
+    metadata?: unknown
+    occurredAt?: Date
+}
 
+export type CaptureErrorFunction = (
+    error: unknown,
+    options: CaptureErrorOptions
+) => Promise<ErrorRow | undefined>
+
+export function createErrorHandler(options: ErrorEngineOptions): ErrorRequestHandler {
     return async function pilotErrorHandler(error, req, res, next) {
         const normalizedError = normalizeError(error)
         const statusCode = getStatusCode(error, res.statusCode)
-        const traceId = getCurrentTraceId()
-        const spanId = getCurrentSpanId()
-        const category = getErrorCategory(statusCode);
-        try {
-            const storedError = await createError(pool, {
-                traceId,
-                spanId,
-                source: "http",
-                category,
-                level: "error",
-                message: normalizedError.message,
-                stack: normalizedError.stack,
-                name: normalizedError.name,
-                statusCode,
-                metadata: {
-                    method: req.method,
-                    path: req.originalUrl || req.path,
-                },
-            })
 
-            try {
-                await indexError(elasticsearchClient, storedError)
-            }
-            catch (errorIndexingFailure) {
-                console.error("Failed to index error", errorIndexingFailure)
-            }
-        }
-        catch (errorCaptureFailure) {
-            console.error("Failed to capture error", errorCaptureFailure)
-        }
+        await captureError(options, error, {
+            source: "http",
+            category: getErrorCategory(statusCode),
+            level: "error",
+            statusCode,
+            metadata: {
+                method: req.method,
+                path: req.originalUrl || req.path,
+            },
+        })
 
         if (res.headersSent) {
             return next(error)
@@ -60,6 +60,49 @@ export function createErrorHandler(options: ErrorHandlerOptions): ErrorRequestHa
         res.status(statusCode).json({
             message: statusCode >= 500 ? "Internal server error" : normalizedError.message,
         })
+    }
+}
+
+export async function captureError(engineOptions: ErrorEngineOptions,error: unknown,captureOptions: CaptureErrorOptions): Promise<ErrorRow | undefined> {
+    const normalizedError = normalizeError(error)
+    const statusCode = captureOptions.statusCode ?? getStatusCode(error, 500)
+    const category = captureOptions.category ?? getErrorCategory(statusCode)
+    const fingerprint = createErrorFingerprint({
+        source: captureOptions.source,
+        category,
+        name: normalizedError.name,
+        message: normalizedError.message,
+        statusCode,
+    })
+
+    try {
+        const storedError = await createError(engineOptions.pool, {
+            traceId: getCurrentTraceId(),
+            spanId: getCurrentSpanId(),
+            source: captureOptions.source,
+            category,
+            level: captureOptions.level ?? "error",
+            message: normalizedError.message,
+            stack: normalizedError.stack,
+            name: normalizedError.name,
+            statusCode,
+            fingerprint,
+            metadata: captureOptions.metadata,
+            occurredAt: captureOptions.occurredAt,
+        })
+
+        try {
+            await indexError(engineOptions.elasticsearchClient, storedError)
+        }
+        catch (errorIndexingFailure) {
+            console.error("Failed to index error", errorIndexingFailure)
+        }
+
+        return storedError
+    }
+    catch (errorCaptureFailure) {
+        console.error("[Pilot] Failed to capture error", errorCaptureFailure)
+        return undefined
     }
 }
 
@@ -116,4 +159,18 @@ export function getErrorCategory(statusCode: number): ErrorCategory {
     }
 
     return "unknown"
+}
+
+interface ErrorFingerprintInput {
+    source: ErrorSource
+    category: ErrorCategory
+    name: string
+    message: string
+    statusCode: number
+}
+
+function createErrorFingerprint(input: ErrorFingerprintInput): string {
+    return createHash("sha256")
+        .update(`${input.source}:${input.category}:${input.name}:${input.message}:${input.statusCode}`)
+        .digest("hex")
 }

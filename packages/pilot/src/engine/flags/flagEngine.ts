@@ -11,6 +11,7 @@ export interface FlagEngine {
 export function createFlagEngine(pool: Pool, traceEngine: TraceEngine): FlagEngine {
     async function flag(key: string, context: FlagContext = {}): Promise<boolean> {
         return traceEngine.trace("pilot.feature_flag.evaluate", "feature_flag", async () => {
+            //So the redis function should actually come here and be stored here.
             const storedFlag = await getFlagByKey(pool, key)
 
             if (!storedFlag) {

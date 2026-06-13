@@ -16,7 +16,7 @@ import type { EvaluateFlag } from "./engine/flags/types.js"
 import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
 import { createTraceEngine, type ActiveTraceSpan, type TraceFunction } from "./engine/trace/traceEngine.js"
 import type { TraceSpanType, TraceStatus } from "./persistence/repositories/traces/traceRepository.js"
-import { createErrorHandler } from "./engine/errors/errorEngine.js"
+import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 export interface Pilot {
     dashboard: Router
@@ -24,22 +24,21 @@ export interface Pilot {
     trigger: TriggerWorkflow
     flag: EvaluateFlag
     requestTracer: RequestHandler
-    startSpan: (name: string, type: TraceSpanType, metadata?: unknown) => Promise<ActiveTraceSpan | undefined>
-    endSpan: (span: ActiveTraceSpan | undefined, status: TraceStatus, metadata?: unknown) => Promise<void>
     trace: TraceFunction
-    errorHandler:ErrorRequestHandler
+    errorHandler: ErrorRequestHandler
+    captureError: CaptureErrorFunction
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
-    if(normalizedConfig.migrations.autoRun){
-        await runMigrations(postgresPool,migrations);
+    if (normalizedConfig.migrations.autoRun) {
+        await runMigrations(postgresPool, migrations);
     }
     const redisClient = new Redis(normalizedConfig.redis.url)
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
-    const workflowQueue= createWorkflowQueue(normalizedConfig.redis.url);
+    const workflowQueue = createWorkflowQueue(normalizedConfig.redis.url);
     const traceEngine = createTraceEngine({
         pool: postgresPool,
         elasticsearchClient,
@@ -51,11 +50,14 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     })
     const flagEngine = createFlagEngine(postgresPool, traceEngine)
     const requestTracer = createRequestTracingMiddleware(postgresPool)
-    const errorHandler = createErrorHandler({
+    const errorEngineOptions = {
         pool: postgresPool,
         elasticsearchClient,
-    })
-
+    }
+    const errorHandler = createErrorHandler(errorEngineOptions)
+    const capturePilotError: CaptureErrorFunction = (error, options) => {
+        return captureError(errorEngineOptions, error, options)
+    }
     if (normalizedConfig.worker.enabled) {
         createWorkflowWorker({
             redisUrl: normalizedConfig.redis.url,
@@ -78,9 +80,8 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
         trigger: workflowEngine.trigger,
         flag: flagEngine.flag,
         requestTracer,
-        startSpan: traceEngine.startSpan,
-        endSpan: traceEngine.endSpan,
-        trace:traceEngine.trace,
-        errorHandler
+        trace: traceEngine.trace,
+        errorHandler,
+        captureError: capturePilotError,
     }
 }
