@@ -3,12 +3,14 @@ import type { Pool } from "pg"
 import type { WorkflowJobData } from "../queues/workflowQueue.js"
 import type { RegisteredWorkflow } from "../../workflows/types.js"
 import type { TraceEngine } from "../../trace/traceEngine.js"
+import type { CaptureErrorFunction } from "../../errors/errorEngine.js"
 
 export interface WorkflowWorkerOptions {
     redisUrl: string
     pool: Pool
     getWorkflow: (name: string) => RegisteredWorkflow | undefined
     traceEngine: TraceEngine
+    captureError: CaptureErrorFunction
 }
 import { getWorkflowExecution, getWorkflowExecutionSteps, markWorkflowExecutionCompleted, markWorkflowExecutionFailed, markWorkflowExecutionRunning, markWorkflowStepCompleted, markWorkflowStepFailed, markWorkflowStepRunning, } from "../../../persistence/repositories/workflows/workflowRepository.js"
 
@@ -86,6 +88,22 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
                 }
                 catch (error) {
                     attempt += 1
+                    await worker.captureError(error, {
+                        source: "workflow",
+                        category: "server",
+                        level: "error",
+                        statusCode: 500,
+                        metadata: {
+                            workflowName: result.workflow_name,
+                            workflowVersion: result.workflow_version,
+                            executionId,
+                            stepExecutionId: stepExecution.id,
+                            stepName: stepExecution.step_name,
+                            stepIndex: stepExecution.step_index,
+                            attempt,
+                            maxAttempts,
+                        },
+                    })
                     await markWorkflowStepFailed(worker.pool, stepExecution.id, error)
 
                     if (attempt >= maxAttempts) {
@@ -98,6 +116,17 @@ export async function executeWorkflow(executionId: string, worker: WorkflowWorke
         await markWorkflowExecutionCompleted(worker.pool, executionId, lastStepOutput)
     }
     catch (error) {
+        await worker.captureError(error, {
+            source: "workflow",
+            category: "server",
+            level: "error",
+            statusCode: 500,
+            metadata: {
+                workflowName: result.workflow_name,
+                workflowVersion: result.workflow_version,
+                executionId,
+            },
+        })
         await markWorkflowExecutionFailed(worker.pool, executionId, error)
         throw error
     }

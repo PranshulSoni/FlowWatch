@@ -67,6 +67,7 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
             pool: postgresPool,
             getWorkflow: workflowEngine.getWorkflow,
             traceEngine,
+            captureError: capturePilotError,
         })
     }
 
