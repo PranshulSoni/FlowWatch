@@ -99,12 +99,19 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/dashboard-data", async (req, res) => {
         try {
-            const [healthResult, flagsResult, workflowsResult, executionsResult, tracesResult, errors] = await Promise.all([
-                Promise.all([
-                    checkPostgresHealth(postgresPool),
-                    checkRedisHealth(redisClient),
-                    checkElasticsearchHealth(elasticsearchClient),
-                ]),
+            const [
+                postgres,
+                redis,
+                elasticsearch,
+                flagsResult,
+                workflowsResult,
+                executionsResult,
+                tracesResult,
+                errors,
+            ] = await Promise.all([
+                checkPostgresHealth(postgresPool),
+                checkRedisHealth(redisClient),
+                checkElasticsearchHealth(elasticsearchClient),
                 listFlagsWithRuleCounts(postgresPool),
                 listWorkflowDefinitions(postgresPool),
                 listWorkflowExecutions(postgresPool, 50),
@@ -112,7 +119,6 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 listErrors(postgresPool, 50),
             ])
 
-            const [postgres, redis, elasticsearch] = healthResult
             const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executionsResult.map((execution) => execution.id))
             const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflowsResult.map((workflow) => workflow.id))
             const latestExecutions = latestByWorkflow(executionsResult)
