@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "npm run build --workspace pilot",
-    "test": "echo \"No tests configured yet\""
+    "test": "npm run build --workspace pilot && node --test tests/*.test.mjs"
   },
   "repository": {
     "type": "git",

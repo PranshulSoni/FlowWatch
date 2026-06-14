@@ -28,7 +28,6 @@ import {
     listWorkflowDefinitions,
     listWorkflowExecutions,
     listWorkflowExecutionsByWorkflowName,
-    listWorkflowExecutionsByWorkflowName as listWorkflowExecutionsByWorkflowNameAlias,
     listWorkflowStepExecutionsByExecutionIds,
     listWorkflowStepsByWorkflowIds,
 } from "../../persistence/repositories/workflows/workflowRepository.js"
@@ -44,7 +43,7 @@ import {
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
 import { generateGroqInsight, listGroqModels, askGroqAssistant, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
-import { savePilotEnv, isGroqApiKeyConfigured, getGroqModel } from "../../utils/pilotEnvStore.js"
+import { savePilotEnv, isGroqApiKeyConfigured } from "../../utils/pilotEnvStore.js"
 import { z } from "zod"
 
 interface DashboardRouterOptions {
@@ -79,7 +78,51 @@ function validate(schema: z.ZodSchema) {
     }
 }
 
-async function dashboardError(res: any, error: unknown): Promise<void> {
+function validateParams(schema: z.ZodSchema) {
+    return (req: any, res: any, next: any) => {
+        const result = schema.safeParse(req.params)
+        if (!result.success) {
+            res.status(400).json({
+                error: {
+                    code: "validation_error",
+                    message: "Invalid route parameter",
+                },
+            })
+            return
+        }
+        req.params = result.data
+        next()
+    }
+}
+
+function validateQuery(schema: z.ZodSchema) {
+    return (req: any, res: any, next: any) => {
+        const result = schema.safeParse(req.query)
+        if (!result.success) {
+            res.status(400).json({
+                error: {
+                    code: "validation_error",
+                    message: "Invalid query parameter",
+                },
+            })
+            return
+        }
+        req.query = result.data
+        next()
+    }
+}
+
+function asyncRoute(fn: (req: any, res: any) => Promise<void>) {
+    return async (req: any, res: any) => {
+        try {
+            await fn(req, res)
+        } catch (error) {
+            await dashboardError(res)
+        }
+    }
+}
+
+async function dashboardError(res: any): Promise<void> {
     res.status(500).json({
         error: {
             code: "dashboard_api_error",
@@ -97,6 +140,7 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         flags,
         workflows,
         executions,
+        traces,
         errors,
     ] = await Promise.all([
         checkPostgresHealth(postgresPool),
@@ -104,34 +148,43 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         checkElasticsearchHealth(elasticsearchClient),
         listFlagsWithRuleCounts(postgresPool),
         listWorkflowDefinitions(postgresPool),
-        listWorkflowExecutions(postgresPool, 5),  // trimmed for token budget
-        listErrors(postgresPool, 5),              // trimmed for token budget
+        listWorkflowExecutions(postgresPool, 25),
+        listRequestTraces(postgresPool, 25),
+        listErrors(postgresPool, 25),
     ])
+    const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+    const traceSpans = new Map<string, any[]>()
+
+    await Promise.all(traces.slice(0, 10).map(async (trace) => {
+        traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
+    }))
 
     return {
         serviceName: config.runtime.serviceName,
         environment: config.runtime.environment,
         generatedAt: new Date().toISOString(),
-        workflows: workflows.slice(0, 10).map((workflow) => ({
+        workflows: workflows.slice(0, 25).map((workflow) => ({
             id: workflow.id,
             name: workflow.name,
             version: workflow.version,
         })),
         executions: executions.map((execution) => ({
-            id: execution.id,
-            workflowName: execution.workflow_name,
-            status: execution.status,
-            startedAt: execution.started_at,
-            completedAt: execution.completed_at,
+            ...serializeExecution(execution, executionSteps.get(execution.id) || []),
+            input: undefined,
+            output: undefined,
         })),
         errors: errors.map((error) => ({
+            id: error.id,
             name: error.name,
-            message: error.message?.slice(0, 120),
+            message: error.message,
+            category: error.category,
             level: error.level,
             source: error.source,
+            status: (error as any).status,
+            traceId: error.trace_id,
             occurredAt: error.occurred_at,
         })),
-        traces: [],  // omitted to stay within token budget
+        traces: traces.slice(0, 10).map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
         flags: flags.slice(0, 10).map((flag) => serializeFlag(flag, flag.rule_count)),
         health: [
             { name: "Postgres", status: postgres.status, latency: postgres.latencyMs },
@@ -148,6 +201,25 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     router.use(json({ limit: "100kb" }))
     router.use(createRequestTracingMiddleware(postgresPool))
 
+    const flagKeyParamSchema = z.object({
+        key: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:-]+$/),
+    })
+    const workflowNameParamSchema = z.object({
+        name: z.string().min(1).max(160),
+    })
+    const idParamSchema = (name: string) => z.object({
+        [name]: z.string().min(1).max(160).regex(/^[a-zA-Z0-9._:-]+$/),
+    })
+    const optionalWorkflowQuerySchema = z.object({
+        workflow: z.string().min(1).max(160).optional(),
+    })
+    const optionalTraceQuerySchema = z.object({
+        traceId: z.string().min(1).max(160).regex(/^[a-zA-Z0-9._:-]+$/).optional(),
+    })
+    const optionalModelQuerySchema = z.object({
+        model: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
+    })
+
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
     const staticPath = join(__dirname, "../static")
@@ -155,7 +227,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     router.use(express.static(staticPath))
 
     router.get("/", (req, res) => {
-        res.sendFile(join(staticPath, "dashboard-v2.html"))
+        res.sendFile(join(staticPath, "dashboard.html"))
     })
 
     router.get("/api/health", async (req, res) => {
@@ -230,7 +302,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
@@ -258,11 +330,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/ai-insights", async (req, res) => {
+    router.get("/api/ai-insights", validateQuery(optionalModelQuerySchema), async (req, res) => {
         try {
             if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
@@ -285,7 +357,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
@@ -300,14 +372,14 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         enabled: z.boolean().optional(),
         rolloutPercentage: z.number().min(0).max(100).optional(),
         changedBy: z.string().max(128).optional(),
-    })
+    }).strict()
 
     const flagUpdateSchema = z.object({
         description: z.string().max(512).optional(),
         enabled: z.boolean().optional(),
         rolloutPercentage: z.number().min(0).max(100).optional(),
         changedBy: z.string().max(128).optional(),
-    })
+    }).strict()
 
     const flagRuleSchema = z.object({
         attribute: z.string().min(1).max(128),
@@ -315,9 +387,13 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         value: z.string().min(1).max(512),
         enabled: z.boolean().optional(),
         changedBy: z.string().max(128).optional(),
-    })
+    }).strict()
 
-    router.post("/api/flags", validate(flagCreateSchema), async (req, res) => {
+    const deleteBodySchema = z.object({
+        changedBy: z.string().max(128).optional(),
+    }).strict().default({})
+
+    router.post("/api/flags", validate(flagCreateSchema), asyncRoute(async (req, res) => {
         const flag = await createFlag(postgresPool, {
             key: req.body.key,
             description: req.body.description,
@@ -329,9 +405,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         await invalidateFlagCache(redisClient, flag.key)
 
         res.status(201).json({ flag: serializeFlag(flag) })
-    })
+    }))
 
-    router.get("/api/flags/:key", async (req, res) => {
+    router.get("/api/flags/:key", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
         const flag = await getFlagByKey(postgresPool, req.params.key)
 
         if (!flag) {
@@ -345,9 +421,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             flag: serializeFlag(flag, rules.length),
             rules: rules.map(serializeRule),
         })
-    })
+    }))
 
-    router.patch("/api/flags/:key", validate(flagUpdateSchema), async (req, res) => {
+    router.patch("/api/flags/:key", validateParams(flagKeyParamSchema), validate(flagUpdateSchema), asyncRoute(async (req, res) => {
         const flag = await updateFlag(postgresPool, req.params.key, {
             description: req.body.description,
             enabled: req.body.enabled,
@@ -364,26 +440,22 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         const rules = await listFlagRules(postgresPool, req.params.key)
         res.json({ flag: serializeFlag(flag, rules.length) })
-    })
+    }))
 
-    router.delete("/api/flags/:key", async (req, res) => {
-        try {
-            const deleted = await deleteFlag(postgresPool, req.params.key, req.body?.changedBy)
+    router.delete("/api/flags/:key", validateParams(flagKeyParamSchema), validate(deleteBodySchema), asyncRoute(async (req, res) => {
+        const deleted = await deleteFlag(postgresPool, req.params.key, req.body?.changedBy)
 
-            if (!deleted) {
-                res.status(404).json({ message: "Feature flag not found" })
-                return
-            }
-
-            await invalidateFlagCache(redisClient, req.params.key)
-
-            res.status(204).send()
-        } catch (error) {
-            await dashboardError(res, error)
+        if (!deleted) {
+            res.status(404).json({ message: "Feature flag not found" })
+            return
         }
-    })
 
-    router.get("/api/flags/:key/rules", async (req, res) => {
+        await invalidateFlagCache(redisClient, req.params.key)
+
+        res.status(204).send()
+    }))
+
+    router.get("/api/flags/:key/rules", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
         const flag = await getFlagByKey(postgresPool, req.params.key)
 
         if (!flag) {
@@ -393,9 +465,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         const rules = await listFlagRules(postgresPool, req.params.key)
         res.json({ rules: rules.map(serializeRule) })
-    })
+    }))
 
-    router.post("/api/flags/:key/rules", validate(flagRuleSchema), async (req, res) => {
+    router.post("/api/flags/:key/rules", validateParams(flagKeyParamSchema), validate(flagRuleSchema), asyncRoute(async (req, res) => {
         const rule = await createFlagRule(postgresPool, {
             flagKey: req.params.key,
             attribute: req.body.attribute,
@@ -413,9 +485,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         await invalidateFlagCache(redisClient, req.params.key)
 
         res.status(201).json({ rule: serializeRule(rule) })
-    })
+    }))
 
-    router.patch("/api/flags/:key/rules/:ruleId", async (req, res) => {
+    router.patch("/api/flags/:key/rules/:ruleId", validateParams(flagKeyParamSchema.merge(idParamSchema("ruleId"))), validate(flagRuleSchema.partial()), asyncRoute(async (req, res) => {
         const flag = await getFlagByKey(postgresPool, req.params.key)
 
         if (!flag) {
@@ -439,9 +511,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         await invalidateFlagCache(redisClient, req.params.key)
 
         res.json({ rule: serializeRule(rule) })
-    })
+    }))
 
-    router.delete("/api/flags/:key/rules/:ruleId", async (req, res) => {
+    router.delete("/api/flags/:key/rules/:ruleId", validateParams(flagKeyParamSchema.merge(idParamSchema("ruleId"))), validate(deleteBodySchema), asyncRoute(async (req, res) => {
         const flag = await getFlagByKey(postgresPool, req.params.key)
 
         if (!flag) {
@@ -459,9 +531,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         await invalidateFlagCache(redisClient, req.params.key)
 
         res.status(204).send()
-    })
+    }))
 
-    router.get("/api/flags/:key/audit-logs", async (req, res) => {
+    router.get("/api/flags/:key/audit-logs", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
         const flag = await getFlagByKey(postgresPool, req.params.key)
 
         if (!flag) {
@@ -471,7 +543,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         const auditLogs = await listFlagAuditLogs(postgresPool, req.params.key)
         res.json({ auditLogs: auditLogs.map(serializeAuditLog) })
-    })
+    }))
 
     router.get("/api/workflows", async (req, res) => {
         try {
@@ -492,11 +564,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/workflows/:name", async (req, res) => {
+    router.get("/api/workflows/:name", validateParams(workflowNameParamSchema), async (req, res) => {
         try {
             const workflow = await getLatestWorkflowDefinitionByName(postgresPool, req.params.name)
 
@@ -518,11 +590,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/executions", async (req, res) => {
+    router.get("/api/executions", validateQuery(optionalWorkflowQuerySchema), async (req, res) => {
         try {
             const workflowName = typeof req.query.workflow === "string" ? req.query.workflow : undefined
             const executions = workflowName
@@ -533,11 +605,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])) })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/executions/:executionId", async (req, res) => {
+    router.get("/api/executions/:executionId", validateParams(idParamSchema("executionId")), async (req, res) => {
         try {
             const execution = await getWorkflowExecution(postgresPool, req.params.executionId)
 
@@ -550,7 +622,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ execution: serializeExecution(execution, steps) })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
@@ -566,11 +638,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ traces: traces.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])) })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/traces/:traceId", async (req, res) => {
+    router.get("/api/traces/:traceId", validateParams(idParamSchema("traceId")), async (req, res) => {
         try {
             const trace = await getRequestTrace(postgresPool, req.params.traceId)
 
@@ -590,22 +662,22 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/errors", async (req, res) => {
+    router.get("/api/errors", validateQuery(optionalTraceQuerySchema), async (req, res) => {
         try {
             const traceId = typeof req.query.traceId === "string" ? req.query.traceId : undefined
             const errors = traceId ? await getErrorsByTrace(postgresPool, traceId) : await listErrors(postgresPool, 50)
             res.json({ errors: errors.map(serializeError) })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
-    router.get("/api/errors/:errorId", async (req, res) => {
+    router.get("/api/errors/:errorId", validateParams(idParamSchema("errorId")), async (req, res) => {
         try {
             const error = await getErrorById(postgresPool, req.params.errorId)
 
@@ -617,14 +689,14 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ error: serializeError(error) })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
     const aiKeySchema = z.object({
-        groqApiKey: z.string().min(1).max(512).optional(),
-        groqModel: z.string().min(1).max(128).optional(),
-    }).refine((d) => d.groqApiKey || d.groqModel, { message: "groqApiKey or groqModel is required" })
+        groqApiKey: z.string().min(1).max(512).regex(/^[^\r\n]+$/).optional(),
+        groqModel: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
+    }).strict().refine((d) => d.groqApiKey || d.groqModel, { message: "groqApiKey or groqModel is required" })
 
     router.post("/api/settings/ai-key", validate(aiKeySchema), async (req, res) => {
         try {
@@ -635,21 +707,21 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
             res.json({ success: true })
         } catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
     const settingsSchema = z.object({
-        environment: z.string().max(64).optional(),
-        dashboardPath: z.string().max(256).optional(),
+        environment: z.string().max(64).regex(/^[a-zA-Z0-9._:-]*$/).optional(),
+        dashboardPath: z.string().max(256).regex(/^\/[a-zA-Z0-9/_:-]*$/).optional(),
         dashboardEnabled: z.boolean().optional(),
         dashboardAuthEnabled: z.boolean().optional(),
         workerEnabled: z.boolean().optional(),
         workerConcurrency: z.number().int().min(1).max(100).optional(),
-        queuePrefix: z.string().max(64).optional(),
+        queuePrefix: z.string().max(64).regex(/^[a-zA-Z0-9:_-]*$/).optional(),
         autoRunMigrations: z.boolean().optional(),
-        groqModel: z.string().max(128).optional(),
-    })
+        groqModel: z.string().max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
+    }).strict()
 
     router.post("/api/settings", validate(settingsSchema), async (req, res) => {
         try {
@@ -681,7 +753,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
             res.json({ success: true, settings: serializeSettings(config) })
         } catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 
@@ -690,9 +762,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         history: z.array(z.object({
             role: z.enum(["user", "assistant"]),
             content: z.string().max(4096),
-        })).max(50).default([]),
-        model: z.string().max(128).optional(),
-    })
+        }).strict()).max(50).default([]),
+        model: z.string().max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
+    }).strict()
 
     router.post("/api/ai-chat", validate(aiChatSchema), async (req, res) => {
         try {
@@ -713,7 +785,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ response: responseText })
         }
         catch (error) {
-            await dashboardError(res, error)
+            await dashboardError(res)
         }
     })
 

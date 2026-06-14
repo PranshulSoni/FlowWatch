@@ -1,4 +1,4 @@
-const { cpSync, existsSync, mkdirSync } = require("node:fs");
+const { cpSync, existsSync, mkdirSync, rmSync } = require("node:fs");
 const { dirname, join } = require("node:path");
 
 const packageRoot = join(__dirname, "..");
@@ -10,4 +10,5 @@ if (!existsSync(source)) {
 }
 
 mkdirSync(dirname(target), { recursive: true });
+rmSync(target, { force: true, recursive: true });
 cpSync(source, target, { recursive: true });

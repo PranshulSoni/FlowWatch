@@ -1628,14 +1628,21 @@
 
         .setting-control {
             display: grid;
-            justify-items: end;
-            gap: 6px;
-            min-width: 180px;
+            grid-template-columns: minmax(180px, 1fr) auto;
+            align-items: center;
+            justify-items: stretch;
+            gap: 8px;
+            min-width: min(320px, 100%);
         }
 
         .setting-control .input {
             width: 100%;
-            max-width: 260px;
+            max-width: none;
+            min-width: 0;
+        }
+
+        .setting-control .setting-note {
+            grid-column: 1 / -1;
         }
 
         .setting-note {
@@ -1687,8 +1694,9 @@
 
         .settings-grid {
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
             gap: 14px;
+            align-items: start;
         }
 
         .setting-card {
@@ -1698,6 +1706,7 @@
                 linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
                 #0d1219;
             overflow: hidden;
+            min-width: 0;
         }
 
         .setting-card-head {
@@ -1723,7 +1732,7 @@
 
         .setting-row {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
             gap: 14px;
             align-items: center;
             padding: 12px 14px;
@@ -1747,7 +1756,7 @@
         }
 
         .setting-value {
-            min-width: 118px;
+            min-width: 0;
             min-height: 32px;
             border: 1px solid #303948;
             border-radius: 8px;
@@ -1757,6 +1766,9 @@
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 11px;
             text-align: right;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .ai-hero {
@@ -2958,6 +2970,216 @@
             min-height: 62px;
         }
 
+        #page-ask-ai {
+            max-width: none;
+            min-height: 0;
+            height: calc(100vh - 94px);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #page-ask-ai .ask-ai-main {
+            height: 100%;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 50% 36%, rgba(79, 140, 255, 0.09), transparent 32%),
+                #090d13;
+        }
+
+        #page-ask-ai .ask-ai-content {
+            min-height: 0;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #page-ask-ai .ask-ai-home {
+            min-height: 0;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 42px 24px;
+        }
+
+        #page-ask-ai .ask-ai-center {
+            padding: 0;
+            gap: 22px;
+        }
+
+        #page-ask-ai .ask-ai-home-title {
+            font-size: 34px;
+            line-height: 1.16;
+            font-weight: 650;
+        }
+
+        #page-ask-ai .ask-ai-prompt-grid {
+            width: min(820px, 100%);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        #page-ask-ai .ask-ai-prompt-card {
+            min-height: 0;
+            border: 1px solid rgba(79, 140, 255, 0.24);
+            border-radius: 999px;
+            background: rgba(79, 140, 255, 0.055);
+            color: #dbeafe;
+            padding: 10px 15px;
+            display: inline-flex;
+            align-items: center;
+            text-align: center;
+        }
+
+        #page-ask-ai .ask-ai-prompt-card:hover {
+            border-color: rgba(79, 140, 255, 0.52);
+            background: rgba(79, 140, 255, 0.12);
+        }
+
+        #page-ask-ai .ask-ai-prompt-copy {
+            display: none;
+        }
+
+        #page-ask-ai .ask-ai-composer-wrap {
+            padding: 16px 18px;
+            border-top: 1px solid rgba(79, 140, 255, 0.16);
+            background: linear-gradient(180deg, rgba(9, 13, 19, 0.5), #090d13 44%);
+        }
+
+        #page-ask-ai .ask-ai-composer {
+            max-width: 980px;
+            border: 1px solid rgba(79, 140, 255, 0.32);
+            border-radius: 999px;
+            background:
+                linear-gradient(180deg, rgba(79, 140, 255, 0.11), rgba(79, 140, 255, 0.035)),
+                #0d1420;
+            padding: 10px 12px;
+            grid-template-columns: minmax(0, 1fr) minmax(190px, 280px) 42px;
+            align-items: center;
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        }
+
+        #page-ask-ai .ask-ai-input {
+            min-height: 36px;
+            max-height: 130px;
+            padding: 8px 10px;
+            color: #eef5ff;
+            font-size: 15px;
+        }
+
+        #page-ask-ai .ask-ai-input::placeholder {
+            color: #8da2c4;
+        }
+
+        .ask-ai-send-button {
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 999px;
+            background: #dbeafe;
+            color: #0b1220;
+            font-size: 18px;
+            font-weight: 800;
+            display: grid;
+            place-items: center;
+            padding: 0;
+        }
+
+        .ask-ai-model-picker {
+            position: relative;
+            min-width: 0;
+        }
+
+        .ask-ai-model-trigger {
+            width: 100%;
+            height: 34px;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            background: rgba(9, 13, 19, 0.35);
+            color: #cfe0ff;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 16px;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px 0 12px;
+            font-size: 12px;
+            text-align: left;
+        }
+
+        .ask-ai-model-trigger:hover,
+        .ask-ai-model-picker.open .ask-ai-model-trigger {
+            border-color: rgba(79, 140, 255, 0.45);
+            background: rgba(79, 140, 255, 0.12);
+        }
+
+        .ask-ai-model-label {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ask-ai-model-chevron {
+            color: #8d98a8;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        .ask-ai-model-menu {
+            position: absolute;
+            right: 0;
+            bottom: calc(100% + 10px);
+            width: min(420px, 72vw);
+            max-height: 280px;
+            overflow: auto;
+            display: none;
+            padding: 6px;
+            border: 1px solid rgba(79, 140, 255, 0.34);
+            border-radius: 12px;
+            background:
+                linear-gradient(180deg, rgba(79, 140, 255, 0.1), transparent 42%),
+                #0b111b;
+            box-shadow: 0 22px 64px rgba(0, 0, 0, 0.48);
+            z-index: 20;
+        }
+
+        .ask-ai-model-picker.open .ask-ai-model-menu {
+            display: grid;
+            gap: 3px;
+        }
+
+        .ask-ai-model-option {
+            width: 100%;
+            min-height: 34px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #cbd5e1;
+            padding: 8px 10px;
+            text-align: left;
+            font-size: 12px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .ask-ai-model-option:hover {
+            background: rgba(79, 140, 255, 0.12);
+            color: #f8fbff;
+        }
+
+        .ask-ai-model-option.active {
+            background: rgba(79, 140, 255, 0.2);
+            color: #dbeafe;
+            box-shadow: inset 0 0 0 1px rgba(79, 140, 255, 0.28);
+        }
+
         @media (max-width: 1060px) {
             .app {
                 grid-template-columns: 76px minmax(0, 1fr);
@@ -3141,6 +3363,15 @@
 
             .ask-ai-composer {
                 grid-template-columns: 1fr;
+            }
+
+            .setting-row {
+                grid-template-columns: 1fr;
+                align-items: stretch;
+            }
+
+            .setting-control {
+                grid-template-columns: minmax(0, 1fr) auto;
             }
 
             .ask-ai-home {
@@ -3720,29 +3951,21 @@
 
                 </section>
 
-                <section id="page-ask-ai" class="page" style="padding: 0; max-height: calc(100vh - 58px); height: calc(100vh - 58px); overflow: hidden; max-width: none; margin: -18px; min-height: 0;">
-                    <div class="ask-ai-main" style="height: 100%; display: flex; flex-direction: column;">
-                        <!-- Context/Header Bar -->
+                <section id="page-ask-ai" class="page">
+                    <div class="ask-ai-main">
                         <div class="ask-ai-context">
                             <div>
                                 <div class="ask-ai-context-title">Ask Pilot Assistant</div>
                                 <div class="ask-ai-context-copy">Diagnose errors, traces, workflows, and system health.</div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <button id="ask-ai-clear-btn" class="button" type="button" style="min-height: 28px; height: 28px; padding: 0 10px; font-size: 11px; border-color: var(--line); background: var(--panel-2);">Clear Chat</button>
-                            </div>
+                            <button id="ask-ai-clear-btn" class="button" type="button">Clear chat</button>
                         </div>
 
-                        <!-- Chat Messages & Home View -->
-                        <div id="ask-ai-content" style="overflow-y: auto; display: flex; flex-direction: column; flex-grow: 1; min-height: 0;">
-                            <!-- Home/Welcome View (displayed if current thread is empty) -->
-                            <div id="ask-ai-welcome" class="ask-ai-home" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; flex-grow: 1; min-height: auto; margin: auto 0;">
+                        <div id="ask-ai-content" class="ask-ai-content">
+                            <div id="ask-ai-welcome" class="ask-ai-home">
                                 <div class="ask-ai-center">
-                                    <div class="ask-ai-kicker">Pilot assistant</div>
                                     <h1 class="ask-ai-home-title">What should we inspect first?</h1>
-                                    <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact, captured errors, or infrastructure health.</p>
-
-                                    <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts" style="margin-top: 24px;">
+                                    <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts">
                                         <button class="ask-ai-prompt-card" data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
                                             <span class="ask-ai-prompt-title">Explain a failed execution</span>
                                             <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and step timeline.</span>
@@ -3763,17 +3986,20 @@
                                 </div>
                             </div>
 
-                            <!-- Active Messages Area -->
-                            <div id="ask-ai-messages" class="ask-ai-messages" style="display: none; padding: 20px;">
-                                <!-- Messages rendered here -->
-                            </div>
+                            <div id="ask-ai-messages" class="ask-ai-messages"></div>
                         </div>
 
-                        <!-- Composer Wrap -->
                         <div class="ask-ai-composer-wrap">
                             <div class="ask-ai-composer">
                                 <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
-                                <button id="ask-ai-submit-btn" class="button primary" type="button" style="height: 38px;">Ask</button>
+                                <div id="ask-ai-model-picker" class="ask-ai-model-picker">
+                                    <button id="ask-ai-model-trigger" class="ask-ai-model-trigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                                        <span id="ask-ai-model-label" class="ask-ai-model-label">llama-3.3-70b-versatile</span>
+                                        <span class="ask-ai-model-chevron">⌄</span>
+                                    </button>
+                                    <div id="ask-ai-model-menu" class="ask-ai-model-menu" role="listbox" aria-label="Groq model"></div>
+                                </div>
+                                <button id="ask-ai-submit-btn" class="ask-ai-send-button" type="button" title="Send" aria-label="Send">↑</button>
                             </div>
                         </div>
                     </div>
@@ -3797,8 +4023,6 @@
                         </div>
                     </div>
                     <div class="settings-grid">
-                        <div class="setting-card">
-                            <div class="setting-card-head">
                         <div class="setting-card">
                             <div class="setting-card-head">
                                 <div class="setting-card-title">Dashboard</div>
@@ -3885,7 +4109,7 @@
                                         <div class="setting-help">Model name sent by the backend insight service.</div>
                                     </div>
                                     <div class="setting-control">
-                                        <select id="setting-groq-model-select" class="input" style="width: 260px;">
+                                        <select id="setting-groq-model-select" class="input">
                                             <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
                                             <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
                                             <option value="llama3-70b-8192">llama3-70b-8192</option>
@@ -3941,7 +4165,7 @@
                                         <div class="setting-name">Migration table</div>
                                         <div class="setting-help">Tracks which Pilot SQL migrations already ran.</div>
                                     </div>
-                                    <div class="setting-value" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);">pilot_migrations</div>
+                                    <div class="setting-value">pilot_migrations</div>
                                 </div>
                                 <div class="setting-row">
                                     <div>
@@ -4023,8 +4247,21 @@
             aiKeyMissing: false,
             apiBacked: false,
             apiError: null,
-            aiMessages: []
+            aiMessages: [],
+            groqModels: [],
+            selectedGroqModel: "llama-3.3-70b-versatile"
         };
+
+        const SEEDED_GROQ_MODELS = [
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
+            "openai/gpt-oss-120b",
+            "openai/gpt-oss-20b",
+            "meta-llama/llama-4-scout-17b-16e-instruct",
+            "meta-llama/llama-4-maverick-17b-128e-instruct",
+            "moonshotai/kimi-k2-instruct-0905",
+            "qwen/qwen3-32b"
+        ];
 
         const pageButtons = document.querySelectorAll("[data-page-button]");
         const pages = document.querySelectorAll(".page");
@@ -4058,7 +4295,7 @@
         function dashboardBasePath() {
             const currentPath = window.location.pathname;
 
-            if (currentPath.endsWith("/dashboard-v2.html") || currentPath.endsWith("/index.html")) {
+            if (currentPath.endsWith("/dashboard.html") || currentPath.endsWith("/index.html")) {
                 return currentPath.slice(0, currentPath.lastIndexOf("/") + 1);
             }
 
@@ -4244,10 +4481,10 @@
         function tableEmptyRow(colspan, title, copy) {
             return `
                 <tr>
-                    <td colspan="${colspan}">
+                    <td colspan="${Number(colspan) || 1}">
                         <div class="empty-state" style="padding: 20px;">
-                            <div class="empty-title">${title}</div>
-                            <div class="empty-copy">${copy}</div>
+                            <div class="empty-title">${escapeHtml(title)}</div>
+                            <div class="empty-copy">${escapeHtml(copy)}</div>
                         </div>
                     </td>
                 </tr>
@@ -4688,10 +4925,10 @@
             const truncate = (value, limit = 20) => value && value.length > limit ? `${value.slice(0, limit)}...` : (value || '');
             const nodeName = (span) => {
                 if (!span.name) return 'Span';
-                if (span.name === "http.request") return `${escapeHtml(trace.method)} ${escapeHtml(trace.path.length > 18 ? trace.path.slice(0, 18) + '...' : trace.path)}`;
+                if (span.name === "http.request") return `${trace.method || "GET"} ${trace.path || "/"}`;
                 if (span.name.startsWith("pilot.flag")) return "Feature Flag";
                 if (span.name.startsWith("pilot.workflow")) return "Workflow";
-                return escapeHtml(span.name);
+                return span.name;
             };
             const nodeStatusClass = (span) => {
                 const s = String(span.status || '');
@@ -4709,8 +4946,9 @@
             };
             const node = (span, index) => `
                 <g class="trace-node ${nodeStatusClass(span) || (index === 0 ? 'active' : '')}" data-node-span="${index}">
+                    <title>${escapeHtml(nodeName(span))}</title>
                     <rect x="${span.x}" y="${span.y}" width="${nodeWidth}" height="${nodeHeight}"></rect>
-                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2 - 7}" class="trace-node-name">${truncate(nodeName(span), 22)}</text>
+                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2 - 7}" class="trace-node-name" clip-path="url(#trace-node-clip-${index})">${escapeHtml(truncate(nodeName(span), 18))}</text>
                     <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2 + 11}" class="trace-node-sub">${nodeSub(span, index)}</text>
                 </g>
             `;
@@ -4732,7 +4970,7 @@
             };
 
             document.getElementById("trace-graph").innerHTML = `
-                <svg class="trace-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Trace chain graph for ${trace.id}">
+                <svg class="trace-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Trace chain graph for ${escapeHtml(trace.id)}">
                     <defs>
                         <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                             <path d="M0,0 L8,4 L0,8 Z" fill="#3b4658"></path>
@@ -4746,6 +4984,11 @@
                         <marker id="arrow-running" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                             <path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"></path>
                         </marker>
+                        ${nodes.map((span, index) => `
+                            <clipPath id="trace-node-clip-${index}">
+                                <rect x="${span.x + 12}" y="${span.y + 11}" width="${nodeWidth - 24}" height="18" rx="2"></rect>
+                            </clipPath>
+                        `).join("")}
                     </defs>
                     ${nodes.slice(0, -1).map((span, index) => edge(span, nodes[index + 1])).join("")}
                     ${nodes.map((span, index) => node(span, index)).join("")}
@@ -4754,7 +4997,6 @@
                     <div class="trace-request-title">${escapeHtml(trace.method)} ${escapeHtml(trace.path)}</div>
                     <div class="trace-request-meta">${escapeHtml(trace.id)} &middot; ${escapeHtml(trace.status ?? '-')} &middot; ${trace.duration != null ? escapeHtml(trace.duration) + 'ms' : 'pending'} &middot; ${escapeHtml(formatTime(trace.startedAt || trace.createdAt))}</div>
                 </div>
-                <div class="trace-scroll-note">scroll trace chain</div>
             `;
 
             document.getElementById("trace-inspector-id").textContent = trace.id;
@@ -4762,7 +5004,7 @@
             document.getElementById("trace-span-list").innerHTML = allSpans.map((span, index) => `
                 <div class="span-row">
                     <div>
-                        <div class="span-name">${nodeName(span)}</div>
+                        <div class="span-name">${escapeHtml(nodeName(span))}</div>
                         <div class="span-type">${escapeHtml(span.type)}${index === 0 ? ` &middot; ${escapeHtml(trace.status ?? 'pending')}` : ` &middot; ${escapeHtml(span.status)}`}</div>
                     </div>
                     <span class="mono ${nodeStatusClass(span) === 'failed' ? 'bad' : 'muted'}">${nodeSub(span, index) || '-'}</span>
@@ -4932,6 +5174,8 @@
                 keyStatus.textContent = ai.groqApiKeyConfigured ? "configured" : "not configured";
                 keyStatus.className = "setting-note " + (ai.groqApiKeyConfigured ? "status-ok" : "status-missing");
             }
+            state.selectedGroqModel = ai.groqModel || state.selectedGroqModel || "llama-3.3-70b-versatile";
+            renderGroqModelControls();
         }
 
         async function saveSetting(settingName, value, statusElId) {
@@ -5045,6 +5289,58 @@
                 modelSelect.value = ai.groqModel;
                 state._savedGroqModel = ai.groqModel;
             }
+        }
+
+        function selectedGroqModel() {
+            return state.selectedGroqModel || state.settings?.ai?.groqModel || "llama-3.3-70b-versatile";
+        }
+
+        function groqModelOptions() {
+            return Array.from(new Set([
+                selectedGroqModel(),
+                state.settings?.ai?.groqModel,
+                ...state.groqModels.map((model) => model.id || model),
+                ...SEEDED_GROQ_MODELS,
+            ].filter(Boolean)));
+        }
+
+        function renderGroqModelControls() {
+            const value = selectedGroqModel();
+            const options = groqModelOptions();
+            const settingSelect = document.getElementById("setting-groq-model-select");
+            const askLabel = document.getElementById("ask-ai-model-label");
+            const askMenu = document.getElementById("ask-ai-model-menu");
+
+            if (settingSelect) {
+                settingSelect.innerHTML = options.map((model) => `<option value="${escapeHtml(model)}"${model === value ? " selected" : ""}>${escapeHtml(model)}</option>`).join("");
+                settingSelect.value = value;
+            }
+
+            if (askLabel) {
+                askLabel.textContent = value;
+            }
+
+            if (askMenu) {
+                askMenu.innerHTML = options.map((model) => `
+                    <button class="ask-ai-model-option${model === value ? " active" : ""}" type="button" role="option" aria-selected="${model === value ? "true" : "false"}" data-ask-model="${escapeHtml(model)}">${escapeHtml(model)}</button>
+                `).join("");
+            }
+        }
+
+        function closeAskModelMenu() {
+            const picker = document.getElementById("ask-ai-model-picker");
+            const trigger = document.getElementById("ask-ai-model-trigger");
+            if (picker) picker.classList.remove("open");
+            if (trigger) trigger.setAttribute("aria-expanded", "false");
+        }
+
+        function toggleAskModelMenu() {
+            const picker = document.getElementById("ask-ai-model-picker");
+            const trigger = document.getElementById("ask-ai-model-trigger");
+            if (!picker || !trigger) return;
+            const open = !picker.classList.contains("open");
+            picker.classList.toggle("open", open);
+            trigger.setAttribute("aria-expanded", open ? "true" : "false");
         }
 
         function renderAiPlaceholders() {
@@ -5184,22 +5480,8 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data && Array.isArray(data.models) && data.models.length > 0) {
-                        const selectEl = document.getElementById("ask-ai-model-select");
-                        if (selectEl) {
-                            const currentVal = selectEl.value;
-                            selectEl.innerHTML = "";
-                            data.models.forEach(model => {
-                                const opt = document.createElement("option");
-                                opt.value = model.id;
-                                opt.textContent = model.id;
-                                selectEl.appendChild(opt);
-                            });
-                            if (data.models.some(m => m.id === currentVal)) {
-                                selectEl.value = currentVal;
-                            } else if (state.settings?.ai?.groqModel && data.models.some(m => m.id === state.settings.ai.groqModel)) {
-                                selectEl.value = state.settings.ai.groqModel;
-                            }
-                        }
+                        state.groqModels = data.models;
+                        renderGroqModelControls();
                     }
                 }
             } catch (err) {
@@ -5213,22 +5495,8 @@
                 if (response.ok) {
                     const data = await response.json();
                     if (data && Array.isArray(data.models) && data.models.length > 0) {
-                        const selectEl = document.getElementById("setting-groq-model-select");
-                        if (selectEl) {
-                            const currentVal = selectEl.value;
-                            selectEl.innerHTML = "";
-                            data.models.forEach(model => {
-                                const opt = document.createElement("option");
-                                opt.value = model.id;
-                                opt.textContent = model.id;
-                                selectEl.appendChild(opt);
-                            });
-                            if (data.models.some(m => m.id === currentVal)) {
-                                selectEl.value = currentVal;
-                            } else if (state.settings?.ai?.groqModel && data.models.some(m => m.id === state.settings.ai.groqModel)) {
-                                selectEl.value = state.settings.ai.groqModel;
-                            }
-                        }
+                        state.groqModels = data.models;
+                        renderGroqModelControls();
                     }
                 }
             } catch (err) {
@@ -5237,20 +5505,12 @@
         }
 
         function initAiChat() {
-            try {
-                state.aiMessages = JSON.parse(localStorage.getItem("pilot:ai-messages") || "[]");
-            } catch {
-                state.aiMessages = [];
-            }
+            state.aiMessages = [];
             renderMessages();
         }
 
         function saveMessages() {
-            try {
-                localStorage.setItem("pilot:ai-messages", JSON.stringify(state.aiMessages));
-            } catch (err) {
-                console.error("Failed to save messages:", err);
-            }
+            // AI chat history is intentionally session-only.
         }
 
         function clearAiChat() {
@@ -5298,7 +5558,7 @@
             
             // Format code blocks
             html = html.replace(/```(javascript|typescript|json|html|css|python|bash)?([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre class="code-box" style="margin: 10px 0; background: #070a0e; border: 1px solid var(--line-soft); padding: 12px; border-radius: 6px; overflow-x: auto;"><code class="mono" style="font-size: 12px; color: var(--text);">${code.trim()}</code></pre>`;
+                return `<pre class="code-box" style="margin: 10px 0; background: #070a0e; border: 1px solid var(--line-soft); padding: 12px; border-radius: 6px; overflow-x: auto;"><code class="mono" style="font-size: 12px; color: var(--text);">${escapeHtml(code.trim())}</code></pre>`;
             });
 
             // Format inline code
@@ -5323,7 +5583,7 @@
             const text = inputEl.value.trim();
             if (!text) return;
 
-            const selectedModel = state.settings?.ai?.groqModel || "llama-3.3-70b-versatile";
+            const selectedModel = selectedGroqModel();
 
             // Push User Message
             state.aiMessages.push({ role: "user", content: text });
@@ -5614,6 +5874,7 @@
 
                 state.settings.ai = state.settings.ai || {};
                 state.settings.ai.groqModel = model;
+                state.selectedGroqModel = model;
                 if (key) {
                     state.settings.ai.groqApiKeyConfigured = true;
                     keyInput.value = "";
@@ -5621,11 +5882,17 @@
 
                 statusEl.textContent = "saved";
                 statusEl.className = "setting-note status-ok";
+                renderGroqModelControls();
             }
             catch (error) {
                 statusEl.textContent = error.message || "failed";
                 statusEl.className = "setting-note status-missing";
             }
+        });
+
+        document.getElementById("ask-ai-model-trigger").addEventListener("click", (event) => {
+            event.stopPropagation();
+            toggleAskModelMenu();
         });
 
         document.getElementById("ask-ai-clear-btn").addEventListener("click", clearAiChat);
@@ -5651,6 +5918,7 @@
 
             if (event.key === "Escape") {
                 globalSearchShell.classList.remove("open");
+                closeAskModelMenu();
                 closeDrawer();
                 flagModal.classList.remove("open");
             }
@@ -5695,6 +5963,18 @@
         });
 
         document.addEventListener("click", async (event) => {
+            const modelOption = event.target.closest("[data-ask-model]");
+            if (modelOption) {
+                state.selectedGroqModel = modelOption.dataset.askModel;
+                renderGroqModelControls();
+                closeAskModelMenu();
+                return;
+            }
+
+            if (!event.target.closest("#ask-ai-model-picker")) {
+                closeAskModelMenu();
+            }
+
             const askPrompt = event.target.closest("[data-ask-prompt]");
             if (askPrompt) {
                 const askInput = document.getElementById("ask-ai-input");

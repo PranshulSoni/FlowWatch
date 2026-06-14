@@ -32,6 +32,8 @@ export interface PilotAiInsight {
 const GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
 const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+const ALLOWED_CHAT_ROLES = new Set(["user", "assistant"])
+const MODEL_ID_PATTERN = /^[a-zA-Z0-9._:/-]{1,128}$/
 
 export interface GroqModelOption {
     id: string
@@ -65,6 +67,24 @@ function parseInsightJson(content: string): unknown {
     const trimmed = content.trim()
     const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/)
     return JSON.parse(fenced?.[1] || trimmed)
+}
+
+function selectedModel(model?: string): string {
+    const value = model || getGroqModel() || DEFAULT_GROQ_MODEL
+    if (!MODEL_ID_PATTERN.test(value)) {
+        throw new Error("Invalid Groq model id")
+    }
+    return value
+}
+
+function sanitizeChatHistory(history: Array<{ role: string; content: string }>): Array<{ role: "user" | "assistant"; content: string }> {
+    return (history || [])
+        .filter((message: any) => ALLOWED_CHAT_ROLES.has(message?.role))
+        .map((message: any) => ({
+            role: message.role,
+            content: String(message.content || "").slice(0, 4096),
+        }))
+        .slice(-50)
 }
 
 export async function listGroqModels(): Promise<GroqModelOption[]> {
@@ -111,7 +131,7 @@ export async function generateGroqInsight(context: PilotAiInsightContext, model?
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: model || getGroqModel() || DEFAULT_GROQ_MODEL,
+            model: selectedModel(model),
             temperature: 0.2,
             response_format: { type: "json_object" },
             messages: [
@@ -160,7 +180,7 @@ export async function askGroqAssistant(
         throw new Error("GROQ_API_KEY is not configured")
     }
 
-    const safeHistory = (history || []).filter((m: any) => m.role !== "system")
+    const safeHistory = sanitizeChatHistory(history)
 
     const messages = [
         {
@@ -191,7 +211,7 @@ export async function askGroqAssistant(
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: model || getGroqModel() || DEFAULT_GROQ_MODEL,
+            model: selectedModel(model),
             temperature: 0.5,
             messages,
         }),
