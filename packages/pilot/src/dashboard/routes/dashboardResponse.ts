@@ -229,7 +229,10 @@ export function serializeSettings(config: NormalizedPilotConfig) {
             enabled: config.dashboard.enabled,
             authEnabled: Boolean(config.dashboard.auth || config.dashboard.token),
         },
-        worker: config.worker,
+        worker: {
+            ...config.worker,
+            concurrency: config.worker.workflowConcurrency,
+        },
         migrations: config.migrations,
         ai: {
             groqApiKeyConfigured: Boolean(process.env.GROQ_API_KEY),
@@ -239,6 +242,11 @@ export function serializeSettings(config: NormalizedPilotConfig) {
 }
 
 export function serializeWorkflowSummary(workflow: any, executions: any[], definitionSteps: any[], latestExecution?: any, latestExecutionSteps: any[] = []) {
+    const workflowExecutions = executions.filter((e) => e.workflow_name === workflow.name)
+    const completed = workflowExecutions.filter((e) => e.status === "completed").length
+    const failed = workflowExecutions.filter((e) => e.status === "failed").length
+    const running = workflowExecutions.filter((e) => e.status === "running").length
+
     return {
         id: workflow.id,
         name: workflow.name,
@@ -247,8 +255,12 @@ export function serializeWorkflowSummary(workflow: any, executions: any[], defin
         created: formatDashboardDateTime(workflow.created_at),
         createdAt: asIso(workflow.created_at),
         updatedAt: asIso(workflow.updated_at),
-        lastStatus: latestExecution?.status || "queued",
-        failures: executions.filter((execution) => execution.workflow_name === workflow.name && execution.status === "failed").length,
+        lastStatus: latestExecution?.status || "never run",
+        totalRuns: workflowExecutions.length,
+        completedRuns: completed,
+        failedRuns: failed,
+        runningRuns: running,
+        failures: failed,
         pinned: false,
         chain: definitionSteps.map((step) => step.name),
         latestExecution: latestExecution ? serializeExecution(latestExecution, latestExecutionSteps) : undefined,

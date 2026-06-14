@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto"
-import type { Pool } from "pg"
+import type { Pool, PoolClient } from "pg"
 export type FlagRuleOperator =
     | "equals"
     | "not_equals"
@@ -78,12 +78,31 @@ export interface UpdateFlagRuleInput {
     changedBy?: string
 }
 
+// ─── Transaction helper ───────────────────────────────────────────────────────
+// All BEGIN/COMMIT/ROLLBACK must run on the SAME dedicated PoolClient.
+// pool.query() dispatches to any connection in the pool — never use it for txns.
+async function withTransaction<T>(pool: Pool, fn: (client: PoolClient) => Promise<T>): Promise<T> {
+    const client = await pool.connect()
+    try {
+        await client.query("BEGIN")
+        const result = await fn(client)
+        await client.query("COMMIT")
+        return result
+    } catch (error) {
+        await client.query("ROLLBACK")
+        throw error
+    } finally {
+        client.release()
+    }
+}
+
+// ─── Flag CRUD ────────────────────────────────────────────────────────────────
+
 export async function createFlag(pool: Pool, input: CreateFlagInput): Promise<FeatureFlagRow> {
     const flagId = randomUUID()
-    await pool.query("BEGIN")
 
-    try {
-        const result = await pool.query<FeatureFlagRow>(
+    return withTransaction(pool, async (client) => {
+        const result = await client.query<FeatureFlagRow>(
             `
             INSERT INTO pilot_feature_flags (
                 id,
@@ -106,7 +125,7 @@ export async function createFlag(pool: Pool, input: CreateFlagInput): Promise<Fe
 
         const flag = result.rows[0]
 
-        await insertAuditLog(pool, {
+        await insertAuditLog(client, {
             flagId: flag.id,
             action: "flag_created",
             before: null,
@@ -114,18 +133,11 @@ export async function createFlag(pool: Pool, input: CreateFlagInput): Promise<Fe
             changedBy: input.changedBy,
         })
 
-        await pool.query("COMMIT")
-
         return flag
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 export async function listFlags(pool: Pool): Promise<FeatureFlagRow[]> {
-    
     const result = await pool.query<FeatureFlagRow>(
         `
         SELECT *
@@ -169,17 +181,16 @@ export async function updateFlag(
     key: string,
     input: UpdateFlagInput
 ): Promise<FeatureFlagRow | undefined> {
-    await pool.query("BEGIN")
+    return withTransaction(pool, async (client) => {
+        const beforeResult = await client.query<FeatureFlagRow>(
+            `SELECT * FROM pilot_feature_flags WHERE key = $1`,
+            [key]
+        )
+        const before = beforeResult.rows[0]
 
-    try {
-        const before = await getFlagByKey(pool, key)
+        if (!before) return undefined
 
-        if (!before) {
-            await pool.query("ROLLBACK")
-            return undefined
-        }
-
-        const result = await pool.query<FeatureFlagRow>(
+        const result = await client.query<FeatureFlagRow>(
             `
             UPDATE pilot_feature_flags
             SET description = COALESCE($2, description),
@@ -199,7 +210,7 @@ export async function updateFlag(
 
         const after = result.rows[0]
 
-        await insertAuditLog(pool, {
+        await insertAuditLog(client, {
             flagId: after.id,
             action: "flag_updated",
             before,
@@ -207,36 +218,22 @@ export async function updateFlag(
             changedBy: input.changedBy,
         })
 
-        await pool.query("COMMIT")
-
         return after
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 export async function deleteFlag(pool: Pool, key: string, changedBy?: string): Promise<boolean> {
-    await pool.query("BEGIN")
-
-    try {
-        const before = await getFlagByKey(pool, key)
-
-        if (!before) {
-            await pool.query("ROLLBACK")
-            return false
-        }
-
-        await pool.query(
-            `
-            DELETE FROM pilot_feature_flags
-            WHERE key = $1
-            `,
+    return withTransaction(pool, async (client) => {
+        const beforeResult = await client.query<FeatureFlagRow>(
+            `SELECT * FROM pilot_feature_flags WHERE key = $1`,
             [key]
         )
+        const before = beforeResult.rows[0]
 
-        await insertAuditLog(pool, {
+        if (!before) return false
+
+        // Write audit log BEFORE delete so the FK to pilot_feature_flags is still valid
+        await insertAuditLog(client, {
             flagId: before.id,
             action: "flag_deleted",
             before,
@@ -244,15 +241,16 @@ export async function deleteFlag(pool: Pool, key: string, changedBy?: string): P
             changedBy,
         })
 
-        await pool.query("COMMIT")
+        await client.query(
+            `DELETE FROM pilot_feature_flags WHERE key = $1`,
+            [key]
+        )
 
         return true
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
+
+// ─── Flag Rules ───────────────────────────────────────────────────────────────
 
 export async function listFlagRules(pool: Pool, flagKey: string): Promise<FeatureFlagRuleRow[]> {
     const flag = await getFlagByKey(pool, flagKey)
@@ -278,17 +276,16 @@ export async function createFlagRule(
     pool: Pool,
     input: CreateFlagRuleInput
 ): Promise<FeatureFlagRuleRow | undefined> {
-    await pool.query("BEGIN")
+    return withTransaction(pool, async (client) => {
+        const flagResult = await client.query<FeatureFlagRow>(
+            `SELECT * FROM pilot_feature_flags WHERE key = $1`,
+            [input.flagKey]
+        )
+        const flag = flagResult.rows[0]
 
-    try {
-        const flag = await getFlagByKey(pool, input.flagKey)
+        if (!flag) return undefined
 
-        if (!flag) {
-            await pool.query("ROLLBACK")
-            return undefined
-        }
-
-        const result = await pool.query<FeatureFlagRuleRow>(
+        const result = await client.query<FeatureFlagRuleRow>(
             `
             INSERT INTO pilot_feature_flag_rules (
                 id,
@@ -313,7 +310,7 @@ export async function createFlagRule(
 
         const rule = result.rows[0]
 
-        await insertAuditLog(pool, {
+        await insertAuditLog(client, {
             flagId: flag.id,
             action: "rule_created",
             before: null,
@@ -321,14 +318,8 @@ export async function createFlagRule(
             changedBy: input.changedBy,
         })
 
-        await pool.query("COMMIT")
-
         return rule
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 export async function updateFlagRule(
@@ -336,26 +327,16 @@ export async function updateFlagRule(
     ruleId: string,
     input: UpdateFlagRuleInput
 ): Promise<FeatureFlagRuleRow | undefined> {
-    await pool.query("BEGIN")
-
-    try {
-        const beforeResult = await pool.query<FeatureFlagRuleRow>(
-            `
-            SELECT *
-            FROM pilot_feature_flag_rules
-            WHERE id = $1
-            `,
+    return withTransaction(pool, async (client) => {
+        const beforeResult = await client.query<FeatureFlagRuleRow>(
+            `SELECT * FROM pilot_feature_flag_rules WHERE id = $1`,
             [ruleId]
         )
-
         const before = beforeResult.rows[0]
 
-        if (!before) {
-            await pool.query("ROLLBACK")
-            return undefined
-        }
+        if (!before) return undefined
 
-        const result = await pool.query<FeatureFlagRuleRow>(
+        const result = await client.query<FeatureFlagRuleRow>(
             `
             UPDATE pilot_feature_flag_rules
             SET attribute = COALESCE($2, attribute),
@@ -377,7 +358,7 @@ export async function updateFlagRule(
 
         const after = result.rows[0]
 
-        await insertAuditLog(pool, {
+        await insertAuditLog(client, {
             flagId: after.flag_id,
             action: "rule_updated",
             before,
@@ -385,45 +366,22 @@ export async function updateFlagRule(
             changedBy: input.changedBy,
         })
 
-        await pool.query("COMMIT")
-
         return after
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 export async function deleteFlagRule(pool: Pool, ruleId: string, changedBy?: string): Promise<boolean> {
-    await pool.query("BEGIN")
-
-    try {
-        const beforeResult = await pool.query<FeatureFlagRuleRow>(
-            `
-            SELECT *
-            FROM pilot_feature_flag_rules
-            WHERE id = $1
-            `,
+    return withTransaction(pool, async (client) => {
+        const beforeResult = await client.query<FeatureFlagRuleRow>(
+            `SELECT * FROM pilot_feature_flag_rules WHERE id = $1`,
             [ruleId]
         )
-
         const before = beforeResult.rows[0]
 
-        if (!before) {
-            await pool.query("ROLLBACK")
-            return false
-        }
+        if (!before) return false
 
-        await pool.query(
-            `
-            DELETE FROM pilot_feature_flag_rules
-            WHERE id = $1
-            `,
-            [ruleId]
-        )
-
-        await insertAuditLog(pool, {
+        // Write audit log BEFORE delete so the FK to pilot_feature_flag_rules is still valid
+        await insertAuditLog(client, {
             flagId: before.flag_id,
             action: "rule_deleted",
             before,
@@ -431,15 +389,16 @@ export async function deleteFlagRule(pool: Pool, ruleId: string, changedBy?: str
             changedBy,
         })
 
-        await pool.query("COMMIT")
+        await client.query(
+            `DELETE FROM pilot_feature_flag_rules WHERE id = $1`,
+            [ruleId]
+        )
 
         return true
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
+
+// ─── Audit logs ───────────────────────────────────────────────────────────────
 
 export async function listFlagAuditLogs(pool: Pool, flagKey: string): Promise<FeatureFlagAuditLogRow[]> {
     const flag = await getFlagByKey(pool, flagKey)
@@ -461,6 +420,8 @@ export async function listFlagAuditLogs(pool: Pool, flagKey: string): Promise<Fe
     return result.rows
 }
 
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
 interface AuditLogInput {
     flagId: string
     action: string
@@ -469,8 +430,9 @@ interface AuditLogInput {
     changedBy?: string
 }
 
-async function insertAuditLog(pool: Pool, input: AuditLogInput): Promise<void> {
-    await pool.query(
+// Accepts a PoolClient so audit logs share the same transaction as the main op
+async function insertAuditLog(client: PoolClient, input: AuditLogInput): Promise<void> {
+    await client.query(
         `
         INSERT INTO pilot_feature_flag_audit_logs (
             id,

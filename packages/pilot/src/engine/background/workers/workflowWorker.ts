@@ -16,11 +16,12 @@ import { getWorkflowExecution, getWorkflowExecutionSteps, markWorkflowExecutionC
 
 export function createWorkflowWorker(options: WorkflowWorkerOptions): Worker<WorkflowJobData> {
     return new Worker<WorkflowJobData>(
-        "pilot:workflows",
+        "workflows",
         async (job) => {
             await executeWorkflow(job.data.executionId, options)
         },
         {
+            prefix: "{pilot}",
             connection: {
                 url: options.redisUrl,
             },

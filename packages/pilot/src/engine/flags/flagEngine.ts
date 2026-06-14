@@ -19,25 +19,35 @@ export function createFlagEngine(
         try {
             return await traceEngine.trace("pilot.feature_flag.evaluate", "feature_flag", async () => {
                 const cacheKey = `pilot:flags:${key}`
-                const cachedValue = await redisClient.get(cacheKey)
-                if (cachedValue) {
-                    const cached = JSON.parse(cachedValue)
-                    return evaluateFlag(cached.flag, cached.rules, context)
+
+                // Cache read — non-fatal, falls back to DB on any Redis error
+                try {
+                    const cachedValue = await redisClient.get(cacheKey)
+                    if (cachedValue) {
+                        const cached = JSON.parse(cachedValue)
+                        return evaluateFlag(cached.flag, cached.rules, context)
+                    }
+                } catch {
+                    // Redis unavailable or version mismatch — continue to DB
                 }
+
                 const storedFlag = await getFlagByKey(pool, key)
                 if (!storedFlag) {
                     return false
                 }
                 const rules = await listFlagRules(pool, key)
-                await redisClient.set(
-                    cacheKey,
-                    JSON.stringify({
-                        flag: storedFlag,
-                        rules,
-                    }),
-                    "EX",
-                    60  
-                )
+
+                // Cache write — non-fatal
+                try {
+                    await redisClient.set(
+                        cacheKey,
+                        JSON.stringify({ flag: storedFlag, rules }),
+                        "EX",
+                        60
+                    )
+                } catch {
+                    // Cache write failed — not critical
+                }
 
                 return evaluateFlag(storedFlag, rules, context)
             }, {

@@ -55,9 +55,21 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     if (normalizedConfig.migrations.autoRun) {
         await runMigrations(postgresPool, migrations);
     }
-    const redisClient=createRedisClient(normalizedConfig.redis.url);
+    const redisClient = createRedisClient(normalizedConfig.redis.url)
     const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
-    const workflowQueue = createWorkflowQueue(normalizedConfig.redis.url);
+
+    // BullMQ requires Redis ≥ 5. Gracefully degrade on older versions.
+    let workflowQueue: ReturnType<typeof createWorkflowQueue> | null = null
+    try {
+        workflowQueue = createWorkflowQueue(normalizedConfig.redis.url)
+        // Probe the connection — BullMQ throws synchronously on version check
+        await workflowQueue.waitUntilReady()
+    } catch (err: any) {
+        const reason = err?.message ?? String(err)
+        console.warn(`[Pilot] ⚠️  Workflow queue unavailable (${reason}). Workflows will be registered but cannot be executed until Redis ≥ 5 is available.`)
+        workflowQueue = null
+    }
+
     const traceEngine = createTraceEngine({
         pool: postgresPool,
         elasticsearchClient,
@@ -76,16 +88,21 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const capturePilotError: CaptureErrorFunction = (error, options) => {
         return captureError(errorEngineOptions, error, options)
     }
-    const flagEngine = createFlagEngine(postgresPool, traceEngine, capturePilotError,redisClient);
+    const flagEngine = createFlagEngine(postgresPool, traceEngine, capturePilotError, redisClient)
     await createMissingMappings(elasticsearchClient)
-    if (normalizedConfig.worker.enabled) {
-        createWorkflowWorker({
-            redisUrl: normalizedConfig.redis.url,
-            pool: postgresPool,
-            getWorkflow: workflowEngine.getWorkflow,
-            traceEngine,
-            captureError: capturePilotError,
-        })
+
+    if (normalizedConfig.worker.enabled && workflowQueue !== null) {
+        try {
+            createWorkflowWorker({
+                redisUrl: normalizedConfig.redis.url,
+                pool: postgresPool,
+                getWorkflow: workflowEngine.getWorkflow,
+                traceEngine,
+                captureError: capturePilotError,
+            })
+        } catch (err: any) {
+            console.warn(`[Pilot] ⚠️  Workflow worker could not start: ${err?.message}`)
+        }
     }
 
     const dashboard = createDashboardRouter({

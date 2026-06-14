@@ -145,3 +145,66 @@ export async function generateGroqInsight(context: PilotAiInsightContext, model?
 
     return normalizeInsight(parseInsightJson(content), context)
 }
+
+export async function askGroqAssistant(
+    context: PilotAiInsightContext,
+    message: string,
+    history: Array<{ role: string; content: string }>,
+    model?: string
+): Promise<string> {
+    const apiKey = process.env.GROQ_API_KEY
+
+    if (!apiKey) {
+        throw new Error("GROQ_API_KEY is not configured")
+    }
+
+    const messages = [
+        {
+            role: "system",
+            content: [
+                "You are Pilot's backend reliability assistant.",
+                "You help developers diagnose errors, traces, feature flags, workflows, and health checks.",
+                "Use the provided JSON context of the system which contains recent workflows, executions, errors, traces, feature flags, and health check statuses.",
+                "Answer the user's question accurately. Focus on diagnostics, suggestions, and resolving issues.",
+                "Keep answers developer-friendly, clear, and actionable. Use markdown formatting for lists, tables, and code snippets.",
+            ].join(" "),
+        },
+        {
+            role: "system",
+            content: `Here is the current system context: ${JSON.stringify(context)}`,
+        },
+        ...history,
+        {
+            role: "user",
+            content: message,
+        }
+    ]
+
+    const response = await fetch(GROQ_CHAT_COMPLETIONS_URL, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model: model || process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
+            temperature: 0.5,
+            messages,
+        }),
+    })
+
+    if (!response.ok) {
+        const msg = await response.text()
+        throw new Error(`Groq chat request failed: ${response.status} ${msg}`)
+    }
+
+    const completion = await response.json() as any
+    const content = completion.choices?.[0]?.message?.content
+
+    if (!content) {
+        throw new Error("Groq returned an empty response")
+    }
+
+    return content
+}
+

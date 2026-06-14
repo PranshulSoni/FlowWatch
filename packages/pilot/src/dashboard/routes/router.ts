@@ -1,5 +1,7 @@
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
+import { readFile, writeFile } from "node:fs/promises"
+import { load, dump } from "js-yaml"
 import type { Client } from "@elastic/elasticsearch"
 import express, { json, Router } from "express"
 import type { Redis } from "ioredis"
@@ -28,6 +30,7 @@ import {
     listWorkflowDefinitions,
     listWorkflowExecutions,
     listWorkflowExecutionsByWorkflowName,
+    listWorkflowExecutionsByWorkflowName as listWorkflowExecutionsByWorkflowNameAlias,
     listWorkflowStepExecutionsByExecutionIds,
     listWorkflowStepsByWorkflowIds,
 } from "../../persistence/repositories/workflows/workflowRepository.js"
@@ -42,7 +45,7 @@ import {
     serializeTrace,
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
-import { generateGroqInsight, listGroqModels, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
+import { generateGroqInsight, listGroqModels, askGroqAssistant, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
 import { addToConfig } from "../../utils/addToConfig.js"
 
 interface DashboardRouterOptions {
@@ -53,7 +56,11 @@ interface DashboardRouterOptions {
 }
 
 async function invalidateFlagCache(redisClient: Redis, flagKey: string): Promise<void> {
-    await redisClient.del(`pilot:flags:${flagKey}`)
+    try {
+        await redisClient.del(`pilot:flags:${flagKey}`)
+    } catch {
+        
+    }
 }
 
 async function dashboardError(res: any, error: unknown): Promise<void> {
@@ -75,7 +82,6 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         flags,
         workflows,
         executions,
-        traces,
         errors,
     ] = await Promise.all([
         checkPostgresHealth(postgresPool),
@@ -83,47 +89,35 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         checkElasticsearchHealth(elasticsearchClient),
         listFlagsWithRuleCounts(postgresPool),
         listWorkflowDefinitions(postgresPool),
-        listWorkflowExecutions(postgresPool, 25),
-        listRequestTraces(postgresPool, 25),
-        listErrors(postgresPool, 25),
+        listWorkflowExecutions(postgresPool, 5),  // trimmed for token budget
+        listErrors(postgresPool, 5),              // trimmed for token budget
     ])
-    const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
-    const traceSpans = new Map<string, any[]>()
-
-    await Promise.all(traces.slice(0, 10).map(async (trace) => {
-        traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
-    }))
 
     return {
         serviceName: config.runtime.serviceName,
         environment: config.runtime.environment,
         generatedAt: new Date().toISOString(),
-        workflows: workflows.slice(0, 25).map((workflow) => ({
+        workflows: workflows.slice(0, 10).map((workflow) => ({
             id: workflow.id,
             name: workflow.name,
             version: workflow.version,
         })),
         executions: executions.map((execution) => ({
-            ...serializeExecution(execution, executionSteps.get(execution.id) || []),
-            input: undefined,
-            output: undefined,
+            id: execution.id,
+            workflowName: execution.workflow_name,
+            status: execution.status,
+            startedAt: execution.started_at,
+            completedAt: execution.completed_at,
         })),
-        errors: errors.map((error) => {
-            const serialized = serializeError(error)
-            return {
-                id: serialized.id,
-                name: serialized.name,
-                message: serialized.message,
-                category: serialized.category,
-                level: serialized.level,
-                source: serialized.source,
-                status: serialized.status,
-                trace: serialized.trace,
-                occurredAt: serialized.occurredAt,
-            }
-        }),
-        traces: traces.slice(0, 10).map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
-        flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)),
+        errors: errors.map((error) => ({
+            name: error.name,
+            message: error.message?.slice(0, 120),
+            level: error.level,
+            source: error.source,
+            occurredAt: error.occurred_at,
+        })),
+        traces: [],  // omitted to stay within token budget
+        flags: flags.slice(0, 10).map((flag) => serializeFlag(flag, flag.rule_count)),
         health: [
             { name: "Postgres", status: postgres.status, latency: postgres.latencyMs },
             { name: "Redis", status: redis.status, latency: redis.latencyMs },
@@ -335,16 +329,20 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     })
 
     router.delete("/api/flags/:key", async (req, res) => {
-        const deleted = await deleteFlag(postgresPool, req.params.key, req.body?.changedBy)
+        try {
+            const deleted = await deleteFlag(postgresPool, req.params.key, req.body?.changedBy)
 
-        if (!deleted) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+            if (!deleted) {
+                res.status(404).json({ message: "Feature flag not found" })
+                return
+            }
+
+            await invalidateFlagCache(redisClient, req.params.key)
+
+            res.status(204).send()
+        } catch (error) {
+            await dashboardError(res, error)
         }
-
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        res.status(204).send()
     })
 
     router.get("/api/flags/:key/rules", async (req, res) => {
@@ -596,6 +594,105 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
             res.json({ success: true })
         } catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.post("/api/settings", async (req, res) => {
+        try {
+            const {
+                environment,
+                dashboardPath,
+                dashboardEnabled,
+                dashboardAuthEnabled,
+                workerEnabled,
+                workerConcurrency,
+                queuePrefix,
+                autoRunMigrations,
+                requestTracing,
+                errorCapture,
+                elasticsearchIndexing,
+                groqModel
+            } = req.body
+
+            // Update in-memory config
+            if (environment !== undefined) config.runtime.environment = environment
+            if (dashboardPath !== undefined) config.dashboard.path = dashboardPath
+            if (dashboardEnabled !== undefined) config.dashboard.enabled = dashboardEnabled
+            if (workerEnabled !== undefined) config.worker.enabled = workerEnabled
+            if (workerConcurrency !== undefined) config.worker.workflowConcurrency = Number(workerConcurrency)
+            if (queuePrefix !== undefined) config.worker.queuePrefix = queuePrefix
+            if (autoRunMigrations !== undefined) config.migrations.autoRun = autoRunMigrations
+            if (groqModel !== undefined) {
+                process.env.GROQ_MODEL = groqModel
+            }
+
+            // Save to config.yaml
+            const configPath = join(__dirname, "../../../config.yaml")
+            let data: Record<string, any> = {}
+            try {
+                const raw = await readFile(configPath, "utf-8")
+                data = load(raw) as Record<string, any> || {}
+            } catch {
+                data = {}
+            }
+
+            if (environment !== undefined) {
+                data.runtime = data.runtime || {}
+                data.runtime.environment = environment
+            }
+            if (dashboardPath !== undefined || dashboardEnabled !== undefined) {
+                data.dashboard = data.dashboard || {}
+                if (dashboardPath !== undefined) data.dashboard.path = dashboardPath
+                if (dashboardEnabled !== undefined) data.dashboard.enabled = dashboardEnabled
+            }
+            if (workerEnabled !== undefined || workerConcurrency !== undefined || queuePrefix !== undefined) {
+                data.worker = data.worker || {}
+                if (workerEnabled !== undefined) data.worker.enabled = workerEnabled
+                if (workerConcurrency !== undefined) data.worker.workflowConcurrency = Number(workerConcurrency)
+                if (queuePrefix !== undefined) data.worker.queuePrefix = queuePrefix
+            }
+            if (autoRunMigrations !== undefined) {
+                data.migrations = data.migrations || {}
+                data.migrations.autoRun = autoRunMigrations
+            }
+            if (groqModel !== undefined) {
+                data.groq = data.groq || {}
+                data.groq.model = groqModel
+            }
+
+            await writeFile(configPath, dump(data, { lineWidth: 120, noRefs: true }), "utf-8")
+
+            res.json({ success: true, settings: serializeSettings(config) })
+        } catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.post("/api/ai-chat", async (req, res) => {
+        try {
+            if (!process.env.GROQ_API_KEY) {
+                res.status(428).json({
+                    error: {
+                        code: "groq_api_key_missing",
+                        message: "Add GROQ_API_KEY in settings to enable the AI assistant.",
+                    },
+                })
+                return
+            }
+
+            const { message, history, model } = req.body
+            if (!message) {
+                res.status(400).json({ error: "Message is required" })
+                return
+            }
+
+            const context = await buildAiInsightContext(options)
+            const responseText = await askGroqAssistant(context, message, history || [], model)
+
+            res.json({ response: responseText })
+        }
+        catch (error) {
             await dashboardError(res, error)
         }
     })

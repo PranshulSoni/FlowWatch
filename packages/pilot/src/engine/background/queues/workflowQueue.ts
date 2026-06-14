@@ -5,7 +5,8 @@ export interface WorkflowJobData {
 }
 
 export function createWorkflowQueue(redisUrl: string) {
-    return new Queue<WorkflowJobData>("pilot:workflows", {
+    return new Queue<WorkflowJobData>("workflows", {
+        prefix: "{pilot}",
         connection: {
             url: redisUrl,
         },

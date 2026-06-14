@@ -11,7 +11,7 @@ export interface WorkflowEngine {
 
 export interface WorkflowEngineOptions {
     pool: Pool
-    workflowQueue: ReturnType<typeof createWorkflowQueue>
+    workflowQueue: ReturnType<typeof createWorkflowQueue> | null
     traceEngine: TraceEngine
 }
 
@@ -91,6 +91,11 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
                 input,
                 steps: executionSteps,
             })
+
+            if (workflowQueue === null) {
+                console.warn(`[Pilot] ⚠️  Workflow "${name}" execution recorded but NOT queued — Redis queue unavailable. Upgrade to Redis ≥ 5 to enable background execution.`)
+                return { executionId: execution.executionId }
+            }
 
             await addWorkflowJobToQueue(workflowQueue, execution.executionId)
 

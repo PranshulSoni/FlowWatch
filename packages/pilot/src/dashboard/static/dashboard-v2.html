@@ -805,49 +805,80 @@
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            height: 22px;
-            border-radius: 999px;
-            padding: 0 8px;
-            font-size: 11px;
-            font-weight: 700;
+            height: 18px;
+            border-radius: 4px;
+            padding: 0 6px;
+            font-size: 10px;
+            font-weight: 600;
             border: 1px solid transparent;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            line-height: 1;
         }
 
         .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 99px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
             background: currentColor;
         }
 
         .ok {
-            color: #86efac;
-            background: rgba(34, 197, 94, 0.1);
-            border-color: rgba(34, 197, 94, 0.22);
+            color: #4ade80;
+            background: rgba(74, 222, 128, 0.08);
+            border-color: rgba(74, 222, 128, 0.2);
         }
 
         .warn {
             color: #fbbf24;
-            background: rgba(245, 158, 11, 0.11);
-            border-color: rgba(245, 158, 11, 0.24);
+            background: rgba(251, 191, 36, 0.08);
+            border-color: rgba(251, 191, 36, 0.2);
         }
 
         .bad {
-            color: #fca5a5;
-            background: rgba(239, 68, 68, 0.12);
-            border-color: rgba(239, 68, 68, 0.26);
+            color: #f87171;
+            background: rgba(248, 113, 113, 0.08);
+            border-color: rgba(248, 113, 113, 0.2);
         }
 
         .info {
-            color: #bfdbfe;
-            background: rgba(79, 140, 255, 0.12);
-            border-color: rgba(79, 140, 255, 0.28);
+            color: #60a5fa;
+            background: rgba(96, 165, 250, 0.08);
+            border-color: rgba(96, 165, 250, 0.2);
         }
 
         .cyan {
-            color: #a5f3fc;
-            background: rgba(34, 211, 238, 0.1);
-            border-color: rgba(34, 211, 238, 0.22);
+            color: #22d3ee;
+            background: rgba(34, 211, 238, 0.08);
+            border-color: rgba(34, 211, 238, 0.2);
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 36px 20px;
+            background: rgba(17, 21, 27, 0.4);
+            border: 1px dashed var(--line);
+            border-radius: 8px;
+            margin: 12px 0;
+            width: 100%;
+        }
+
+        .empty-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .empty-copy {
+            font-size: 11px;
+            color: var(--muted);
+            max-width: 460px;
+            line-height: 1.5;
         }
 
         .stack {
@@ -1246,6 +1277,12 @@
             overflow-y: hidden;
         }
 
+        tr.selected-row td {
+            background: rgba(99, 102, 241, 0.12) !important;
+            border-top: 1px solid rgba(99, 102, 241, 0.3);
+            border-bottom: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
         .trace-request-card {
             position: absolute;
             left: 14px;
@@ -1373,10 +1410,22 @@
         .trace-node text {
             fill: #e5edf8;
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 12px;
-            font-weight: 760;
+            font-size: 11px;
+            font-weight: 700;
             text-anchor: middle;
             dominant-baseline: middle;
+        }
+
+        .trace-node text.trace-node-name {
+            font-size: 11px;
+            font-weight: 760;
+            fill: #e5edf8;
+        }
+
+        .trace-node text.trace-node-sub {
+            font-size: 10px;
+            font-weight: 400;
+            fill: #7f8da1;
         }
 
         .trace-lane-label {
@@ -3559,6 +3608,7 @@
                                         <th>Method</th>
                                         <th>Path</th>
                                         <th>Status</th>
+                                        <th>Time</th>
                                         <th>IP</th>
                                         <th class="right">Duration</th>
                                     </tr>
@@ -3670,48 +3720,60 @@
 
                 </section>
 
-                <section id="page-ask-ai" class="page">
-                    <div class="ask-ai-home">
-                        <div class="ask-ai-center">
-                            <div class="ask-ai-kicker">Pilot assistant</div>
-                            <h1 class="ask-ai-home-title">What should we inspect first?</h1>
-                            <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact,
-                                captured errors, or infrastructure health. The assistant is framed around the backend
-                                signals Pilot already collects.</p>
-
-                            <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts">
-                                <button class="ask-ai-prompt-card"
-                                    data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
-                                    <span class="ask-ai-prompt-title">Explain a failed execution</span>
-                                    <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and
-                                        step timeline.</span>
-                                </button>
-                                <button class="ask-ai-prompt-card"
-                                    data-ask-prompt="Use the selected trace to identify the slowest backend span and any linked captured error.">
-                                    <span class="ask-ai-prompt-title">Read a trace</span>
-                                    <span class="ask-ai-prompt-copy">Find the slow span, connected error, and affected
-                                        request.</span>
-                                </button>
-                                <button class="ask-ai-prompt-card"
-                                    data-ask-prompt="Compare enabled feature flags with recent traces, errors, and workflow failures.">
-                                    <span class="ask-ai-prompt-title">Check rollout impact</span>
-                                    <span class="ask-ai-prompt-copy">Compare flag state with traces, errors, and
-                                        workflow failures.</span>
-                                </button>
-                                <button class="ask-ai-prompt-card"
-                                    data-ask-prompt="Give me a safe replay plan for the selected failed workflow execution.">
-                                    <span class="ask-ai-prompt-title">Plan a safe replay</span>
-                                    <span class="ask-ai-prompt-copy">Separate completed side effects from steps that can
-                                        be retried.</span>
-                                </button>
+                <section id="page-ask-ai" class="page" style="padding: 0; max-height: calc(100vh - 58px); height: calc(100vh - 58px); overflow: hidden; max-width: none; margin: -18px; min-height: 0;">
+                    <div class="ask-ai-main" style="height: 100%; display: flex; flex-direction: column;">
+                        <!-- Context/Header Bar -->
+                        <div class="ask-ai-context">
+                            <div>
+                                <div class="ask-ai-context-title">Ask Pilot Assistant</div>
+                                <div class="ask-ai-context-copy">Diagnose errors, traces, workflows, and system health.</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <button id="ask-ai-clear-btn" class="button" type="button" style="min-height: 28px; height: 28px; padding: 0 10px; font-size: 11px; border-color: var(--line); background: var(--panel-2);">Clear Chat</button>
                             </div>
                         </div>
 
-                        <div class="ask-ai-home-composer">
+                        <!-- Chat Messages & Home View -->
+                        <div id="ask-ai-content" style="overflow-y: auto; display: flex; flex-direction: column; flex-grow: 1; min-height: 0;">
+                            <!-- Home/Welcome View (displayed if current thread is empty) -->
+                            <div id="ask-ai-welcome" class="ask-ai-home" style="display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; flex-grow: 1; min-height: auto; margin: auto 0;">
+                                <div class="ask-ai-center">
+                                    <div class="ask-ai-kicker">Pilot assistant</div>
+                                    <h1 class="ask-ai-home-title">What should we inspect first?</h1>
+                                    <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact, captured errors, or infrastructure health.</p>
+
+                                    <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts" style="margin-top: 24px;">
+                                        <button class="ask-ai-prompt-card" data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
+                                            <span class="ask-ai-prompt-title">Explain a failed execution</span>
+                                            <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and step timeline.</span>
+                                        </button>
+                                        <button class="ask-ai-prompt-card" data-ask-prompt="Use the selected trace to identify the slowest backend span and any linked captured error.">
+                                            <span class="ask-ai-prompt-title">Read a trace</span>
+                                            <span class="ask-ai-prompt-copy">Find the slow span, connected error, and affected request.</span>
+                                        </button>
+                                        <button class="ask-ai-prompt-card" data-ask-prompt="Compare enabled feature flags with recent traces, errors, and workflow failures.">
+                                            <span class="ask-ai-prompt-title">Check rollout impact</span>
+                                            <span class="ask-ai-prompt-copy">Compare flag state with traces, errors, and workflow failures.</span>
+                                        </button>
+                                        <button class="ask-ai-prompt-card" data-ask-prompt="Give me a safe replay plan for the selected failed workflow execution.">
+                                            <span class="ask-ai-prompt-title">Plan a safe replay</span>
+                                            <span class="ask-ai-prompt-copy">Separate completed side effects from steps that can be retried.</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Active Messages Area -->
+                            <div id="ask-ai-messages" class="ask-ai-messages" style="display: none; padding: 20px;">
+                                <!-- Messages rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- Composer Wrap -->
+                        <div class="ask-ai-composer-wrap">
                             <div class="ask-ai-composer">
-                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2"
-                                    placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
-                                <button class="button primary" type="button">Ask</button>
+                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
+                                <button id="ask-ai-submit-btn" class="button primary" type="button" style="height: 38px;">Ask</button>
                             </div>
                         </div>
                     </div>
@@ -3731,39 +3793,35 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Settings</h1>
-                            <div class="page-meta">Runtime settings exposed by Pilot. Secrets and connection strings
-                                stay hidden.</div>
+                            <div class="page-meta">Runtime settings exposed by Pilot. Secrets and connection strings stay hidden.</div>
                         </div>
                     </div>
                     <div class="settings-grid">
                         <div class="setting-card">
                             <div class="setting-card-head">
+                        <div class="setting-card">
+                            <div class="setting-card-head">
                                 <div class="setting-card-title">Dashboard</div>
-                                <div class="setting-card-desc">Where the embedded dashboard is mounted and how access is
-                                    guarded.</div>
+                                <div class="setting-card-desc">Dashboard display and visibility settings.</div>
                             </div>
                             <div class="setting-list">
-                                <div class="setting-row">
-                                    <div>
-                                        <div class="setting-name">Mount path</div>
-                                        <div class="setting-help">Express route used by app.use(...).</div>
-                                    </div>
-                                    <div id="setting-dashboard-path" class="setting-value">-</div>
-                                </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Environment</div>
                                         <div class="setting-help">Shown in the header and attached to traces.</div>
                                     </div>
-                                    <div id="setting-environment" class="setting-value">-</div>
+                                    <div class="setting-control">
+                                        <input id="setting-environment-input" class="input" placeholder="development" spellcheck="false">
+                                        <button id="setting-environment-save" class="button" type="button">Save</button>
+                                        <span id="setting-environment-status" class="setting-note"></span>
+                                    </div>
                                 </div>
                                 <div class="setting-row">
                                     <div>
-                                        <div class="setting-name">Dashboard auth</div>
-                                        <div class="setting-help">Token protection for internal routes.</div>
+                                        <div class="setting-name">Dashboard enabled</div>
+                                        <div class="setting-help">Toggles the dashboard route on or off.</div>
                                     </div>
-                                    <button id="setting-dashboard-auth" class="switch"
-                                        title="Dashboard auth state"></button>
+                                    <button id="setting-dashboard-enabled" class="switch" title="Dashboard enabled state"></button>
                                 </div>
                             </div>
                         </div>
@@ -3785,14 +3843,22 @@
                                         <div class="setting-name">Workflow concurrency</div>
                                         <div class="setting-help">Maximum active workflow jobs per worker process.</div>
                                     </div>
-                                    <div id="setting-worker-concurrency" class="setting-value">-</div>
+                                    <div class="setting-control">
+                                        <input id="setting-worker-concurrency-input" type="number" class="input" placeholder="5" min="1" max="100">
+                                        <button id="setting-worker-concurrency-save" class="button" type="button">Save</button>
+                                        <span id="setting-worker-concurrency-status" class="setting-note"></span>
+                                    </div>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Queue prefix</div>
                                         <div class="setting-help">Redis key namespace for Pilot queues.</div>
                                     </div>
-                                    <div id="setting-worker-prefix" class="setting-value">-</div>
+                                    <div class="setting-control">
+                                        <input id="setting-worker-prefix-input" class="input" placeholder="pilot" spellcheck="false">
+                                        <button id="setting-worker-prefix-save" class="button" type="button">Save</button>
+                                        <span id="setting-worker-prefix-status" class="setting-note"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -3805,8 +3871,7 @@
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Groq API key</div>
-                                        <div class="setting-help">Required before the AI Insights page can generate
-                                            analysis.</div>
+                                        <div class="setting-help">Required before the AI Insights page can generate analysis.</div>
                                     </div>
                                     <div class="setting-control">
                                         <input id="setting-groq-api-key-input" type="password" class="input" placeholder="Enter Groq API key" spellcheck="false">
@@ -3820,7 +3885,16 @@
                                         <div class="setting-help">Model name sent by the backend insight service.</div>
                                     </div>
                                     <div class="setting-control">
-                                        <input id="setting-groq-model-input" class="input" placeholder="e.g. llama-3.3-70b-versatile" spellcheck="false">
+                                        <select id="setting-groq-model-select" class="input" style="width: 260px;">
+                                            <option value="llama-3.3-70b-versatile">llama-3.3-70b-versatile</option>
+                                            <option value="llama-3.1-8b-instant">llama-3.1-8b-instant</option>
+                                            <option value="llama3-70b-8192">llama3-70b-8192</option>
+                                            <option value="llama3-8b-8192">llama3-8b-8192</option>
+                                            <option value="mixtral-8x7b-32768">mixtral-8x7b-32768</option>
+                                            <option value="gemma2-9b-it">gemma2-9b-it</option>
+                                            <option value="gemma-7b-it">gemma-7b-it</option>
+                                            <option value="llama-guard-3-8b">llama-guard-3-8b</option>
+                                        </select>
                                         <button id="setting-groq-model-save" class="button" type="button">Save</button>
                                         <span id="setting-groq-model-status" class="setting-note"></span>
                                     </div>
@@ -3830,40 +3904,36 @@
                         <div class="setting-card">
                             <div class="setting-card-head">
                                 <div class="setting-card-title">Observability</div>
-                                <div class="setting-card-desc">Trace and error capture settings used by middleware and
-                                    package internals.</div>
+                                <div class="setting-card-desc">Trace and error capture settings used by middleware and package internals.</div>
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Request tracing</div>
-                                        <div class="setting-help">Creates a trace record for incoming HTTP requests.
-                                        </div>
+                                        <div class="setting-help">Creates a trace record for incoming HTTP requests.</div>
                                     </div>
-                                    <button class="switch on" title="Request tracing enabled by middleware"></button>
+                                    <button id="setting-request-tracing" class="switch on" title="Request tracing enabled by middleware"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Error capture</div>
-                                        <div class="setting-help">Stores thrown errors with trace/span context when
-                                            available.</div>
+                                        <div class="setting-help">Stores thrown errors with trace/span context when available.</div>
                                     </div>
-                                    <button class="switch on" title="Error capture enabled by Pilot"></button>
+                                    <button id="setting-error-capture" class="switch on" title="Error capture enabled by Pilot"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Elasticsearch indexing</div>
                                         <div class="setting-help">Indexes errors and traces for dashboard search.</div>
                                     </div>
-                                    <button class="switch on" title="Elasticsearch client configured"></button>
+                                    <button id="setting-elasticsearch-indexing" class="switch on" title="Elasticsearch client configured"></button>
                                 </div>
                             </div>
                         </div>
                         <div class="setting-card">
                             <div class="setting-card-head">
                                 <div class="setting-card-title">Persistence</div>
-                                <div class="setting-card-desc">Database and retention defaults used by migrations and
-                                    dashboard queries.</div>
+                                <div class="setting-card-desc">Database and retention defaults used by migrations and dashboard queries.</div>
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
@@ -3871,25 +3941,21 @@
                                         <div class="setting-name">Migration table</div>
                                         <div class="setting-help">Tracks which Pilot SQL migrations already ran.</div>
                                     </div>
-                                    <div class="setting-value">pilot_migrations</div>
+                                    <div class="setting-value" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);">pilot_migrations</div>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Migrations auto-run</div>
-                                        <div class="setting-help">Whether Pilot runs pending migrations during startup.
-                                        </div>
+                                        <div class="setting-help">Whether Pilot runs pending migrations during startup.</div>
                                     </div>
-                                    <button id="setting-migrations-auto-run" class="switch"
-                                        title="Migration auto-run state"></button>
+                                    <button id="setting-migrations-auto-run" class="switch" title="Migration auto-run state"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Dashboard enabled</div>
-                                        <div class="setting-help">Whether the embedded dashboard router is enabled by
-                                            config.</div>
+                                        <div class="setting-help">Whether the embedded dashboard router is enabled by config.</div>
                                     </div>
-                                    <button id="setting-dashboard-enabled" class="switch"
-                                        title="Dashboard enabled state"></button>
+                                    <button id="setting-dashboard-enabled" class="switch" title="Dashboard enabled state"></button>
                                 </div>
                             </div>
                         </div>
@@ -3956,7 +4022,8 @@
             aiModelConfigured: false,
             aiKeyMissing: false,
             apiBacked: false,
-            apiError: null
+            apiError: null,
+            aiMessages: []
         };
 
         const pageButtons = document.querySelectorAll("[data-page-button]");
@@ -4210,6 +4277,13 @@
             if (pageName === "ai-insights") {
                 loadAiInsights();
             }
+            if (pageName === "ask-ai") {
+                loadGroqModelsForChat();
+                initAiChat();
+            }
+            if (pageName === "settings") {
+                loadGroqModelsForSettings();
+            }
         }
 
         function openDrawer(title, subtitle, html) {
@@ -4229,6 +4303,10 @@
         function latestExecutionForWorkflow(workflowName) {
             const workflow = state.workflows.find((item) => item.name === workflowName);
             return state.executions.find((execution) => execution.workflow === workflowName) || workflow?.latestExecution;
+        }
+
+        function allExecutionsForWorkflow(workflowName) {
+            return state.executions.filter((execution) => execution.workflow === workflowName);
         }
 
         function workflowErrorForStep(workflowName, stepName) {
@@ -4399,7 +4477,7 @@
                         ${badgeForStatus(item.status)}
                     </div>
                     <div class="muted" style="font-size: 12px;">${item.description}</div>
-                    <div class="health-top mono subtle"><span>${item.latency}ms latency</span><span>last checked now</span></div>
+                    <div class="health-top mono subtle"><span>${item.latency > 0 ? item.latency + 'ms' : '--'} latency</span><span>last checked now</span></div>
                 </div>
             `).join("") : `
                 <div class="empty-state">
@@ -4426,19 +4504,15 @@
                             ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
                             <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
                                 <div class="workflow-step-name">${step}</div>
-                                <div class="workflow-step-meta">step ${index + 1} / failures ${workflow.failures}</div>
+                                <div class="workflow-step-meta">step ${index + 1} / ${workflow.completedRuns || 0} runs ok</div>
                             </div>
                         `).join("")}
                     </div>
                 </div>
             `).join("") : `
-                <div class="workflow-card" style="grid-column: 1 / -1;">
-                    <div class="workflow-card-head">
-                        <div>
-                            <div class="workflow-card-title">${state.workflows.length ? "No pinned workflows" : "No workflow records"}</div>
-                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">${state.workflows.length ? "Pin workflows from the table below." : "Rows from pilot_workflows will appear here."}</div>
-                        </div>
-                    </div>
+                <div class="empty-state" style="grid-column: 1 / -1; margin: 0;">
+                    <div class="empty-title">${state.workflows.length ? "No pinned workflows" : "No workflow records"}</div>
+                    <div class="empty-copy">${state.workflows.length ? "Pin workflows from the table below." : "Rows from pilot_workflows will appear here."}</div>
                 </div>
             `;
 
@@ -4450,7 +4524,7 @@
                     <td class="mono">${workflow.created}</td>
                     <td>${badgeForStatus(workflow.lastStatus)}</td>
                     <td><button class="pin-button ${workflow.pinned ? "active" : ""}" data-toggle-pin="${workflow.name}">${workflow.pinned ? "Pinned" : "Pin"}</button></td>
-                    <td class="right mono">${workflow.failures}</td>
+                    <td class="right mono">${workflow.totalRuns || 0} <span class="subtle">runs &middot; ${workflow.completedRuns || 0} ok &middot; ${workflow.failedRuns || 0} failed</span></td>
                 </tr>
             `).join("") : tableEmptyRow(7, "No workflow records", "Registered workflows will appear after rows exist in pilot_workflows.");
         }
@@ -4544,17 +4618,31 @@
             });
 
             document.getElementById("trace-table").innerHTML = rows.length ? rows.map((trace) => `
-                <tr data-trace="${trace.id}">
-                    <td class="mono">${trace.id}</td>
+                <tr data-trace="${trace.id}" class="${trace.id === state._selectedTraceId ? 'selected-row' : ''}">
+                    <td class="mono">${trace.id.slice(0, 8)}&hellip;</td>
                     <td>${badgeForMethod(trace.method)}</td>
                     <td>${trace.path}</td>
-                    <td class="mono">${trace.status}</td>
+                    <td class="mono">${trace.status ?? '-'}</td>
+                    <td class="mono">${formatTime(trace.startedAt || trace.createdAt)}</td>
                     <td class="mono">${trace.ip}</td>
-                    <td class="right mono">${trace.duration}ms</td>
+                    <td class="right mono">${trace.duration != null ? trace.duration + 'ms' : '-'}</td>
                 </tr>
-            `).join("") : tableEmptyRow(6, "No trace records", "Request trace rows from pilot_request_traces will appear here.");
+            `).join("") : tableEmptyRow(7, "No trace records", "Request trace rows from pilot_request_traces will appear here.");
 
-            renderTraceGraph(rows[0] || state.traces[0]);
+            if (state._selectedTraceId) {
+                // Re-render graph for selected trace when table refreshes
+                const selected = state.traces.find(t => t.id === state._selectedTraceId);
+                if (selected) renderTraceGraph(selected);
+            } else {
+                document.getElementById("trace-graph").innerHTML = `
+                    <div class="empty-state" style="padding:48px 0">
+                        <div class="empty-title">Select a request to view its trace graph</div>
+                        <div class="empty-copy">Click any row in the table above to visualise its span chain.</div>
+                    </div>`;
+                document.getElementById("trace-inspector-id").textContent = "-";
+                document.getElementById("trace-inspector-critical").textContent = "-";
+                document.getElementById("trace-span-list").innerHTML = "";
+            }
         }
 
         function renderTraceGraph(trace) {
@@ -4571,51 +4659,78 @@
                 return;
             }
 
-            const spans = trace.spans || [];
-            const nodes = spans.map((span, index) => ({
-                ...span,
-                x: 42 + index * 172,
-                y: span.type === "feature_flag" ? 58 : span.type === "database" ? 190 : span.type === "external_api" ? 190 : 124,
-            }));
+            // Build display spans: use real spans if available, otherwise synthesise from trace fields
+            const rawSpans = trace.spans && trace.spans.length > 0 ? trace.spans : [];
+
+            // Always include a synthetic root span for the HTTP request itself
+            const rootSpan = {
+                name: "http.request",
+                type: "http",
+                status: trace.status >= 500 ? "failed" : trace.status >= 400 ? "error" : "completed",
+                duration: trace.duration ?? 0,
+            };
+
+            // Build the span list: root first, then real child spans
+            const allSpans = [rootSpan, ...rawSpans];
 
             const nodeWidth = 142;
             const nodeHeight = 58;
-            const svgWidth = Math.max(1040, nodes.length * 172 + 120);
-            const truncate = (value, limit = 18) => value.length > limit ? `${value.slice(0, limit)}...` : value;
+            // Spread nodes in a single row
+            const nodes = allSpans.map((span, index) => ({
+                ...span,
+                x: 42 + index * 200,
+                y: span.type === "feature_flag" ? 46 : span.type === "database" ? 178 : span.type === "external_api" ? 178 : 112,
+            }));
+            const svgWidth = Math.max(800, nodes.length * 200 + 120);
+            const svgHeight = 290;
+            const truncate = (value, limit = 20) => value && value.length > limit ? `${value.slice(0, limit)}...` : (value || '');
             const nodeName = (span) => {
-                if (span.name === "http.request") return "Request";
-                if (span.name.startsWith("pilot.flag")) return "Feature flag";
+                if (!span.name) return 'Span';
+                if (span.name === "http.request") return `${trace.method} ${trace.path.length > 18 ? trace.path.slice(0, 18) + '...' : trace.path}`;
+                if (span.name.startsWith("pilot.flag")) return "Feature Flag";
                 if (span.name.startsWith("pilot.workflow")) return "Workflow";
                 return span.name;
             };
+            const nodeStatusClass = (span) => {
+                const s = String(span.status || '');
+                if (s === 'failed' || s === 'error') return 'failed';
+                if (s === 'completed' || s === 'ok') return 'success';
+                if (s === 'running') return 'running';
+                // For HTTP status codes on root span
+                const code = Number(trace.status);
+                if (!isNaN(code)) return code >= 500 ? 'failed' : code >= 400 ? '' : 'success';
+                return '';
+            };
+            const nodeSub = (span, index) => {
+                if (index === 0) return trace.duration != null ? trace.duration + 'ms' : '';
+                return span.duration != null ? span.duration + 'ms' : '';
+            };
             const node = (span, index) => `
-                <g class="trace-node ${graphStatusClass(span.status) || (index === 0 ? "active" : "")}" data-node-span="${index}">
+                <g class="trace-node ${nodeStatusClass(span) || (index === 0 ? 'active' : '')}" data-node-span="${index}">
                     <rect x="${span.x}" y="${span.y}" width="${nodeWidth}" height="${nodeHeight}"></rect>
-                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2}">${truncate(nodeName(span), 20)}</text>
+                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2 - 7}" class="trace-node-name">${truncate(nodeName(span), 22)}</text>
+                    <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2 + 11}" class="trace-node-sub">${nodeSub(span, index)}</text>
                 </g>
             `;
-
             const edge = (from, to) => {
                 const x1 = from.x + nodeWidth;
                 const y1 = from.y + nodeHeight / 2;
                 const x2 = to.x;
                 const y2 = to.y + nodeHeight / 2;
-                const statusClass = graphStatusClass(to.status);
-                const branch = Math.abs(y2 - y1) > 10;
-                const marker = statusClass === "failed" ? "arrow-hot" : statusClass === "success" ? "arrow-success" : statusClass === "running" ? "arrow-running" : "arrow";
-                const edgeClass = statusClass === "failed" ? "hot" : statusClass || (branch ? "branch" : "");
-                const pathD = `M${x1} ${y1} C${x1 + 55} ${y1}, ${x2 - 55} ${y2}, ${x2} ${y2}`;
-
+                const sc = nodeStatusClass(to);
+                const marker = sc === "failed" ? "url(#arrow-hot)" : sc === "success" ? "url(#arrow-success)" : sc === "running" ? "url(#arrow-running)" : "url(#arrow)";
+                const edgeClass = sc === "failed" ? "hot" : sc || '';
+                const pathD = `M${x1} ${y1} C${x1 + 60} ${y1}, ${x2 - 60} ${y2}, ${x2} ${y2}`;
                 return `
-                    <path class="trace-edge ${edgeClass}" marker-end="url(#${marker})" d="${pathD}"></path>
-                    <circle r="4" class="trace-packet ${statusClass === "failed" ? "hot" : statusClass === "running" ? "running" : ""}">
-                        <animateMotion dur="${statusClass === "failed" ? "1.2s" : statusClass === "running" ? "1.6s" : "2.2s"}" repeatCount="indefinite" path="${pathD}"></animateMotion>
+                    <path class="trace-edge ${edgeClass}" marker-end="${marker}" d="${pathD}"></path>
+                    <circle r="4" class="trace-packet ${sc === 'failed' ? 'hot' : sc === 'running' ? 'running' : ''}">
+                        <animateMotion dur="${sc === 'failed' ? '1.2s' : sc === 'running' ? '1.6s' : '2.2s'}" repeatCount="indefinite" path="${pathD}"></animateMotion>
                     </circle>
                 `;
             };
 
             document.getElementById("trace-graph").innerHTML = `
-                <svg class="trace-svg" viewBox="0 0 ${svgWidth} 310" role="img" aria-label="Trace chain graph for ${trace.id}">
+                <svg class="trace-svg" viewBox="0 0 ${svgWidth} ${svgHeight}" role="img" aria-label="Trace chain graph for ${trace.id}">
                     <defs>
                         <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                             <path d="M0,0 L8,4 L0,8 Z" fill="#3b4658"></path>
@@ -4635,20 +4750,20 @@
                 </svg>
                 <div class="trace-request-card">
                     <div class="trace-request-title">${trace.method} ${trace.path}</div>
-                    <div class="trace-request-meta">${trace.id} / ${trace.duration}ms critical path</div>
+                    <div class="trace-request-meta">${trace.id} &middot; ${trace.status ?? '-'} &middot; ${trace.duration != null ? trace.duration + 'ms' : 'pending'} &middot; ${formatTime(trace.startedAt || trace.createdAt)}</div>
                 </div>
                 <div class="trace-scroll-note">scroll trace chain</div>
             `;
 
             document.getElementById("trace-inspector-id").textContent = trace.id;
-            document.getElementById("trace-inspector-critical").textContent = `${trace.duration}ms`;
-            document.getElementById("trace-span-list").innerHTML = spans.map((span) => `
+            document.getElementById("trace-inspector-critical").textContent = trace.duration != null ? `${trace.duration}ms` : 'pending';
+            document.getElementById("trace-span-list").innerHTML = allSpans.map((span, index) => `
                 <div class="span-row">
                     <div>
-                        <div class="span-name">${span.name}</div>
-                        <div class="span-type">${span.type} / ${span.status}</div>
+                        <div class="span-name">${nodeName(span)}</div>
+                        <div class="span-type">${span.type}${index === 0 ? ` &middot; ${trace.status ?? 'pending'}` : ` &middot; ${span.status}`}</div>
                     </div>
-                    <span class="mono ${span.status === "failed" ? "bad" : "muted"}">${span.duration}ms</span>
+                    <span class="mono ${nodeStatusClass(span) === 'failed' ? 'bad' : 'muted'}">${nodeSub(span, index) || '-'}</span>
                 </div>
             `).join("");
         }
@@ -4761,17 +4876,15 @@
                     <div style="padding: 14px; display: grid; gap: 12px;">
                         <div class="muted">${item.description}</div>
                         <div class="field-grid">
-                            <div class="field"><div class="field-label">Latency</div><div class="field-value mono">${item.latency}ms</div></div>
+                            <div class="field"><div class="field-label">Latency</div><div class="field-value mono">${item.latency > 0 ? item.latency + 'ms' : '--'}</div></div>
                             <div class="field"><div class="field-label">Last checked</div><div class="field-value mono">now</div></div>
                         </div>
                     </div>
                 </div>
             `).join("") : `
-                <div class="panel" style="grid-column: 1 / -1;">
-                    <div class="empty-state">
-                        <div class="empty-title">No health checks loaded</div>
-                        <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
-                    </div>
+                <div class="empty-state" style="grid-column: 1 / -1;">
+                    <div class="empty-title">No health checks loaded</div>
+                    <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
                 </div>
             `;
         }
@@ -4789,20 +4902,91 @@
                 element.title = enabled ? "Enabled" : "Disabled";
             };
 
-            document.getElementById("setting-dashboard-path").textContent = dashboard.path || "-";
-            document.getElementById("setting-environment").textContent = settings.environment || state.environment || "-";
-            document.getElementById("setting-worker-concurrency").textContent = worker.concurrency ?? "-";
-            document.getElementById("setting-worker-prefix").textContent = worker.queuePrefix || "-";
-            document.getElementById("setting-groq-model-input").value = ai.groqModel || "";
-            setSwitch("setting-dashboard-auth", dashboard.authEnabled);
+            const envInput = document.getElementById("setting-environment-input");
+            if (envInput && !envInput.matches(":focus")) envInput.value = settings.environment || state.environment || "";
+
+            const concurrencyInput = document.getElementById("setting-worker-concurrency-input");
+            if (concurrencyInput && !concurrencyInput.matches(":focus")) concurrencyInput.value = worker.concurrency ?? "";
+
+            const prefixInput = document.getElementById("setting-worker-prefix-input");
+            if (prefixInput && !prefixInput.matches(":focus")) prefixInput.value = worker.queuePrefix || "";
+
+            const modelSelect = document.getElementById("setting-groq-model-select");
+            if (modelSelect) {
+                const savedModel = localStorage.getItem("pilot:groq-model") || ai.groqModel || "llama-3.3-70b-versatile";
+                modelSelect.value = savedModel;
+            }
+
             setSwitch("setting-worker-enabled", worker.enabled);
             setSwitch("setting-migrations-auto-run", migrations.autoRun);
             setSwitch("setting-dashboard-enabled", dashboard.enabled);
+
+            setSwitch("setting-request-tracing", settings.requestTracing ?? true);
+            setSwitch("setting-error-capture", settings.errorCapture ?? true);
+            setSwitch("setting-elasticsearch-indexing", settings.elasticsearchIndexing ?? true);
 
             const keyStatus = document.getElementById("setting-groq-api-key-status");
             if (keyStatus) {
                 keyStatus.textContent = ai.groqApiKeyConfigured ? "configured" : "not configured";
                 keyStatus.className = "setting-note " + (ai.groqApiKeyConfigured ? "status-ok" : "status-missing");
+            }
+        }
+
+        async function saveSetting(settingName, value, statusElId) {
+            const statusEl = document.getElementById(statusElId);
+            if (statusEl) {
+                statusEl.textContent = "saving...";
+                statusEl.className = "setting-note";
+            }
+
+            try {
+                const res = await apiRequest("settings", {
+                    method: "POST",
+                    body: JSON.stringify({ [settingName]: value })
+                });
+
+                if (res && res.settings) {
+                    state.settings = res.settings;
+                    renderSettings();
+                }
+
+                if (statusEl) {
+                    statusEl.textContent = "saved";
+                    statusEl.className = "setting-note status-ok";
+                }
+            } catch (error) {
+                if (statusEl) {
+                    statusEl.textContent = error.message || "failed";
+                    statusEl.className = "setting-note status-missing";
+                }
+            }
+        }
+
+        async function toggleSetting(settingName, elementId) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const isCurrentlyOn = el.classList.contains("on");
+            const newValue = !isCurrentlyOn;
+
+            // Optimistic visual update
+            el.classList.toggle("on", newValue);
+            el.title = newValue ? "Enabled" : "Disabled";
+
+            try {
+                const res = await apiRequest("settings", {
+                    method: "POST",
+                    body: JSON.stringify({ [settingName]: newValue })
+                });
+
+                if (res && res.settings) {
+                    state.settings = res.settings;
+                    renderSettings();
+                }
+            } catch (error) {
+                console.error("Failed to toggle setting:", error);
+                // Revert
+                el.classList.toggle("on", isCurrentlyOn);
+                el.title = isCurrentlyOn ? "Enabled" : "Disabled";
             }
         }
 
@@ -4812,8 +4996,8 @@
             const key = input.value.trim();
             if (!key) return;
 
-            const modelInput = document.getElementById("setting-groq-model-input");
-            const model = modelInput ? modelInput.value.trim() : undefined;
+            const modelSelect = document.getElementById("setting-groq-model-select");
+            const model = modelSelect ? modelSelect.value : undefined;
 
             statusEl.textContent = "saving...";
             statusEl.className = "setting-note";
@@ -4832,13 +5016,43 @@
                 state.settings.ai.groqApiKeyConfigured = true;
                 if (model) state.settings.ai.groqModel = model;
 
+                // Persist in localStorage so the key/model survive page refreshes
+                localStorage.setItem("pilot:groq-api-key", key);
+                if (model) localStorage.setItem("pilot:groq-model", model);
+
                 statusEl.textContent = "saved";
                 statusEl.className = "setting-note status-ok";
                 input.value = "";
+                // Show masked indicator after save
+                input.placeholder = "••••••••••••" + key.slice(-4);
             }
             catch (error) {
                 statusEl.textContent = error.message || "failed";
                 statusEl.className = "setting-note status-missing";
+            }
+        }
+
+        function loadSavedGroqCredentials() {
+            const savedKey = localStorage.getItem("pilot:groq-api-key");
+            const savedModel = localStorage.getItem("pilot:groq-model");
+            const keyInput = document.getElementById("setting-groq-api-key-input");
+            const modelSelect = document.getElementById("setting-groq-model-select");
+
+            if (savedKey && keyInput) {
+                keyInput.placeholder = "••••••••••••" + savedKey.slice(-4);
+            }
+            if (savedModel) {
+                if (modelSelect) {
+                    modelSelect.value = savedModel;
+                    state._savedGroqModel = savedModel;
+                }
+            }
+
+            // Silently re-apply saved credentials to backend so AI features work on every page load
+            if (savedKey) {
+                const body = { groqApiKey: savedKey };
+                if (savedModel) body.groqModel = savedModel;
+                apiRequest("settings/ai-key", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
             }
         }
 
@@ -4973,6 +5187,198 @@
             }
         }
 
+        async function loadGroqModelsForChat() {
+            try {
+                const response = await fetch(apiPath("ai-models"));
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && Array.isArray(data.models) && data.models.length > 0) {
+                        const selectEl = document.getElementById("ask-ai-model-select");
+                        if (selectEl) {
+                            const currentVal = selectEl.value;
+                            selectEl.innerHTML = "";
+                            data.models.forEach(model => {
+                                const opt = document.createElement("option");
+                                opt.value = model.id;
+                                opt.textContent = model.id;
+                                selectEl.appendChild(opt);
+                            });
+                            if (data.models.some(m => m.id === currentVal)) {
+                                selectEl.value = currentVal;
+                            } else if (state.settings?.ai?.groqModel && data.models.some(m => m.id === state.settings.ai.groqModel)) {
+                                selectEl.value = state.settings.ai.groqModel;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load Groq models:", err);
+            }
+        }
+
+        async function loadGroqModelsForSettings() {
+            try {
+                const response = await fetch(apiPath("ai-models"));
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data && Array.isArray(data.models) && data.models.length > 0) {
+                        const selectEl = document.getElementById("setting-groq-model-select");
+                        if (selectEl) {
+                            const currentVal = selectEl.value;
+                            selectEl.innerHTML = "";
+                            data.models.forEach(model => {
+                                const opt = document.createElement("option");
+                                opt.value = model.id;
+                                opt.textContent = model.id;
+                                selectEl.appendChild(opt);
+                            });
+                            if (data.models.some(m => m.id === currentVal)) {
+                                selectEl.value = currentVal;
+                            } else if (state.settings?.ai?.groqModel && data.models.some(m => m.id === state.settings.ai.groqModel)) {
+                                selectEl.value = state.settings.ai.groqModel;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load Groq models for settings:", err);
+            }
+        }
+
+        function initAiChat() {
+            try {
+                state.aiMessages = JSON.parse(localStorage.getItem("pilot:ai-messages") || "[]");
+            } catch {
+                state.aiMessages = [];
+            }
+            renderMessages();
+        }
+
+        function saveMessages() {
+            try {
+                localStorage.setItem("pilot:ai-messages", JSON.stringify(state.aiMessages));
+            } catch (err) {
+                console.error("Failed to save messages:", err);
+            }
+        }
+
+        function clearAiChat() {
+            state.aiMessages = [];
+            saveMessages();
+            renderMessages();
+        }
+
+        function renderMessages() {
+            const welcomeEl = document.getElementById("ask-ai-welcome");
+            const messagesEl = document.getElementById("ask-ai-messages");
+            if (!welcomeEl || !messagesEl) return;
+
+            const messages = state.aiMessages || [];
+            if (messages.length === 0) {
+                welcomeEl.style.display = "flex";
+                messagesEl.style.display = "none";
+                return;
+            }
+
+            welcomeEl.style.display = "none";
+            messagesEl.style.display = "grid";
+
+            messagesEl.innerHTML = messages.map(msg => `
+                <div class="ask-message ${msg.role === 'user' ? 'user' : ''}">
+                    ${msg.role !== 'user' ? `<div class="ask-avatar">AI</div>` : ''}
+                    <div class="ask-bubble">
+                        ${msg.role === 'user' ? escapeHtml(msg.content).replace(/\n/g, '<br>') : formatMessageMarkdown(msg.content)}
+                    </div>
+                    ${msg.role === 'user' ? `<div class="ask-avatar">ME</div>` : ''}
+                </div>
+            `).join("");
+
+            // Scroll chat content wrapper to bottom
+            const contentEl = document.getElementById("ask-ai-content");
+            if (contentEl) {
+                setTimeout(() => {
+                    contentEl.scrollTop = contentEl.scrollHeight;
+                }, 10);
+            }
+        }
+
+        function formatMessageMarkdown(content) {
+            let html = escapeHtml(content);
+            
+            // Format code blocks
+            html = html.replace(/```(javascript|typescript|json|html|css|python|bash)?([\s\S]*?)```/g, (match, lang, code) => {
+                return `<pre class="code-box" style="margin: 10px 0; background: #070a0e; border: 1px solid var(--line-soft); padding: 12px; border-radius: 6px; overflow-x: auto;"><code class="mono" style="font-size: 12px; color: var(--text);">${code.trim()}</code></pre>`;
+            });
+
+            // Format inline code
+            html = html.replace(/`([^`]+)`/g, '<code class="mono" style="background: rgba(255,255,255,0.06); padding: 2px 4px; border-radius: 4px; font-size: 11px;">$1</code>');
+
+            // Format bold text
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+            // Format bullet lists
+            html = html.replace(/^\s*-\s+(.+)$/gm, '<li style="margin-left: 16px; margin-bottom: 4px;">$1</li>');
+
+            // Format line breaks
+            html = html.replace(/\n/g, '<br>');
+
+            return html;
+        }
+
+        async function sendMessage() {
+            const inputEl = document.getElementById("ask-ai-input");
+            if (!inputEl) return;
+
+            const text = inputEl.value.trim();
+            if (!text) return;
+
+            const selectedModel = localStorage.getItem("pilot:groq-model") || state.settings?.ai?.groqModel || "llama-3.3-70b-versatile";
+
+            // Push User Message
+            state.aiMessages.push({ role: "user", content: text });
+
+            inputEl.value = "";
+            saveMessages();
+            renderMessages();
+
+            // Push Typing Indicator
+            state.aiMessages.push({ role: "assistant", content: "..." });
+            renderMessages();
+
+            try {
+                // Prepare context/history (excluding the typing indicator)
+                const history = state.aiMessages.slice(0, state.aiMessages.length - 2);
+
+                const response = await fetch(apiPath("ai-chat"), {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        message: text,
+                        history: history,
+                        model: selectedModel
+                    })
+                });
+
+                // Remove typing indicator
+                state.aiMessages.pop();
+
+                if (response.ok) {
+                    const data = await response.json();
+                    state.aiMessages.push({ role: "assistant", content: data.response || "No response returned." });
+                } else {
+                    const err = await response.json();
+                    state.aiMessages.push({ role: "assistant", content: `Error: ${err?.error?.message || "Failed to communicate with Groq API"}` });
+                }
+            } catch (err) {
+                // Remove typing indicator
+                state.aiMessages.pop();
+                state.aiMessages.push({ role: "assistant", content: `Error: ${err.message || "Failed to send message."}` });
+            } finally {
+                saveMessages();
+                renderMessages();
+            }
+        }
+
         function renderAll() {
             renderOverview();
             renderWorkflows();
@@ -4987,20 +5393,45 @@
 
         function workflowDetail(workflow) {
             const execution = latestExecutionForWorkflow(workflow.name);
+            const allExecs = allExecutionsForWorkflow(workflow.name);
             const steps = workflowExecutionSteps(workflow, execution);
+
+            const execHistoryRows = allExecs.length
+                ? allExecs.map((ex) => `
+                    <tr data-execution="${ex.id}" style="cursor:pointer">
+                        <td class="mono" style="font-size:11px">${ex.id.slice(0, 8)}…</td>
+                        <td>${badgeForStatus(ex.status)}</td>
+                        <td class="mono" style="font-size:11px">${ex.started || '-'}</td>
+                        <td class="mono" style="font-size:11px">${ex.finished || '-'}</td>
+                        <td class="mono" style="font-size:11px">${ex.failedStep !== '-' ? ex.failedStep : ''}</td>
+                    </tr>
+                `).join("")
+                : `<tr><td colspan="5" style="padding:12px;color:var(--muted);text-align:center">No executions recorded yet</td></tr>`;
 
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
-                    <div class="field"><div class="field-label">Latest execution</div><div class="field-value mono">${execution?.id || "No execution yet"}</div></div>
-                    <div class="field"><div class="field-label">Status</div><div class="field-value">${badgeForStatus(execution?.status || workflow.lastStatus)}</div></div>
-                    <div class="field"><div class="field-label">Started</div><div class="field-value mono">${execution?.started || "-"}</div></div>
-                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${execution?.duration || "-"}</div></div>
+                    <div class="field"><div class="field-label">Total runs</div><div class="field-value mono">${workflow.totalRuns || 0}</div></div>
+                    <div class="field"><div class="field-label">Completed</div><div class="field-value mono" style="color:var(--green)">${workflow.completedRuns || 0}</div></div>
+                    <div class="field"><div class="field-label">Failed</div><div class="field-value mono" style="color:var(--red)">${workflow.failedRuns || 0}</div></div>
                     <div class="field"><div class="field-label">Version</div><div class="field-value mono">v${workflow.version}</div></div>
-                    <div class="field"><div class="field-label">Failures</div><div class="field-value mono">${workflow.failures}</div></div>
+                </div>
+                <div class="panel" style="box-shadow:none;margin-bottom:14px">
+                    <div class="panel-header">
+                        <div class="panel-title">Execution history</div>
+                        <span class="badge info"><span class="dot"></span>${allExecs.length} execution${allExecs.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div class="table-wrap" style="max-height:200px;overflow-y:auto">
+                        <table>
+                            <thead><tr>
+                                <th>ID</th><th>Status</th><th>Started</th><th>Finished</th><th>Failed step</th>
+                            </tr></thead>
+                            <tbody>${execHistoryRows}</tbody>
+                        </table>
+                    </div>
                 </div>
                 <div class="panel" style="box-shadow: none;">
                     <div class="panel-header">
-                        <div class="panel-title">Execution steps</div>
+                        <div class="panel-title">Latest execution steps</div>
                         <span class="badge info"><span class="dot"></span>${steps.length} steps</span>
                     </div>
                     <div class="timeline">
@@ -5124,14 +5555,55 @@
         document.getElementById("close-flag-modal").addEventListener("click", () => flagModal.classList.remove("open"));
         document.getElementById("cancel-flag").addEventListener("click", () => flagModal.classList.remove("open"));
 
+
+        document.getElementById("setting-environment-save").addEventListener("click", () => {
+            saveSetting("environment", document.getElementById("setting-environment-input").value.trim(), "setting-environment-status");
+        });
+        document.getElementById("setting-environment-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") document.getElementById("setting-environment-save").click();
+        });
+
+        document.getElementById("setting-worker-concurrency-save").addEventListener("click", () => {
+            saveSetting("workerConcurrency", document.getElementById("setting-worker-concurrency-input").value, "setting-worker-concurrency-status");
+        });
+        document.getElementById("setting-worker-concurrency-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") document.getElementById("setting-worker-concurrency-save").click();
+        });
+
+        document.getElementById("setting-worker-prefix-save").addEventListener("click", () => {
+            saveSetting("queuePrefix", document.getElementById("setting-worker-prefix-input").value.trim(), "setting-worker-prefix-status");
+        });
+        document.getElementById("setting-worker-prefix-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") document.getElementById("setting-worker-prefix-save").click();
+        });
+
+        document.getElementById("setting-worker-enabled").addEventListener("click", () => {
+            toggleSetting("workerEnabled", "setting-worker-enabled");
+        });
+        document.getElementById("setting-migrations-auto-run").addEventListener("click", () => {
+            toggleSetting("autoRunMigrations", "setting-migrations-auto-run");
+        });
+        document.getElementById("setting-dashboard-enabled").addEventListener("click", () => {
+            toggleSetting("dashboardEnabled", "setting-dashboard-enabled");
+        });
+        document.getElementById("setting-request-tracing").addEventListener("click", () => {
+            toggleSetting("requestTracing", "setting-request-tracing");
+        });
+        document.getElementById("setting-error-capture").addEventListener("click", () => {
+            toggleSetting("errorCapture", "setting-error-capture");
+        });
+        document.getElementById("setting-elasticsearch-indexing").addEventListener("click", () => {
+            toggleSetting("elasticsearchIndexing", "setting-elasticsearch-indexing");
+        });
+
         document.getElementById("setting-groq-api-key-save").addEventListener("click", saveGroqApiKey);
         document.getElementById("setting-groq-api-key-input").addEventListener("keydown", (event) => {
             if (event.key === "Enter") saveGroqApiKey();
         });
         document.getElementById("setting-groq-model-save").addEventListener("click", async () => {
-            const input = document.getElementById("setting-groq-model-input");
+            const select = document.getElementById("setting-groq-model-select");
             const statusEl = document.getElementById("setting-groq-model-status");
-            const model = input.value.trim();
+            const model = select.value;
             if (!model) return;
 
             statusEl.textContent = "saving...";
@@ -5164,8 +5636,14 @@
                 statusEl.className = "setting-note status-missing";
             }
         });
-        document.getElementById("setting-groq-model-input").addEventListener("keydown", (event) => {
-            if (event.key === "Enter") document.getElementById("setting-groq-model-save").click();
+
+        document.getElementById("ask-ai-clear-btn").addEventListener("click", clearAiChat);
+        document.getElementById("ask-ai-submit-btn").addEventListener("click", sendMessage);
+        document.getElementById("ask-ai-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
         });
 
         globalSearchInput.addEventListener("focus", () => {
@@ -5281,6 +5759,11 @@
             if (traceRow) {
                 const trace = state.traces.find((item) => item.id === traceRow.dataset.trace);
                 if (trace) {
+                    // Track selected trace so renderTraces() preserves it on refresh
+                    state._selectedTraceId = trace.id;
+                    // Highlight selected row
+                    document.querySelectorAll("[data-trace]").forEach(r => r.classList.remove("selected-row"));
+                    traceRow.classList.add("selected-row");
                     renderTraceGraph(trace);
                     openDrawer(`Trace ${trace.id}`, `${trace.method} ${trace.path}`, traceDetail(trace));
                 }
@@ -5365,8 +5848,62 @@
                 state.flags = state.flags.filter((item) => item.key !== flagKey);
                 renderFlags();
             }
+
+            const flagRow = event.target.closest("[data-flag]");
+            if (flagRow && !event.target.closest("[data-toggle-flag]") && !event.target.closest("[data-delete-flag]")) {
+                const flag = state.flags.find((item) => item.key === flagRow.dataset.flag);
+                if (flag) {
+                    openDrawer(flag.key, flag.description || "Feature flag", `
+                        <div class="field-grid" style="margin-bottom:16px">
+                            <div class="field"><div class="field-label">Key</div><div class="field-value mono">${flag.key}</div></div>
+                            <div class="field"><div class="field-label">Status</div><div class="field-value">${flag.enabled ? '<span class="badge ok"><span class="dot"></span>enabled</span>' : '<span class="badge bad"><span class="dot"></span>disabled</span>'}</div></div>
+                            <div class="field"><div class="field-label">Rules</div><div class="field-value mono">${flag.rules}</div></div>
+                            <div class="field"><div class="field-label">Changed by</div><div class="field-value mono">${flag.changedBy || '-'}</div></div>
+                        </div>
+                        <div style="margin-bottom:16px">
+                            <div class="field-label" style="margin-bottom:8px">Rollout percentage</div>
+                            <div style="display:flex;align-items:center;gap:12px">
+                                <input id="drawer-rollout-slider" type="range" min="0" max="100" value="${flag.rollout}" style="flex:1;accent-color:var(--indigo)">
+                                <input id="drawer-rollout-input" type="number" min="0" max="100" value="${flag.rollout}" class="input" style="width:70px;text-align:center">
+                                <span class="muted" style="font-size:12px">%</span>
+                            </div>
+                            <div class="bar" style="margin-top:10px"><div id="drawer-rollout-bar" class="bar-fill" style="width:${flag.rollout}%"></div></div>
+                        </div>
+                        <button id="drawer-save-rollout" class="button" type="button" style="width:100%">Save rollout %</button>
+                        <span id="drawer-rollout-status" class="setting-note" style="display:block;margin-top:8px"></span>
+                    `);
+
+                    const slider = document.getElementById("drawer-rollout-slider");
+                    const numInput = document.getElementById("drawer-rollout-input");
+                    const barEl = document.getElementById("drawer-rollout-bar");
+                    const syncUI = (val) => { slider.value = val; numInput.value = val; barEl.style.width = val + "%"; };
+                    slider.addEventListener("input", () => syncUI(slider.value));
+                    numInput.addEventListener("input", () => syncUI(Math.min(100, Math.max(0, Number(numInput.value)))));
+
+                    document.getElementById("drawer-save-rollout").addEventListener("click", async () => {
+                        const pct = Math.min(100, Math.max(0, Number(numInput.value)));
+                        const statusEl = document.getElementById("drawer-rollout-status");
+                        statusEl.textContent = "saving...";
+                        statusEl.className = "setting-note";
+                        try {
+                            const { flag: updated } = await apiRequest(`flags/${encodeURIComponent(flag.key)}`, {
+                                method: "PATCH",
+                                body: JSON.stringify({ rolloutPercentage: pct, changedBy: "dashboard" }),
+                            });
+                            Object.assign(flag, normalizeFlag(updated));
+                            statusEl.textContent = "saved \u2713";
+                            statusEl.className = "setting-note status-ok";
+                            renderFlags();
+                        } catch (err) {
+                            statusEl.textContent = err.message || "failed";
+                            statusEl.className = "setting-note status-missing";
+                        }
+                    });
+                }
+            }
         });
 
+        loadSavedGroqCredentials();
         loadDashboardData();
     </script>
 </body>
