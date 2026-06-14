@@ -42,6 +42,10 @@ export interface FeatureFlagAuditLogRow {
     created_at: Date
 }
 
+export interface FeatureFlagWithRuleCountRow extends FeatureFlagRow {
+    rule_count: number
+}
+
 export interface CreateFlagInput {
     key: string
     description?: string
@@ -127,6 +131,20 @@ export async function listFlags(pool: Pool): Promise<FeatureFlagRow[]> {
         SELECT *
         FROM pilot_feature_flags
         ORDER BY key ASC
+        `
+    )
+
+    return result.rows
+}
+
+export async function listFlagsWithRuleCounts(pool: Pool): Promise<FeatureFlagWithRuleCountRow[]> {
+    const result = await pool.query<FeatureFlagWithRuleCountRow>(
+        `
+        SELECT flags.*, COUNT(rules.id)::int AS rule_count
+        FROM pilot_feature_flags flags
+        LEFT JOIN pilot_feature_flag_rules rules ON rules.flag_id = flags.id
+        GROUP BY flags.id
+        ORDER BY flags.key ASC
         `
     )
 

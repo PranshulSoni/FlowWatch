@@ -964,6 +964,16 @@
             font-weight: 900;
         }
 
+        button.timeline-node {
+            background: transparent;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        button.timeline-node.bad {
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+        }
+
         .timeline-line {
             width: 1px;
             min-height: 44px;
@@ -987,6 +997,23 @@
             color: var(--muted);
             font-size: 12px;
             line-height: 1.5;
+        }
+
+        .timeline-error-action {
+            margin-top: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.36);
+            border-radius: 8px;
+            background: rgba(239, 68, 68, 0.08);
+            color: #fecaca;
+            padding: 8px 10px;
+            font-size: 11px;
+            font-weight: 760;
+            text-align: left;
+        }
+
+        .timeline-error-action:hover {
+            border-color: rgba(239, 68, 68, 0.58);
+            background: rgba(239, 68, 68, 0.12);
         }
 
         .workflow-grid {
@@ -1100,6 +1127,7 @@
 
         .workflow-step.live {
             border-color: rgba(34, 197, 94, 0.52);
+            background: #0d1914;
             animation: nodeGlow 2.8s ease-in-out infinite;
         }
 
@@ -1140,11 +1168,16 @@
             background: rgba(34, 197, 94, 0.46);
         }
 
+        .chain-arrow.running {
+            background: rgba(245, 158, 11, 0.72);
+        }
+
         .chain-arrow.failed {
             background: rgba(239, 68, 68, 0.72);
         }
 
         .chain-arrow.live::before,
+        .chain-arrow.running::before,
         .chain-arrow.failed::before {
             content: "";
             position: absolute;
@@ -1156,6 +1189,11 @@
             background: var(--green);
             box-shadow: 0 0 12px rgba(34, 197, 94, 0.85);
             animation: flowPacket 1.65s linear infinite;
+        }
+
+        .chain-arrow.running::before {
+            background: var(--amber);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.9);
         }
 
         .chain-arrow.failed::before {
@@ -1176,6 +1214,10 @@
 
         .chain-arrow.live::after {
             border-left-color: rgba(34, 197, 94, 0.72);
+        }
+
+        .chain-arrow.running::after {
+            border-left-color: rgba(245, 158, 11, 0.86);
         }
 
         .chain-arrow.failed::after {
@@ -1263,6 +1305,10 @@
             stroke: rgba(34, 197, 94, 0.72);
         }
 
+        .trace-edge.running {
+            stroke: rgba(245, 158, 11, 0.82);
+        }
+
         .trace-edge.branch {
             stroke: #475569;
             stroke-dasharray: 5 5;
@@ -1277,6 +1323,11 @@
         .trace-packet.hot {
             fill: var(--red);
             filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.95));
+        }
+
+        .trace-packet.running {
+            fill: var(--amber);
+            filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.95));
         }
 
         .trace-node rect {
@@ -1299,6 +1350,11 @@
         .trace-node.success rect {
             stroke: rgba(34, 197, 94, 0.58);
             fill: #0d1914;
+        }
+
+        .trace-node.running rect {
+            stroke: rgba(245, 158, 11, 0.78);
+            fill: #1a1510;
         }
 
         .trace-node.warning rect {
@@ -1619,6 +1675,1171 @@
             text-align: right;
         }
 
+        .ai-hero {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(135deg, rgba(34, 211, 238, 0.08), transparent 34%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                #0d1219;
+            padding: 16px;
+            margin-bottom: 14px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+            gap: 18px;
+            align-items: center;
+        }
+
+        .ai-kicker {
+            color: #a5f3fc;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 780;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 8px;
+        }
+
+        .ai-title {
+            margin: 0;
+            font-size: 22px;
+            line-height: 1.2;
+        }
+
+        .ai-copy {
+            margin: 8px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+            max-width: 760px;
+        }
+
+        .ai-plain-summary {
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            border-radius: 8px;
+            background: rgba(34, 211, 238, 0.055);
+            padding: 12px;
+            display: grid;
+            gap: 9px;
+        }
+
+        .ai-plain-row {
+            display: grid;
+            grid-template-columns: 74px minmax(0, 1fr);
+            gap: 10px;
+            align-items: baseline;
+            font-size: 12px;
+        }
+
+        .ai-plain-label {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .ai-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.88fr);
+            gap: 14px;
+            align-items: start;
+        }
+
+        .ai-card {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                #0d1219;
+            overflow: hidden;
+        }
+
+        .ai-card-head {
+            min-height: 48px;
+            padding: 13px 14px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .ai-card-title {
+            font-size: 13px;
+            font-weight: 780;
+        }
+
+        .ai-card-body {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .ai-map {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            align-items: stretch;
+            margin-bottom: 14px;
+        }
+
+        .ai-map-step {
+            position: relative;
+            min-height: 96px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                #0d1219;
+            padding: 12px;
+            display: grid;
+            align-content: start;
+            gap: 7px;
+        }
+
+        .ai-map-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: -10px;
+            width: 10px;
+            height: 2px;
+            background: var(--line);
+        }
+
+        .ai-map-step.ok {
+            border-color: rgba(34, 197, 94, 0.34);
+        }
+
+        .ai-map-step.warn {
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+
+        .ai-map-step.danger {
+            border-color: rgba(239, 68, 68, 0.48);
+            background:
+                linear-gradient(180deg, rgba(239, 68, 68, 0.08), transparent),
+                #100d0f;
+        }
+
+        .ai-map-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .ai-map-title {
+            font-size: 13px;
+            font-weight: 780;
+        }
+
+        .ai-map-copy {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .ai-finding {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 12px;
+        }
+
+        .ai-finding-title {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            font-size: 13px;
+            font-weight: 760;
+        }
+
+        .ai-finding-copy {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .ai-evidence {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .ai-evidence-item {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 10px;
+            min-width: 0;
+        }
+
+        .ai-evidence-label {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .ai-evidence-value {
+            margin-top: 7px;
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .ai-signal-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .ai-signal {
+            display: grid;
+            grid-template-columns: 10px minmax(0, 1fr);
+            gap: 11px;
+            align-items: start;
+            padding: 10px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+        }
+
+        .ai-signal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 5px;
+            background: var(--subtle);
+            box-shadow: 0 0 0 4px rgba(95, 107, 124, 0.12);
+        }
+
+        .ai-signal-dot.ok {
+            background: var(--green);
+            box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+        }
+
+        .ai-signal-dot.warn {
+            background: var(--amber);
+            box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+        }
+
+        .ai-signal-dot.danger {
+            background: var(--red);
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12);
+        }
+
+        .ai-action-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .ai-action {
+            display: grid;
+            grid-template-columns: 26px minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 10px;
+        }
+
+        .ai-action-index {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            color: #a5f3fc;
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(34, 211, 238, 0.24);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .ai-action-title {
+            font-size: 12px;
+            font-weight: 760;
+        }
+
+        .ai-action-copy {
+            margin-top: 3px;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .ai-query {
+            min-height: 92px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #090d13;
+            color: var(--text);
+            padding: 12px;
+            resize: vertical;
+            outline: none;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .ai-query:focus {
+            border-color: rgba(34, 211, 238, 0.58);
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+        }
+
+        .ai-assistant-option {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #0d1219;
+            overflow: hidden;
+        }
+
+        .ai-assistant-option summary {
+            list-style: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+        }
+
+        .ai-assistant-option summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .ai-assistant-title {
+            font-size: 13px;
+            font-weight: 780;
+        }
+
+        .ai-assistant-copy {
+            margin-top: 3px;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .ai-assistant-body {
+            border-top: 1px solid var(--line-soft);
+            padding: 12px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .ai-diagnosis-hero {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(120deg, rgba(34, 211, 238, 0.07), transparent 35%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                #0d1219;
+            padding: 18px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
+            gap: 16px;
+            align-items: stretch;
+            margin-bottom: 14px;
+        }
+
+        .ai-diagnosis-title {
+            margin: 0;
+            max-width: 850px;
+            font-size: 24px;
+            line-height: 1.18;
+            letter-spacing: 0;
+        }
+
+        .ai-diagnosis-copy {
+            margin: 10px 0 0;
+            max-width: 830px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .ai-diagnosis-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 14px;
+        }
+
+        .ai-tag {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(9, 13, 19, 0.78);
+            padding: 6px 9px;
+            color: var(--muted);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+        }
+
+        .ai-tag strong {
+            color: var(--text);
+        }
+
+        .ai-suspect-panel {
+            border: 1px solid rgba(239, 68, 68, 0.32);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(239, 68, 68, 0.08), transparent),
+                rgba(9, 13, 19, 0.82);
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .ai-suspect-label {
+            color: #fecaca;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .ai-suspect-title {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .ai-suspect-meta {
+            display: grid;
+            gap: 8px;
+        }
+
+        .ai-suspect-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .ai-suspect-row strong {
+            color: var(--text);
+        }
+
+        .ai-insight-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .ai-insight-card {
+            min-height: 128px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent),
+                #0d1219;
+            padding: 12px;
+            display: grid;
+            align-content: start;
+            gap: 9px;
+        }
+
+        .ai-insight-card.danger {
+            border-color: rgba(239, 68, 68, 0.42);
+            background:
+                linear-gradient(180deg, rgba(239, 68, 68, 0.07), transparent),
+                #0d1219;
+        }
+
+        .ai-insight-card.warn {
+            border-color: rgba(245, 158, 11, 0.36);
+        }
+
+        .ai-insight-card.ok {
+            border-color: rgba(34, 197, 94, 0.28);
+        }
+
+        .ai-insight-label {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .ai-insight-value {
+            font-size: 18px;
+            line-height: 1.16;
+            font-weight: 820;
+        }
+
+        .ai-insight-desc {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.48;
+        }
+
+        .ai-confidence {
+            display: grid;
+            gap: 8px;
+        }
+
+        .ai-confidence-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: baseline;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .ai-confidence-value {
+            color: var(--text);
+            font-size: 24px;
+            font-weight: 840;
+        }
+
+        .ai-progress {
+            height: 8px;
+            border-radius: 999px;
+            background: #090d13;
+            border: 1px solid var(--line-soft);
+            overflow: hidden;
+        }
+
+        .ai-progress-fill {
+            height: 100%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, var(--amber), var(--red));
+        }
+
+        .ai-evidence-list {
+            display: grid;
+            gap: 9px;
+        }
+
+        .ai-evidence-row {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 11px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .ai-evidence-title {
+            font-size: 12px;
+            font-weight: 760;
+        }
+
+        .ai-evidence-copy {
+            margin-top: 4px;
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .ai-evidence-stat {
+            min-width: 82px;
+            text-align: right;
+            color: var(--text);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 11px;
+        }
+
+        .ai-cause-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .ai-cause-row {
+            display: grid;
+            grid-template-columns: 88px minmax(0, 1fr);
+            gap: 12px;
+            border-bottom: 1px solid var(--line-soft);
+            padding-bottom: 9px;
+        }
+
+        .ai-cause-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .ai-cause-name {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .ai-cause-copy {
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+
+        .ai-component-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .ai-component {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #0d1219;
+            padding: 12px;
+            display: grid;
+            gap: 8px;
+            min-height: 120px;
+        }
+
+        .ai-component.ok {
+            border-color: rgba(34, 197, 94, 0.28);
+        }
+
+        .ai-component.warn {
+            border-color: rgba(245, 158, 11, 0.34);
+        }
+
+        .ai-component.danger {
+            border-color: rgba(239, 68, 68, 0.45);
+            background:
+                linear-gradient(180deg, rgba(239, 68, 68, 0.06), transparent),
+                #0d1219;
+        }
+
+        .ai-component-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+        }
+
+        .ai-component-name {
+            font-size: 13px;
+            font-weight: 790;
+        }
+
+        .ai-component-copy {
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        .ai-section-label {
+            margin: 0 0 8px;
+            color: var(--muted);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .ai-correlation-path {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .ai-path-node {
+            position: relative;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 10px;
+            min-height: 82px;
+        }
+
+        .ai-path-node:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            right: -8px;
+            width: 8px;
+            height: 2px;
+            background: var(--line);
+            z-index: 2;
+        }
+
+        .ai-path-node.ok {
+            border-color: rgba(34, 197, 94, 0.32);
+        }
+
+        .ai-path-node.warn {
+            border-color: rgba(245, 158, 11, 0.34);
+        }
+
+        .ai-path-node.danger {
+            border-color: rgba(239, 68, 68, 0.48);
+        }
+
+        .ai-path-title {
+            font-size: 12px;
+            font-weight: 780;
+        }
+
+        .ai-path-copy {
+            margin-top: 6px;
+            color: var(--subtle);
+            font-size: 10px;
+            line-height: 1.45;
+        }
+
+        .ai-chat-section {
+            margin-top: 14px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(79, 140, 255, 0.045), transparent 42%),
+                #0d1219;
+            overflow: hidden;
+        }
+
+        .ai-chat-header {
+            min-height: 58px;
+            padding: 14px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+        }
+
+        .ai-chat-title {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .ai-chat-subtitle {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .ai-chat-body {
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .ai-chat-window {
+            min-height: 220px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 14px;
+            display: grid;
+            gap: 12px;
+            align-content: start;
+        }
+
+        .ai-message {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr);
+            gap: 10px;
+            max-width: 860px;
+        }
+
+        .ai-message.user {
+            margin-left: auto;
+            grid-template-columns: minmax(0, 1fr) 30px;
+        }
+
+        .ai-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            background: rgba(34, 211, 238, 0.1);
+            border: 1px solid rgba(34, 211, 238, 0.22);
+            color: #a5f3fc;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .ai-message.user .ai-avatar {
+            background: rgba(79, 140, 255, 0.12);
+            border-color: rgba(79, 140, 255, 0.26);
+            color: #bfdbfe;
+        }
+
+        .ai-bubble {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #0d1219;
+            padding: 11px 12px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .ai-message.user .ai-bubble {
+            background: #111827;
+            color: var(--text);
+        }
+
+        .ai-prompt-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ai-prompt-chip {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #090d13;
+            color: var(--muted);
+            padding: 7px 10px;
+            font-size: 11px;
+        }
+
+        .ai-chat-composer {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .ai-chat-input {
+            min-height: 48px;
+            max-height: 140px;
+            border: 0;
+            outline: 0;
+            resize: vertical;
+            background: transparent;
+            color: var(--text);
+            padding: 2px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .ask-ai-layout {
+            min-height: calc(100vh - 116px);
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr);
+            gap: 14px;
+        }
+
+        .ask-ai-hero {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(120deg, rgba(79, 140, 255, 0.08), transparent 38%),
+                linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent),
+                #0d1219;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .ask-ai-title {
+            margin: 0;
+            font-size: 24px;
+            line-height: 1.2;
+        }
+
+        .ask-ai-copy {
+            margin: 7px 0 0;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+            max-width: 760px;
+        }
+
+        .ask-ai-shell {
+            min-height: 0;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #0d1219;
+            display: grid;
+            grid-template-columns: 250px minmax(0, 1fr);
+            overflow: hidden;
+        }
+
+        .ask-ai-side {
+            border-right: 1px solid var(--line-soft);
+            background: #090d13;
+            padding: 12px;
+            display: grid;
+            align-content: start;
+            gap: 10px;
+        }
+
+        .ask-ai-new {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .ask-ai-thread-list {
+            display: grid;
+            gap: 7px;
+        }
+
+        .ask-ai-thread {
+            border: 1px solid transparent;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            padding: 10px;
+            text-align: left;
+            display: grid;
+            gap: 4px;
+        }
+
+        .ask-ai-thread.active,
+        .ask-ai-thread:hover {
+            border-color: var(--line);
+            background: #111827;
+            color: var(--text);
+        }
+
+        .ask-ai-thread-title {
+            font-size: 12px;
+            font-weight: 760;
+        }
+
+        .ask-ai-thread-meta {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+        }
+
+        .ask-ai-main {
+            min-width: 0;
+            min-height: 0;
+            display: grid;
+            grid-template-rows: auto minmax(0, 1fr) auto;
+            background:
+                radial-gradient(circle at 50% 0%, rgba(34, 211, 238, 0.055), transparent 34%),
+                #0d1219;
+        }
+
+        .ask-ai-context {
+            padding: 13px 16px;
+            border-bottom: 1px solid var(--line-soft);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .ask-ai-context-title {
+            font-size: 13px;
+            font-weight: 780;
+        }
+
+        .ask-ai-context-copy {
+            margin-top: 3px;
+            color: var(--subtle);
+            font-size: 11px;
+        }
+
+        .ask-ai-messages {
+            overflow: auto;
+            padding: 22px 16px;
+            display: grid;
+            gap: 16px;
+            align-content: start;
+        }
+
+        .ask-message {
+            display: grid;
+            grid-template-columns: 34px minmax(0, 760px);
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .ask-message.user {
+            grid-template-columns: minmax(0, 760px) 34px;
+        }
+
+        .ask-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid rgba(34, 211, 238, 0.22);
+            background: rgba(34, 211, 238, 0.1);
+            color: #a5f3fc;
+            display: grid;
+            place-items: center;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .ask-message.user .ask-avatar {
+            border-color: rgba(79, 140, 255, 0.3);
+            background: rgba(79, 140, 255, 0.12);
+            color: #bfdbfe;
+        }
+
+        .ask-bubble {
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: rgba(9, 13, 19, 0.72);
+            padding: 13px 14px;
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .ask-message.user .ask-bubble {
+            background: #111827;
+            color: var(--text);
+        }
+
+        .ask-ai-suggestions {
+            max-width: 820px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .ask-ai-composer-wrap {
+            border-top: 1px solid var(--line-soft);
+            padding: 14px 16px;
+            background: rgba(9, 13, 19, 0.92);
+        }
+
+        .ask-ai-composer {
+            max-width: 880px;
+            margin: 0 auto;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #090d13;
+            padding: 10px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: end;
+        }
+
+        .ask-ai-input {
+            min-height: 54px;
+            max-height: 150px;
+            border: 0;
+            outline: 0;
+            resize: vertical;
+            background: transparent;
+            color: var(--text);
+            padding: 3px;
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .ask-ai-home {
+            min-height: calc(100vh - 116px);
+            display: grid;
+            grid-template-rows: minmax(0, 1fr) auto;
+            gap: 18px;
+        }
+
+        .ask-ai-center {
+            min-height: 0;
+            display: grid;
+            align-content: center;
+            justify-items: center;
+            gap: 18px;
+            padding: 42px 16px 26px;
+            text-align: center;
+        }
+
+        .ask-ai-kicker {
+            color: #a5f3fc;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 11px;
+            font-weight: 780;
+            text-transform: uppercase;
+        }
+
+        .ask-ai-home-title {
+            margin: 0;
+            max-width: 900px;
+            font-size: 42px;
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+
+        .ask-ai-home-copy {
+            margin: 0;
+            max-width: 720px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .ask-ai-prompt-grid {
+            width: min(920px, 100%);
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .ask-ai-prompt-card {
+            min-height: 102px;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
+                #0d1219;
+            color: var(--text);
+            padding: 12px;
+            text-align: left;
+            display: grid;
+            align-content: start;
+            gap: 8px;
+        }
+
+        .ask-ai-prompt-card:hover {
+            border-color: rgba(34, 211, 238, 0.45);
+            background: #111827;
+        }
+
+        .ask-ai-prompt-title {
+            font-size: 12px;
+            font-weight: 780;
+        }
+
+        .ask-ai-prompt-copy {
+            color: var(--subtle);
+            font-size: 11px;
+            line-height: 1.45;
+        }
+
+        .ask-ai-home-composer {
+            position: sticky;
+            bottom: 0;
+            padding: 16px 0 2px;
+            background: linear-gradient(180deg, transparent, var(--bg) 34%);
+        }
+
+        .ask-ai-home-composer .ask-ai-composer {
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+        }
+
+        .ask-ai-home-composer .ask-ai-input {
+            min-height: 62px;
+        }
+
         @media (max-width: 1060px) {
             .app {
                 grid-template-columns: 76px minmax(0, 1fr);
@@ -1633,6 +2854,15 @@
             }
 
             .overview-summary,
+            .ai-hero,
+            .ai-diagnosis-hero,
+            .ai-insight-grid,
+            .ai-component-grid,
+            .ai-correlation-path,
+            .ai-grid,
+            .ai-map,
+            .ask-ai-prompt-grid,
+            .ask-ai-shell,
             .settings-grid {
                 grid-template-columns: 1fr;
             }
@@ -1644,6 +2874,11 @@
             .grid-2,
             .detail-layout {
                 grid-template-columns: 1fr;
+            }
+
+            .ai-path-node:not(:last-child)::after,
+            .ai-map-step:not(:last-child)::after {
+                display: none;
             }
         }
 
@@ -1658,7 +2893,8 @@
                 grid-template-columns: 1fr;
             }
 
-            .app:has(.sidebar:hover) {
+            .app:has(.sidebar:hover),
+            .app:has(.sidebar:focus-within) {
                 grid-template-columns: 1fr;
             }
 
@@ -1745,6 +2981,16 @@
             .metrics,
             .ops-strip,
             .overview-summary,
+            .ai-hero,
+            .ai-diagnosis-hero,
+            .ai-insight-grid,
+            .ai-component-grid,
+            .ai-correlation-path,
+            .ai-grid,
+            .ai-map,
+            .ask-ai-prompt-grid,
+            .ask-ai-shell,
+            .ai-evidence,
             .grid-even,
             .field-grid,
             .settings-grid {
@@ -1753,6 +2999,57 @@
 
             .page-header {
                 flex-direction: column;
+            }
+
+            .ai-chat-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .ask-ai-hero,
+            .ask-ai-context {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .ask-ai-side {
+                border-right: 0;
+                border-bottom: 1px solid var(--line-soft);
+            }
+
+            .ai-chat-composer {
+                grid-template-columns: 1fr;
+            }
+
+            .ask-ai-composer {
+                grid-template-columns: 1fr;
+            }
+
+            .ask-ai-home {
+                min-height: calc(100vh - 252px);
+            }
+
+            .ask-ai-center {
+                gap: 14px;
+                padding: 24px 0 14px;
+            }
+
+            .ask-ai-home-title {
+                font-size: 31px;
+            }
+
+            .ask-ai-prompt-grid {
+                grid-template-columns: repeat(4, minmax(220px, 1fr));
+                overflow-x: auto;
+                padding-bottom: 4px;
+            }
+
+            .ask-ai-prompt-card {
+                min-height: 88px;
+            }
+
+            .ask-ai-home-composer {
+                padding-top: 10px;
             }
         }
     </style>
@@ -1780,21 +3077,23 @@
                 <button class="nav-button" data-page-button="flags"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 21V4m0 0h11l-1.5 4L17 12H6"/></svg></span><span class="nav-label">Feature Flags</span></button>
                 <button class="nav-button" data-page-button="errors"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 3.8 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg></span><span class="nav-label">Errors</span></button>
                 <button class="nav-button" data-page-button="traces"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></span><span class="nav-label">Traces</span></button>
+                <button class="nav-button" data-page-button="ai-insights"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.4L18 9l-4.6 1.6L12 15l-1.4-4.4L6 9l4.6-1.6L12 3Zm6 9 .8 2.2L21 15l-2.2.8L18 18l-.8-2.2L15 15l2.2-.8L18 12ZM5 13l.9 2.8L9 17l-3.1 1.2L5 21l-.9-2.8L1 17l3.1-1.2L5 13Z"/></svg></span><span class="nav-label">AI Insights</span></button>
+                <button class="nav-button" data-page-button="ask-ai"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-5 5v-5.5A2.5 2.5 0 0 1 4 13V5.5Zm4 2h8M8 11h5"/></svg></span><span class="nav-label">Ask Pilot AI</span></button>
                 <button class="nav-button" data-page-button="health"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-8 8-8 8s-8-3-8-8V5l8-3 8 3v8Zm-12-1h2l1.5-3 2.5 6 1.5-3H18"/></svg></span><span class="nav-label">Health</span></button>
                 <button class="nav-button" data-page-button="settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .9l-.03.08A2 2 0 0 1 12.13 21h-.26a2 2 0 0 1-1.84-1.22l-.03-.08a1.7 1.7 0 0 0-1-.9 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.9-1l-.08-.03A2 2 0 0 1 3 12.13v-.26a2 2 0 0 1 1.22-1.84l.08-.03a1.7 1.7 0 0 0 .9-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.9l.03-.08A2 2 0 0 1 11.87 3h.26a2 2 0 0 1 1.84 1.22l.03.08a1.7 1.7 0 0 0 1 .9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.14.38.46.7.9.9l.08.03A2 2 0 0 1 21 11.87v.26a2 2 0 0 1-1.22 1.84l-.08.03a1.7 1.7 0 0 0-.3 1Z"/></svg></span><span class="nav-label">Settings</span></button>
             </nav>
             <div class="sidebar-footer">
-                <div class="health-line"><span>Service</span><strong id="sidebar-service">checkout-api</strong></div>
-                <div class="health-line"><span>Postgres</span><span class="badge ok"><span class="dot"></span>online</span></div>
-                <div class="health-line"><span>Worker</span><span class="badge info"><span class="dot"></span>enabled</span></div>
+                <div class="health-line"><span>Service</span><strong id="sidebar-service">-</strong></div>
+                <div class="health-line"><span>Postgres</span><span id="sidebar-postgres" class="badge warn"><span class="dot"></span>unknown</span></div>
+                <div class="health-line"><span>Worker</span><span id="sidebar-worker" class="badge warn"><span class="dot"></span>unknown</span></div>
             </div>
         </aside>
 
         <div class="main">
             <header class="topbar">
                 <div class="topbar-left">
-                    <div class="service-name" id="top-service">checkout-api</div>
-                    <span class="env-pill">production</span>
+                    <div class="service-name" id="top-service">-</div>
+                    <span id="top-environment" class="env-pill">-</span>
                 </div>
                 <div class="topbar-right">
                     <div class="global-search" id="global-search-shell">
@@ -1822,29 +3121,27 @@
                     </div>
                     <div class="overview-summary">
                         <div class="summary-primary">
-                            <div class="summary-kicker">Current priority</div>
-                            <h2 class="summary-title">Checkout is failing while creating orders after payment succeeds.</h2>
-                            <p class="summary-copy">The active trace points to the checkout workflow. Payment and inventory steps are completing, but create-order is failing and generating retries.</p>
-                            <div class="summary-actions">
-                                <span class="badge bad"><span class="dot"></span>5 failed executions</span>
-                                <span class="badge warn"><span class="dot"></span>18 queued jobs</span>
-                                <span class="badge info">trc_72a1 critical trace</span>
+                            <div class="summary-kicker">Current state</div>
+                            <h2 id="summary-title" class="summary-title">Loading dashboard records.</h2>
+                            <p id="summary-copy" class="summary-copy">Pilot is reading workflows, executions, feature flags, traces, errors, and health checks from the configured tables.</p>
+                            <div id="summary-actions" class="summary-actions">
+                                <span class="badge warn"><span class="dot"></span>loading</span>
                             </div>
                         </div>
                         <div class="summary-side">
-                            <div class="summary-stat"><span>Queue depth</span><strong>18 jobs waiting</strong></div>
-                            <div class="summary-stat"><span>Index freshness</span><strong>errors synced 24s ago</strong></div>
-                            <div class="summary-stat"><span>Worker state</span><strong style="color: var(--green);">enabled</strong></div>
-                            <div class="summary-stat"><span>Slowest span</span><strong>warehouse-api 2210ms</strong></div>
+                            <div class="summary-stat"><span>Workflow records</span><strong id="summary-workflow-count">-</strong></div>
+                            <div class="summary-stat"><span>Execution records</span><strong id="summary-execution-count">-</strong></div>
+                            <div class="summary-stat"><span>Error records</span><strong id="summary-error-count">-</strong></div>
+                            <div class="summary-stat"><span>Trace records</span><strong id="summary-trace-count">-</strong></div>
                         </div>
                     </div>
                     <div class="metrics">
-                        <div class="metric"><div class="metric-label">Total workflows</div><div><div class="metric-value">8</div><div class="metric-delta">+1 this week</div></div></div>
-                        <div class="metric"><div class="metric-label">Running executions</div><div><div class="metric-value" style="color: var(--amber)">3</div><div class="metric-delta">oldest 42s</div></div></div>
-                        <div class="metric"><div class="metric-label">Failed executions</div><div><div class="metric-value" style="color: var(--red)">5</div><div class="metric-delta">3 checkout retries</div></div></div>
-                        <div class="metric"><div class="metric-label">Recent errors</div><div><div class="metric-value" style="color: var(--red)">14</div><div class="metric-delta">last 60 min</div></div></div>
-                        <div class="metric"><div class="metric-label">Active flags</div><div><div class="metric-value">6</div><div class="metric-delta">2 partial rollout</div></div></div>
-                        <div class="metric"><div class="metric-label">Avg latency</div><div><div class="metric-value" style="color: var(--green)">138ms</div><div class="metric-delta">p95 441ms</div></div></div>
+                        <div class="metric"><div class="metric-label">Total workflows</div><div><div id="metric-workflows" class="metric-value">-</div><div id="metric-workflows-delta" class="metric-delta">from pilot_workflows</div></div></div>
+                        <div class="metric"><div class="metric-label">Running executions</div><div><div id="metric-running" class="metric-value" style="color: var(--amber)">-</div><div id="metric-running-delta" class="metric-delta">from pilot_workflow_executions</div></div></div>
+                        <div class="metric"><div class="metric-label">Failed executions</div><div><div id="metric-failed" class="metric-value" style="color: var(--red)">-</div><div id="metric-failed-delta" class="metric-delta">from pilot_workflow_executions</div></div></div>
+                        <div class="metric"><div class="metric-label">Recent errors</div><div><div id="metric-errors" class="metric-value" style="color: var(--red)">-</div><div id="metric-errors-delta" class="metric-delta">from pilot_errors</div></div></div>
+                        <div class="metric"><div class="metric-label">Active flags</div><div><div id="metric-flags" class="metric-value">-</div><div id="metric-flags-delta" class="metric-delta">from pilot_feature_flags</div></div></div>
+                        <div class="metric"><div class="metric-label">Avg latency</div><div><div id="metric-latency" class="metric-value" style="color: var(--green)">-</div><div id="metric-latency-delta" class="metric-delta">from pilot_request_traces</div></div></div>
                     </div>
                     <div class="grid-2">
                         <div class="stack">
@@ -1995,7 +3292,7 @@
                         <div class="panel">
                             <div class="panel-header">
                                 <div class="panel-title">Trace graph</div>
-                                <span class="badge bad"><span class="dot"></span>failed path highlighted</span>
+                                <span class="badge info">green completed / yellow running / red failed</span>
                             </div>
                             <div class="trace-board" id="trace-graph"></div>
                         </div>
@@ -2006,8 +3303,8 @@
                             </div>
                             <div class="trace-inspector">
                                 <div class="field-grid">
-                                    <div class="field"><div class="field-label">Trace</div><div class="field-value mono" id="trace-inspector-id">trc_72a1</div></div>
-                                    <div class="field"><div class="field-label">Critical path</div><div class="field-value mono" id="trace-inspector-critical">7420ms</div></div>
+                                    <div class="field"><div class="field-label">Trace</div><div class="field-value mono" id="trace-inspector-id">-</div></div>
+                                    <div class="field"><div class="field-label">Critical path</div><div class="field-value mono" id="trace-inspector-critical">-</div></div>
                                 </div>
                                 <div class="span-list" id="trace-span-list"></div>
                             </div>
@@ -2029,6 +3326,100 @@
                                 <thead><tr><th>Trace ID</th><th>Method</th><th>Path</th><th>Status</th><th>IP</th><th class="right">Duration</th></tr></thead>
                                 <tbody id="trace-table"></tbody>
                             </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="page-ai-insights" class="page">
+                    <div class="page-header">
+                        <div>
+                            <h1 class="page-title">AI Insights</h1>
+                            <div class="page-meta">Current backend findings generated from request traces, workflow runs, captured errors, feature flags, and health checks.</div>
+                        </div>
+                        <span class="badge bad"><span class="dot"></span>action required</span>
+                    </div>
+
+                    <div class="ai-diagnosis-hero">
+                        <div>
+                            <div class="ai-kicker">AI not connected</div>
+                            <h2 class="ai-diagnosis-title">No AI insight has been generated from your tables yet.</h2>
+                            <p class="ai-diagnosis-copy">This page is intentionally not showing a sample incident. Once the AI backend is connected, it should summarize real rows from workflows, executions, traces, errors, feature flags, and health checks.</p>
+                            <div class="ai-diagnosis-tags">
+                                <span class="ai-tag">source: <strong>not connected</strong></span>
+                                <span class="ai-tag">sample data: <strong>disabled</strong></span>
+                                <span class="ai-tag">status: <strong>waiting for AI endpoint</strong></span>
+                            </div>
+                        </div>
+                        <div class="ai-suspect-panel">
+                            <div>
+                                <div class="ai-suspect-label">Required connection</div>
+                                <div class="ai-suspect-title">Use table-backed dashboard records as the AI context.</div>
+                            </div>
+                            <div class="ai-suspect-meta">
+                                <div class="ai-suspect-row"><span>Workflows</span><strong id="ai-workflow-count">0</strong></div>
+                                <div class="ai-suspect-row"><span>Executions</span><strong id="ai-execution-count">0</strong></div>
+                                <div class="ai-suspect-row"><span>Errors</span><strong id="ai-error-count">0</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="ai-insight-grid">
+                        <div class="ai-insight-card">
+                            <div class="ai-insight-label">Context source</div>
+                            <div class="ai-insight-value">Dashboard API</div>
+                            <div class="ai-insight-desc">Use the same table-backed records already loaded by the dashboard.</div>
+                        </div>
+                        <div class="ai-insight-card">
+                            <div class="ai-insight-label">Required input</div>
+                            <div class="ai-insight-value">Recent records</div>
+                            <div class="ai-insight-desc">Executions, step failures, traces, errors, flags, and health checks should be passed to the AI endpoint.</div>
+                        </div>
+                        <div class="ai-insight-card">
+                            <div class="ai-insight-label">Required output</div>
+                            <div class="ai-insight-value">Actionable finding</div>
+                            <div class="ai-insight-desc">The AI response should name the evidence rows it used and avoid unsupported guesses.</div>
+                        </div>
+                        <div class="ai-insight-card">
+                            <div class="ai-insight-label">Current state</div>
+                            <div class="ai-insight-value">Disabled</div>
+                            <div class="ai-insight-desc">No fake diagnosis is rendered while the AI endpoint is missing.</div>
+                        </div>
+                    </div>
+
+                </section>
+
+                <section id="page-ask-ai" class="page">
+                    <div class="ask-ai-home">
+                        <div class="ask-ai-center">
+                            <div class="ask-ai-kicker">Pilot assistant</div>
+                            <h1 class="ask-ai-home-title">What should we inspect first?</h1>
+                            <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact, captured errors, or infrastructure health. The assistant is framed around the backend signals Pilot already collects.</p>
+
+                            <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts">
+                                <button class="ask-ai-prompt-card" data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
+                                    <span class="ask-ai-prompt-title">Explain a failed execution</span>
+                                    <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and step timeline.</span>
+                                </button>
+                                <button class="ask-ai-prompt-card" data-ask-prompt="Use the selected trace to identify the slowest backend span and any linked captured error.">
+                                    <span class="ask-ai-prompt-title">Read a trace</span>
+                                    <span class="ask-ai-prompt-copy">Find the slow span, connected error, and affected request.</span>
+                                </button>
+                                <button class="ask-ai-prompt-card" data-ask-prompt="Compare enabled feature flags with recent traces, errors, and workflow failures.">
+                                    <span class="ask-ai-prompt-title">Check rollout impact</span>
+                                    <span class="ask-ai-prompt-copy">Compare flag state with traces, errors, and workflow failures.</span>
+                                </button>
+                                <button class="ask-ai-prompt-card" data-ask-prompt="Give me a safe replay plan for the selected failed workflow execution.">
+                                    <span class="ask-ai-prompt-title">Plan a safe replay</span>
+                                    <span class="ask-ai-prompt-copy">Separate completed side effects from steps that can be retried.</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="ask-ai-home-composer">
+                            <div class="ask-ai-composer">
+                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
+                                <button class="button primary" type="button">Ask</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -2059,15 +3450,15 @@
                             <div class="setting-list">
                                 <div class="setting-row">
                                     <div><div class="setting-name">Mount path</div><div class="setting-help">Express route used by app.use(...).</div></div>
-                                    <div class="setting-value">/pilot</div>
+                                    <div id="setting-dashboard-path" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Environment</div><div class="setting-help">Shown in the header and attached to traces.</div></div>
-                                    <div class="setting-value">production</div>
+                                    <div id="setting-environment" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Dashboard auth</div><div class="setting-help">Token protection for internal routes.</div></div>
-                                    <button class="switch on" title="Dashboard auth enabled"></button>
+                                    <button id="setting-dashboard-auth" class="switch" title="Dashboard auth state"></button>
                                 </div>
                             </div>
                         </div>
@@ -2079,15 +3470,15 @@
                             <div class="setting-list">
                                 <div class="setting-row">
                                     <div><div class="setting-name">Worker enabled</div><div class="setting-help">Consumes jobs from the workflow queue.</div></div>
-                                    <button class="switch on" title="Worker enabled"></button>
+                                    <button id="setting-worker-enabled" class="switch" title="Worker state"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Workflow concurrency</div><div class="setting-help">Maximum active workflow jobs per worker process.</div></div>
-                                    <div class="setting-value">5</div>
+                                    <div id="setting-worker-concurrency" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Queue prefix</div><div class="setting-help">Redis key namespace for Pilot queues.</div></div>
-                                    <div class="setting-value">pilot</div>
+                                    <div id="setting-worker-prefix" class="setting-value">-</div>
                                 </div>
                             </div>
                         </div>
@@ -2099,15 +3490,15 @@
                             <div class="setting-list">
                                 <div class="setting-row">
                                     <div><div class="setting-name">Request tracing</div><div class="setting-help">Creates a trace record for incoming HTTP requests.</div></div>
-                                    <button class="switch on" title="Request tracing enabled"></button>
+                                    <button class="switch on" title="Request tracing enabled by middleware"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Error capture</div><div class="setting-help">Stores thrown errors with trace/span context when available.</div></div>
-                                    <button class="switch on" title="Error capture enabled"></button>
+                                    <button class="switch on" title="Error capture enabled by Pilot"></button>
                                 </div>
                                 <div class="setting-row">
                                     <div><div class="setting-name">Elasticsearch indexing</div><div class="setting-help">Indexes errors and traces for dashboard search.</div></div>
-                                    <button class="switch on" title="Indexing enabled"></button>
+                                    <button class="switch on" title="Elasticsearch client configured"></button>
                                 </div>
                             </div>
                         </div>
@@ -2122,12 +3513,12 @@
                                     <div class="setting-value">pilot_migrations</div>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Trace retention</div><div class="setting-help">How long request traces remain queryable.</div></div>
-                                    <div class="setting-value">30 days</div>
+                                    <div><div class="setting-name">Migrations auto-run</div><div class="setting-help">Whether Pilot runs pending migrations during startup.</div></div>
+                                    <button id="setting-migrations-auto-run" class="switch" title="Migration auto-run state"></button>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Error retention</div><div class="setting-help">How long captured errors stay in Postgres.</div></div>
-                                    <div class="setting-value">90 days</div>
+                                    <div><div class="setting-name">Dashboard enabled</div><div class="setting-help">Whether the embedded dashboard router is enabled by config.</div></div>
+                                    <button id="setting-dashboard-enabled" class="switch" title="Dashboard enabled state"></button>
                                 </div>
                             </div>
                         </div>
@@ -2158,11 +3549,11 @@
                 <div class="form">
                     <div class="form-row">
                         <label for="flag-key">Flag key</label>
-                        <input id="flag-key" class="input" required placeholder="new-checkout">
+                        <input id="flag-key" class="input" required placeholder="feature-key">
                     </div>
                     <div class="form-row">
                         <label for="flag-description">Description</label>
-                        <input id="flag-description" class="input" placeholder="Enable the new checkout workflow">
+                        <input id="flag-description" class="input" placeholder="Describe what this flag controls">
                     </div>
                     <div class="form-row">
                         <label for="flag-rollout">Rollout percentage</label>
@@ -2179,96 +3570,17 @@
 
     <script>
         const state = {
-            workflows: [
-                { name: "checkout", version: 3, steps: 5, created: "2026-06-10 14:12", lastStatus: "failed", failures: 4, pinned: true, chain: ["charge-card", "deduct-inventory", "create-order", "send-email", "notify-warehouse"] },
-                { name: "refund-payment", version: 1, steps: 4, created: "2026-06-11 09:31", lastStatus: "completed", failures: 0, pinned: true, chain: ["load-order", "refund-provider", "restore-stock", "send-receipt"] },
-                { name: "warehouse-dispatch", version: 2, steps: 6, created: "2026-06-12 18:45", lastStatus: "running", failures: 1, pinned: true, chain: ["reserve-bin", "print-label", "pack-order", "handoff-courier", "sync-erp", "notify-user"] },
-                { name: "trial-expiry", version: 1, steps: 3, created: "2026-06-13 10:06", lastStatus: "completed", failures: 0, pinned: false, chain: ["find-expired", "disable-access", "send-summary"] },
-                { name: "invoice-sync", version: 2, steps: 5, created: "2026-06-13 13:24", lastStatus: "completed", failures: 0, pinned: false, chain: ["load-invoice", "tax-check", "push-ledger", "mark-paid", "notify-finance"] },
-                { name: "user-onboarding", version: 4, steps: 6, created: "2026-06-14 09:12", lastStatus: "queued", failures: 2, pinned: false, chain: ["create-profile", "send-welcome", "provision-plan", "sync-crm", "schedule-email", "finish"] }
-            ],
-            executions: [
-                { id: "exe_8f31a", workflow: "checkout", status: "failed", started: "10:42:14", finished: "10:42:21", failedStep: "create-order", attempts: 3, duration: "7.2s" },
-                { id: "exe_8f2c9", workflow: "warehouse-dispatch", status: "running", started: "10:41:58", finished: "-", failedStep: "-", attempts: 1, duration: "3.6s" },
-                { id: "exe_8f1b5", workflow: "refund-payment", status: "completed", started: "10:39:03", finished: "10:39:05", failedStep: "-", attempts: 1, duration: "1.8s" },
-                { id: "exe_8ef90", workflow: "checkout", status: "queued", started: "-", finished: "-", failedStep: "-", attempts: 0, duration: "-" },
-                { id: "exe_8ee44", workflow: "trial-expiry", status: "completed", started: "10:33:18", finished: "10:33:19", failedStep: "-", attempts: 1, duration: "910ms" }
-            ],
-            flags: [
-                { key: "new-checkout", enabled: true, rollout: 25, rules: 2, changedBy: "ops@company.com" },
-                { key: "fast-refunds", enabled: false, rollout: 0, rules: 1, changedBy: "dev@company.com" },
-                { key: "warehouse-v2", enabled: true, rollout: 100, rules: 0, changedBy: "ops@company.com" },
-                { key: "pro-plan-upsell", enabled: true, rollout: 10, rules: 3, changedBy: "growth@company.com" }
-            ],
-            errors: [
-                { message: "database timeout while creating order", name: "QueryTimeoutError", category: "database", level: "error", source: "workflow_step", status: 500, trace: "trc_72a1", occurred: "10:42:21" },
-                { message: "payment provider returned 503", name: "ProviderError", category: "dependency", level: "error", source: "external_api", status: 503, trace: "trc_71ee", occurred: "10:38:09" },
-                { message: "missing redis url in config", name: "ConfigError", category: "configuration", level: "critical", source: "runtime", status: 500, trace: "-", occurred: "10:31:44" },
-                { message: "feature flag rule value was invalid", name: "ValidationError", category: "client", level: "warning", source: "feature_flag", status: 400, trace: "trc_70d0", occurred: "10:25:11" }
-            ],
-            traces: [
-                {
-                    id: "trc_72a1",
-                    method: "POST",
-                    path: "/api/orders",
-                    status: 500,
-                    ip: "103.44.18.20",
-                    duration: 7420,
-                    spans: [
-                        { name: "http.request", type: "request", status: "failed", duration: 7420 },
-                        { name: "auth.session", type: "database", status: "completed", duration: 38 },
-                        { name: "pilot.flag(new-checkout)", type: "feature_flag", status: "completed", duration: 12 },
-                        { name: "pilot.workflow(checkout)", type: "workflow", status: "failed", duration: 7240 },
-                        { name: "charge-card", type: "workflow_step", status: "completed", duration: 1180 },
-                        { name: "create-order", type: "workflow_step", status: "failed", duration: 3010 }
-                    ]
-                },
-                {
-                    id: "trc_71ee",
-                    method: "POST",
-                    path: "/api/refunds",
-                    status: 503,
-                    ip: "103.44.18.20",
-                    duration: 1880,
-                    spans: [
-                        { name: "http.request", type: "request", status: "failed", duration: 1880 },
-                        { name: "refund-provider", type: "external_api", status: "failed", duration: 1690 },
-                        { name: "pilot.captureError", type: "custom", status: "completed", duration: 34 }
-                    ]
-                },
-                {
-                    id: "trc_70d0",
-                    method: "GET",
-                    path: "/api/checkout",
-                    status: 200,
-                    ip: "127.0.0.1",
-                    duration: 138,
-                    spans: [
-                        { name: "http.request", type: "request", status: "completed", duration: 138 },
-                        { name: "pilot.flag(new-checkout)", type: "feature_flag", status: "completed", duration: 9 },
-                        { name: "load-cart", type: "database", status: "completed", duration: 41 }
-                    ]
-                },
-                {
-                    id: "trc_7091",
-                    method: "PATCH",
-                    path: "/api/flags/new-checkout",
-                    status: 200,
-                    ip: "127.0.0.1",
-                    duration: 44,
-                    spans: [
-                        { name: "http.request", type: "request", status: "completed", duration: 44 },
-                        { name: "update-feature-flag", type: "database", status: "completed", duration: 18 },
-                        { name: "redis.cache.invalidate", type: "custom", status: "completed", duration: 4 }
-                    ]
-                }
-            ],
-            health: [
-                { name: "Postgres", status: "ok", latency: 12, description: "Primary persistence for workflows, flags, traces, and errors." },
-                { name: "Redis", status: "ok", latency: 4, description: "BullMQ queue transport and feature flag cache." },
-                { name: "Elasticsearch", status: "degraded", latency: 96, description: "Search index for errors and trace spans." },
-                { name: "BullMQ Worker", status: "ok", latency: 8, description: "Background workflow execution worker." }
-            ]
+            workflows: [],
+            executions: [],
+            flags: [],
+            errors: [],
+            traces: [],
+            health: [],
+            serviceName: "-",
+            environment: "-",
+            settings: null,
+            apiBacked: false,
+            apiError: null
         };
 
         const pageButtons = document.querySelectorAll("[data-page-button]");
@@ -2282,10 +3594,215 @@
         const globalSearchInput = document.getElementById("global-search");
         const globalSearchResults = document.getElementById("global-search-results");
 
+        function pinnedWorkflowNames() {
+            try {
+                return new Set(JSON.parse(localStorage.getItem("pilot:pinned-workflows") || "[]"));
+            }
+            catch {
+                return new Set();
+            }
+        }
+
+        function savePinnedWorkflowNames() {
+            try {
+                localStorage.setItem("pilot:pinned-workflows", JSON.stringify(state.workflows.filter((workflow) => workflow.pinned).map((workflow) => workflow.name)));
+            }
+            catch {
+                // Local storage can be disabled; pinning can remain session-only.
+            }
+        }
+
+        function dashboardBasePath() {
+            const currentPath = window.location.pathname;
+
+            if (currentPath.endsWith("/dashboard-v2.html") || currentPath.endsWith("/index.html")) {
+                return currentPath.slice(0, currentPath.lastIndexOf("/") + 1);
+            }
+
+            return currentPath.endsWith("/") ? currentPath : `${currentPath}/`;
+        }
+
+        function apiPath(path) {
+            return `${dashboardBasePath()}api/${String(path).replace(/^\/+/, "")}`;
+        }
+
+        async function apiRequest(path, options = {}) {
+            const response = await fetch(apiPath(path), {
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(options.headers || {}),
+                },
+                ...options,
+            });
+
+            if (!response.ok) {
+                let message = `Request failed with ${response.status}`;
+
+                try {
+                    const body = await response.json();
+                    message = body?.error?.message || body?.message || message;
+                }
+                catch {
+                    // Keep the status-based message when the response is not JSON.
+                }
+
+                throw new Error(message);
+            }
+
+            if (response.status === 204) {
+                return {};
+            }
+
+            return response.json();
+        }
+
+        function normalizeWorkflow(workflow, index = 0) {
+            const savedPins = pinnedWorkflowNames();
+            const hasSavedPins = savedPins.size > 0;
+            const chain = Array.isArray(workflow.chain) ? workflow.chain : [];
+            const latestExecution = workflow.latestExecution || null;
+
+            return {
+                ...workflow,
+                name: workflow.name,
+                version: workflow.version || workflow.workflowVersion || latestExecution?.workflowVersion || 1,
+                steps: workflow.steps || chain.length || latestExecution?.steps?.length || 0,
+                created: workflow.created || formatDateTime(workflow.createdAt),
+                lastStatus: workflow.lastStatus || latestExecution?.status || "queued",
+                failures: workflow.failures || 0,
+                pinned: hasSavedPins ? savedPins.has(workflow.name) : index < 4,
+                chain: chain.length ? chain : (latestExecution?.steps || []).map((step) => step.stepName || step.name),
+                latestExecution,
+            };
+        }
+
+        function normalizeExecution(execution) {
+            return {
+                ...execution,
+                workflow: execution.workflow || execution.workflowName,
+                started: execution.started || formatTime(execution.startedAt || execution.createdAt),
+                finished: execution.finished || formatTime(execution.completedAt || execution.failedAt),
+                failedStep: execution.failedStep || (execution.steps || []).find((step) => step.status === "failed")?.stepName || "-",
+                attempts: execution.attempts ?? (execution.steps || []).reduce((total, step) => total + Number(step.attempts || step.attemptCount || 0), 0),
+                duration: execution.duration || formatDurationLabel(execution.durationMs),
+                steps: execution.steps || [],
+            };
+        }
+
+        function normalizeFlag(flag) {
+            return {
+                ...flag,
+                rollout: flag.rollout ?? flag.rolloutPercentage ?? 0,
+                rules: flag.rules ?? 0,
+                changedBy: flag.changedBy || "dashboard",
+            };
+        }
+
+        function normalizeError(error) {
+            return {
+                ...error,
+                name: error.name || "Error",
+                status: error.status ?? error.statusCode ?? "-",
+                trace: error.trace || error.traceId || "-",
+                occurred: error.occurred || formatTime(error.occurredAt || error.createdAt),
+            };
+        }
+
+        function normalizeTrace(trace) {
+            return {
+                ...trace,
+                status: trace.status ?? trace.statusCode ?? "-",
+                duration: trace.duration ?? trace.durationMs ?? 0,
+                spans: trace.spans || [],
+            };
+        }
+
+        function formatTime(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return "-";
+            return date.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        }
+
+        function formatDateTime(value) {
+            if (!value) return "-";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return "-";
+            return date.toISOString().slice(0, 16).replace("T", " ");
+        }
+
+        function formatDurationLabel(ms) {
+            if (ms === null || ms === undefined) return "-";
+            if (ms < 1000) return `${ms}ms`;
+            return `${(ms / 1000).toFixed(ms >= 10000 ? 0 : 1)}s`;
+        }
+
+        async function loadDashboardData() {
+            try {
+                const data = await apiRequest("dashboard-data");
+
+                state.serviceName = data.serviceName || "-";
+                state.environment = data.environment || "-";
+                state.settings = data.settings || null;
+                state.workflows = (data.workflows || []).map(normalizeWorkflow);
+                state.executions = (data.executions || []).map(normalizeExecution);
+                state.flags = (data.flags || []).map(normalizeFlag);
+                state.errors = (data.errors || []).map(normalizeError);
+                state.traces = (data.traces || []).map(normalizeTrace);
+                state.health = data.health || [];
+                state.apiBacked = true;
+                state.apiError = null;
+            }
+            catch (error) {
+                state.workflows = [];
+                state.executions = [];
+                state.flags = [];
+                state.errors = [];
+                state.traces = [];
+                state.health = [];
+                state.serviceName = "-";
+                state.environment = "-";
+                state.settings = null;
+                state.apiBacked = false;
+                state.apiError = error instanceof Error ? error.message : "Dashboard API unavailable";
+            }
+
+            renderAll();
+        }
+
         function badgeForStatus(status) {
             if (status === "completed" || status === "ok") return `<span class="badge ok"><span class="dot"></span>${status}</span>`;
             if (status === "running" || status === "queued" || status === "degraded") return `<span class="badge warn"><span class="dot"></span>${status}</span>`;
             return `<span class="badge bad"><span class="dot"></span>${status}</span>`;
+        }
+
+        function graphStatusClass(status) {
+            if (status === "completed" || status === "ok") return "success";
+            if (status === "running" || status === "queued" || status === "degraded") return "running";
+            if (status === "failed" || status === "error") return "failed";
+            return "";
+        }
+
+        function tableEmptyRow(colspan, title, copy) {
+            return `
+                <tr>
+                    <td colspan="${colspan}">
+                        <div class="empty-state" style="padding: 20px;">
+                            <div class="empty-title">${title}</div>
+                            <div class="empty-copy">${copy}</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function workflowStepStatus(workflow, step, execution) {
+            if (!execution) return "pending";
+            if (execution.status === "completed") return "completed";
+            if (execution.status === "failed" && execution.failedStep === step) return "failed";
+            if (execution.status === "running") return "running";
+            if (execution.status === "queued") return "queued";
+            return "pending";
         }
 
         function badgeForMethod(method) {
@@ -2298,6 +3815,7 @@
         function showPage(pageName) {
             pageButtons.forEach((button) => button.classList.toggle("active", button.dataset.pageButton === pageName));
             pages.forEach((page) => page.classList.toggle("active", page.id === `page-${pageName}`));
+            closeDrawer();
         }
 
         function openDrawer(title, subtitle, html) {
@@ -2311,10 +3829,154 @@
         function closeDrawer() {
             drawer.classList.remove("open");
             drawer.setAttribute("aria-hidden", "true");
+            drawerBody.innerHTML = "";
+        }
+
+        function latestExecutionForWorkflow(workflowName) {
+            const workflow = state.workflows.find((item) => item.name === workflowName);
+            return state.executions.find((execution) => execution.workflow === workflowName) || workflow?.latestExecution;
+        }
+
+        function workflowErrorForStep(workflowName, stepName) {
+            const execution = latestExecutionForWorkflow(workflowName);
+            const failedStep = (execution?.steps || []).find((step) => {
+                const name = step.stepName || step.name;
+                return name === stepName && step.status === "failed";
+            });
+
+            if (failedStep?.error) {
+                const error = typeof failedStep.error === "string" ? { message: failedStep.error } : failedStep.error;
+                return {
+                    name: error.name || "WorkflowStepError",
+                    message: error.message || JSON.stringify(error),
+                    trace: execution.traceId || execution.trace || "-",
+                    source: "workflow_step",
+                };
+            }
+
+            if (!execution || execution.failedStep !== stepName) {
+                return undefined;
+            }
+
+            const matchingTraceError = state.errors.find((error) => error.trace !== "-" && (error.trace === execution.traceId || error.trace === execution.trace));
+
+            if (matchingTraceError) {
+                return matchingTraceError;
+            }
+
+            return state.errors.find((error) => error.source === "workflow_step") || state.errors.find((error) => error.trace !== "-");
+        }
+
+        function workflowExecutionSteps(workflow, execution) {
+            if (execution?.steps?.length) {
+                return execution.steps.map((step, index) => {
+                    const name = step.stepName || step.name || `step-${index + 1}`;
+                    const error = step.status === "failed" ? workflowErrorForStep(workflow.name, name) : undefined;
+
+                    return {
+                        name,
+                        index,
+                        status: step.status || "pending",
+                        duration: step.duration || formatDurationLabel(step.durationMs),
+                        attempts: step.attempts ?? step.attemptCount ?? 0,
+                        error,
+                    };
+                });
+            }
+
+            return workflow.chain.map((step, index) => {
+                const normalizedStatus = workflowStepStatus(workflow, step, execution);
+                const error = normalizedStatus === "failed" ? workflowErrorForStep(workflow.name, step) : undefined;
+
+                return {
+                    name: step,
+                    index,
+                    status: normalizedStatus,
+                    duration: "-",
+                    attempts: normalizedStatus === "failed" ? execution?.attempts || 1 : 0,
+                    error,
+                };
+            });
+        }
+
+        function badgeForStepStatus(status) {
+            if (status === "completed") return badgeForStatus("completed");
+            if (status === "running" || status === "queued" || status === "pending") return `<span class="badge warn"><span class="dot"></span>${status}</span>`;
+            return badgeForStatus("failed");
+        }
+
+        function workflowStepErrorDetail(workflow, step, error) {
+            return `
+                <div class="field-grid" style="margin-bottom: 14px;">
+                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${workflow.name}</div></div>
+                    <div class="field"><div class="field-label">Failed step</div><div class="field-value">${step.name}</div></div>
+                    <div class="field"><div class="field-label">Attempts</div><div class="field-value mono">${step.attempts}</div></div>
+                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${error?.trace || "-"}</div></div>
+                </div>
+                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Error message</div><div class="field-value">${error?.message || "No captured error is linked to this workflow step yet."}</div></div>
+                <pre class="code-box">${error?.name || "WorkflowStepError"}: ${error?.message || "Step failed without a captured error record."}
+    at runWorkflowStep (${workflow.name}.${step.name})
+    at executeWorkflow (workflowWorker.ts)</pre>
+            `;
         }
 
         function renderOverview() {
-            document.getElementById("overview-executions").innerHTML = state.executions.slice(0, 5).map((execution) => `
+            const failedExecutions = state.executions.filter((execution) => execution.status === "failed");
+            const runningExecutions = state.executions.filter((execution) => execution.status === "running");
+            const activeFlags = state.flags.filter((flag) => flag.enabled);
+            const partialFlags = state.flags.filter((flag) => flag.enabled && Number(flag.rollout) > 0 && Number(flag.rollout) < 100);
+            const avgTraceDuration = state.traces.length
+                ? Math.round(state.traces.reduce((total, trace) => total + Number(trace.duration || 0), 0) / state.traces.length)
+                : null;
+            const latestFailedExecution = failedExecutions[0];
+
+            document.getElementById("top-service").textContent = state.serviceName;
+            document.getElementById("sidebar-service").textContent = state.serviceName;
+            document.getElementById("top-environment").textContent = state.environment;
+            document.getElementById("summary-workflow-count").textContent = `${state.workflows.length}`;
+            document.getElementById("summary-execution-count").textContent = `${state.executions.length}`;
+            document.getElementById("summary-error-count").textContent = `${state.errors.length}`;
+            document.getElementById("summary-trace-count").textContent = `${state.traces.length}`;
+            document.getElementById("metric-workflows").textContent = state.workflows.length;
+            document.getElementById("metric-running").textContent = runningExecutions.length;
+            document.getElementById("metric-failed").textContent = failedExecutions.length;
+            document.getElementById("metric-errors").textContent = state.errors.length;
+            document.getElementById("metric-flags").textContent = activeFlags.length;
+            document.getElementById("metric-latency").textContent = avgTraceDuration === null ? "-" : `${avgTraceDuration}ms`;
+            document.getElementById("metric-workflows-delta").textContent = "from pilot_workflows";
+            document.getElementById("metric-running-delta").textContent = "currently running";
+            document.getElementById("metric-failed-delta").textContent = "latest loaded executions";
+            document.getElementById("metric-errors-delta").textContent = "latest captured errors";
+            document.getElementById("metric-flags-delta").textContent = `${partialFlags.length} partial rollout`;
+            document.getElementById("metric-latency-delta").textContent = "average loaded traces";
+
+            if (state.apiError) {
+                document.getElementById("summary-title").textContent = "Dashboard API is unavailable.";
+                document.getElementById("summary-copy").textContent = state.apiError;
+                document.getElementById("summary-actions").innerHTML = `<span class="badge bad"><span class="dot"></span>API error</span>`;
+            }
+            else if (latestFailedExecution) {
+                document.getElementById("summary-title").textContent = `${latestFailedExecution.workflow} has a failed execution.`;
+                document.getElementById("summary-copy").textContent = `Latest failed execution ${latestFailedExecution.id} failed at ${latestFailedExecution.failedStep || "an unknown step"}.`;
+                document.getElementById("summary-actions").innerHTML = `
+                    <span class="badge bad"><span class="dot"></span>${failedExecutions.length} failed executions</span>
+                    <span class="badge warn"><span class="dot"></span>${runningExecutions.length} running executions</span>
+                    <span class="badge info">${state.errors.length} captured errors</span>
+                `;
+            }
+            else {
+                document.getElementById("summary-title").textContent = state.executions.length ? "No failed executions in the loaded records." : "No workflow executions loaded yet.";
+                document.getElementById("summary-copy").textContent = state.executions.length
+                    ? "The overview is using the latest execution, error, trace, workflow, and flag rows returned by the dashboard API."
+                    : "Run or trigger workflows in Pilot to populate dashboard tables.";
+                document.getElementById("summary-actions").innerHTML = `
+                    <span class="badge ok"><span class="dot"></span>${state.workflows.length} workflows</span>
+                    <span class="badge info">${state.traces.length} traces</span>
+                    <span class="badge info">${state.flags.length} flags</span>
+                `;
+            }
+
+            document.getElementById("overview-executions").innerHTML = state.executions.length ? state.executions.slice(0, 5).map((execution) => `
                 <tr data-execution="${execution.id}">
                     <td class="mono">${execution.id}</td>
                     <td>${execution.workflow}</td>
@@ -2322,9 +3984,9 @@
                     <td>${execution.failedStep}</td>
                     <td class="right mono">${execution.duration}</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(5, "No execution records", "Workflow executions will appear after rows exist in pilot_workflow_executions.");
 
-            document.getElementById("overview-errors").innerHTML = state.errors.slice(0, 4).map((error, index) => `
+            document.getElementById("overview-errors").innerHTML = state.errors.length ? state.errors.slice(0, 4).map((error, index) => `
                 <tr data-error="${index}">
                     <td>${error.message}</td>
                     <td>${badgeForStatus(error.category === "client" ? "queued" : "failed")}</td>
@@ -2332,11 +3994,11 @@
                     <td class="mono">${error.trace}</td>
                     <td class="right mono">${error.occurred}</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(5, "No captured errors", "Captured errors will appear after rows exist in the Pilot error tables.");
 
             const overviewHealth = document.getElementById("overview-health");
             overviewHealth.classList.toggle("is-compact", state.health.length > 4);
-            overviewHealth.innerHTML = state.health.map((item) => `
+            overviewHealth.innerHTML = state.health.length ? state.health.map((item) => `
                 <div class="health-row">
                     <div class="health-top">
                         <div class="health-name">${item.name}</div>
@@ -2345,7 +4007,12 @@
                     <div class="muted" style="font-size: 12px;">${item.description}</div>
                     <div class="health-top mono subtle"><span>${item.latency}ms latency</span><span>last checked now</span></div>
                 </div>
-            `).join("");
+            `).join("") : `
+                <div class="empty-state">
+                    <div class="empty-title">No health checks loaded</div>
+                    <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
+                </div>
+            `;
         }
 
         function renderWorkflows() {
@@ -2365,7 +4032,7 @@
                             ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
                             <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
                                 <div class="workflow-step-name">${step}</div>
-                                <div class="workflow-step-meta">step ${index + 1} / retry ${workflow.failures ? "3" : "0"}</div>
+                                <div class="workflow-step-meta">step ${index + 1} / failures ${workflow.failures}</div>
                             </div>
                         `).join("")}
                     </div>
@@ -2374,14 +4041,14 @@
                 <div class="workflow-card" style="grid-column: 1 / -1;">
                     <div class="workflow-card-head">
                         <div>
-                            <div class="workflow-card-title">No pinned workflows</div>
-                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin important workflows from the table below.</div>
+                            <div class="workflow-card-title">${state.workflows.length ? "No pinned workflows" : "No workflow records"}</div>
+                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">${state.workflows.length ? "Pin workflows from the table below." : "Rows from pilot_workflows will appear here."}</div>
                         </div>
                     </div>
                 </div>
             `;
 
-            document.getElementById("workflow-table").innerHTML = state.workflows.map((workflow) => `
+            document.getElementById("workflow-table").innerHTML = state.workflows.length ? state.workflows.map((workflow) => `
                 <tr data-workflow="${workflow.name}">
                     <td><strong>${workflow.name}</strong></td>
                     <td class="mono">v${workflow.version}</td>
@@ -2391,20 +4058,24 @@
                     <td><button class="pin-button ${workflow.pinned ? "active" : ""}" data-toggle-pin="${workflow.name}">${workflow.pinned ? "Pinned" : "Pin"}</button></td>
                     <td class="right mono">${workflow.failures}</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(7, "No workflow records", "Registered workflows will appear after rows exist in pilot_workflows.");
         }
 
         function getWorkflowStepClass(workflow, step) {
-            if (workflow.lastStatus === "failed" && step === "create-order") return "failed";
-            if (workflow.lastStatus === "running" && step === "pack-order") return "running live";
-            if (workflow.lastStatus === "completed") return "live";
+            const execution = latestExecutionForWorkflow(workflow.name);
+            const status = workflowStepStatus(workflow, step, execution);
+            if (status === "completed") return "live";
+            if (status === "running") return "running";
+            if (status === "failed") return "failed";
             return "";
         }
 
         function getWorkflowArrowClass(workflow, step) {
-            if (workflow.lastStatus === "failed" && step === "create-order") return "failed";
-            if (workflow.lastStatus === "running") return "live";
-            if (workflow.lastStatus === "completed") return "live";
+            const execution = latestExecutionForWorkflow(workflow.name);
+            const status = workflowStepStatus(workflow, step, execution);
+            if (status === "completed") return "live";
+            if (status === "running") return "running";
+            if (status === "failed") return "failed";
             return "";
         }
 
@@ -2417,7 +4088,7 @@
                 return statusMatch && textMatch;
             });
 
-            document.getElementById("execution-table").innerHTML = rows.map((execution) => `
+            document.getElementById("execution-table").innerHTML = rows.length ? rows.map((execution) => `
                 <tr data-execution="${execution.id}">
                     <td class="mono">${execution.id}</td>
                     <td>${execution.workflow}</td>
@@ -2427,11 +4098,11 @@
                     <td>${execution.failedStep}</td>
                     <td class="right mono">${execution.attempts}</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(7, "No execution records", "Workflow execution rows from pilot_workflow_executions will appear here.");
         }
 
         function renderFlags() {
-            document.getElementById("flag-table").innerHTML = state.flags.map((flag) => `
+            document.getElementById("flag-table").innerHTML = state.flags.length ? state.flags.map((flag) => `
                 <tr data-flag="${flag.key}">
                     <td><strong>${flag.key}</strong></td>
                     <td><button class="switch ${flag.enabled ? "on" : ""}" data-toggle-flag="${flag.key}" title="Toggle ${flag.key}"></button></td>
@@ -2443,7 +4114,7 @@
                     <td>${flag.changedBy}</td>
                     <td class="right"><button class="button" data-delete-flag="${flag.key}">Delete</button></td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(6, "No feature flag records", "Feature flags from pilot_feature_flags will appear here.");
         }
 
         function renderErrors() {
@@ -2455,7 +4126,7 @@
                 return categoryMatch && textMatch;
             });
 
-            document.getElementById("error-table").innerHTML = rows.map((error, index) => `
+            document.getElementById("error-table").innerHTML = rows.length ? rows.map((error, index) => `
                 <tr data-error="${state.errors.indexOf(error)}">
                     <td>${error.message}</td>
                     <td>${error.name}</td>
@@ -2466,7 +4137,7 @@
                     <td class="mono">${error.trace}</td>
                     <td class="right mono">${error.occurred}</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(8, "No captured error records", "Captured errors will appear after Pilot writes error rows.");
         }
 
         function renderTraces() {
@@ -2478,7 +4149,7 @@
                 return groupMatch && textMatch;
             });
 
-            document.getElementById("trace-table").innerHTML = rows.map((trace) => `
+            document.getElementById("trace-table").innerHTML = rows.length ? rows.map((trace) => `
                 <tr data-trace="${trace.id}">
                     <td class="mono">${trace.id}</td>
                     <td>${badgeForMethod(trace.method)}</td>
@@ -2487,13 +4158,24 @@
                     <td class="mono">${trace.ip}</td>
                     <td class="right mono">${trace.duration}ms</td>
                 </tr>
-            `).join("");
+            `).join("") : tableEmptyRow(6, "No trace records", "Request trace rows from pilot_request_traces will appear here.");
 
             renderTraceGraph(rows[0] || state.traces[0]);
         }
 
         function renderTraceGraph(trace) {
-            if (!trace) return;
+            if (!trace) {
+                document.getElementById("trace-graph").innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-title">No traces captured</div>
+                        <div class="empty-copy">Request traces will appear here after the dashboard API has trace records.</div>
+                    </div>
+                `;
+                document.getElementById("trace-inspector-id").textContent = "-";
+                document.getElementById("trace-inspector-critical").textContent = "-";
+                document.getElementById("trace-span-list").innerHTML = "";
+                return;
+            }
 
             const spans = trace.spans || [];
             const nodes = spans.map((span, index) => ({
@@ -2513,7 +4195,7 @@
                 return span.name;
             };
             const node = (span, index) => `
-                <g class="trace-node ${span.status === "failed" ? "failed" : span.status === "completed" ? "success" : index === 0 ? "active" : ""}" data-node-span="${index}">
+                <g class="trace-node ${graphStatusClass(span.status) || (index === 0 ? "active" : "")}" data-node-span="${index}">
                     <rect x="${span.x}" y="${span.y}" width="${nodeWidth}" height="${nodeHeight}"></rect>
                     <text x="${span.x + nodeWidth / 2}" y="${span.y + nodeHeight / 2}">${truncate(nodeName(span), 20)}</text>
                 </g>
@@ -2524,17 +4206,16 @@
                 const y1 = from.y + nodeHeight / 2;
                 const x2 = to.x;
                 const y2 = to.y + nodeHeight / 2;
-                const failedPath = to.status === "failed";
-                const successPath = to.status === "completed";
+                const statusClass = graphStatusClass(to.status);
                 const branch = Math.abs(y2 - y1) > 10;
-                const marker = failedPath ? "arrow-hot" : successPath ? "arrow-success" : "arrow";
-                const edgeClass = failedPath ? "hot" : successPath ? "success" : branch ? "branch" : "";
+                const marker = statusClass === "failed" ? "arrow-hot" : statusClass === "success" ? "arrow-success" : statusClass === "running" ? "arrow-running" : "arrow";
+                const edgeClass = statusClass === "failed" ? "hot" : statusClass || (branch ? "branch" : "");
                 const pathD = `M${x1} ${y1} C${x1 + 55} ${y1}, ${x2 - 55} ${y2}, ${x2} ${y2}`;
 
                 return `
                     <path class="trace-edge ${edgeClass}" marker-end="url(#${marker})" d="${pathD}"></path>
-                    <circle r="4" class="trace-packet ${failedPath ? "hot" : ""}">
-                        <animateMotion dur="${failedPath ? "1.2s" : "2.2s"}" repeatCount="indefinite" path="${pathD}"></animateMotion>
+                    <circle r="4" class="trace-packet ${statusClass === "failed" ? "hot" : statusClass === "running" ? "running" : ""}">
+                        <animateMotion dur="${statusClass === "failed" ? "1.2s" : statusClass === "running" ? "1.6s" : "2.2s"}" repeatCount="indefinite" path="${pathD}"></animateMotion>
                     </circle>
                 `;
             };
@@ -2550,6 +4231,9 @@
                         </marker>
                         <marker id="arrow-success" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
                             <path d="M0,0 L8,4 L0,8 Z" fill="#22c55e"></path>
+                        </marker>
+                        <marker id="arrow-running" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+                            <path d="M0,0 L8,4 L0,8 Z" fill="#f59e0b"></path>
                         </marker>
                     </defs>
                     ${nodes.slice(0, -1).map((span, index) => edge(span, nodes[index + 1])).join("")}
@@ -2590,6 +4274,16 @@
                         <span class="result-title">Open trace graph and request spans</span>
                         <span class="mono subtle">Traces</span>
                     </div>
+                    <div class="search-result" data-go="ai-insights">
+                        <span class="result-type">Shortcut</span>
+                        <span class="result-title">Open AI incident insights</span>
+                        <span class="mono subtle">AI Insights</span>
+                    </div>
+                    <div class="search-result" data-go="ask-ai">
+                        <span class="result-type">Shortcut</span>
+                        <span class="result-title">Ask Pilot AI</span>
+                        <span class="mono subtle">Assistant</span>
+                    </div>
                     <div class="search-result" data-go="executions">
                         <span class="result-type">Shortcut</span>
                         <span class="result-title">Inspect workflow executions</span>
@@ -2623,7 +4317,19 @@
                     title: item.key,
                     meta: `${item.rollout}% rollout`,
                     action: "flags"
-                }))
+                })),
+                {
+                    type: "insight",
+                    title: "AI incident insights from traces workflows flags and errors",
+                    meta: "AI Insights",
+                    action: "ai-insights"
+                },
+                {
+                    type: "assistant",
+                    title: "Ask Pilot AI about traces errors workflows and health",
+                    meta: "Ask Pilot AI",
+                    action: "ask-ai"
+                }
             ].filter((item) => `${item.type} ${item.title} ${item.meta}`.toLowerCase().includes(query)).slice(0, 6);
 
             globalSearchResults.innerHTML = results.length ? results.map((item) => `
@@ -2642,7 +4348,17 @@
         }
 
         function renderHealth() {
-            document.getElementById("health-cards").innerHTML = state.health.map((item) => `
+            const postgresHealth = state.health.find((item) => item.name === "Postgres");
+            const workerHealth = state.health.find((item) => item.name === "BullMQ Worker");
+
+            document.getElementById("sidebar-postgres").outerHTML = postgresHealth
+                ? `<span id="sidebar-postgres">${badgeForStatus(postgresHealth.status)}</span>`
+                : `<span id="sidebar-postgres" class="badge warn"><span class="dot"></span>unknown</span>`;
+            document.getElementById("sidebar-worker").outerHTML = workerHealth
+                ? `<span id="sidebar-worker">${badgeForStatus(workerHealth.status)}</span>`
+                : `<span id="sidebar-worker" class="badge warn"><span class="dot"></span>unknown</span>`;
+
+            document.getElementById("health-cards").innerHTML = state.health.length ? state.health.map((item) => `
                 <div class="panel">
                     <div class="panel-header">
                         <div class="panel-title">${item.name}</div>
@@ -2656,7 +4372,46 @@
                         </div>
                     </div>
                 </div>
-            `).join("");
+            `).join("") : `
+                <div class="panel" style="grid-column: 1 / -1;">
+                    <div class="empty-state">
+                        <div class="empty-title">No health checks loaded</div>
+                        <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSettings() {
+            const settings = state.settings || {};
+            const dashboard = settings.dashboard || {};
+            const worker = settings.worker || {};
+            const migrations = settings.migrations || {};
+            const setSwitch = (id, enabled) => {
+                const element = document.getElementById(id);
+                if (!element) return;
+                element.classList.toggle("on", Boolean(enabled));
+                element.title = enabled ? "Enabled" : "Disabled";
+            };
+
+            document.getElementById("setting-dashboard-path").textContent = dashboard.path || "-";
+            document.getElementById("setting-environment").textContent = settings.environment || state.environment || "-";
+            document.getElementById("setting-worker-concurrency").textContent = worker.concurrency ?? "-";
+            document.getElementById("setting-worker-prefix").textContent = worker.queuePrefix || "-";
+            setSwitch("setting-dashboard-auth", dashboard.authEnabled);
+            setSwitch("setting-worker-enabled", worker.enabled);
+            setSwitch("setting-migrations-auto-run", migrations.autoRun);
+            setSwitch("setting-dashboard-enabled", dashboard.enabled);
+        }
+
+        function renderAiPlaceholders() {
+            const workflowCount = document.getElementById("ai-workflow-count");
+            const executionCount = document.getElementById("ai-execution-count");
+            const errorCount = document.getElementById("ai-error-count");
+
+            if (workflowCount) workflowCount.textContent = state.workflows.length;
+            if (executionCount) executionCount.textContent = state.executions.length;
+            if (errorCount) errorCount.textContent = state.errors.length;
         }
 
         function renderAll() {
@@ -2667,15 +4422,59 @@
             renderErrors();
             renderTraces();
             renderHealth();
+            renderSettings();
+            renderAiPlaceholders();
+        }
+
+        function workflowDetail(workflow) {
+            const execution = latestExecutionForWorkflow(workflow.name);
+            const steps = workflowExecutionSteps(workflow, execution);
+
+            return `
+                <div class="field-grid" style="margin-bottom: 14px;">
+                    <div class="field"><div class="field-label">Latest execution</div><div class="field-value mono">${execution?.id || "No execution yet"}</div></div>
+                    <div class="field"><div class="field-label">Status</div><div class="field-value">${badgeForStatus(execution?.status || workflow.lastStatus)}</div></div>
+                    <div class="field"><div class="field-label">Started</div><div class="field-value mono">${execution?.started || "-"}</div></div>
+                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${execution?.duration || "-"}</div></div>
+                    <div class="field"><div class="field-label">Version</div><div class="field-value mono">v${workflow.version}</div></div>
+                    <div class="field"><div class="field-label">Failures</div><div class="field-value mono">${workflow.failures}</div></div>
+                </div>
+                <div class="panel" style="box-shadow: none;">
+                    <div class="panel-header">
+                        <div class="panel-title">Execution steps</div>
+                        <span class="badge info"><span class="dot"></span>${steps.length} steps</span>
+                    </div>
+                    <div class="timeline">
+                        ${steps.map((step) => `
+                            <div class="timeline-item">
+                                <div class="timeline-rail">
+                                    ${step.error ? `
+                                        <button type="button" class="timeline-node bad" title="Open ${step.name} error" data-workflow-error="${workflow.name}" data-step="${step.name}">${step.index + 1}</button>
+                                    ` : `
+                                        <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${step.index + 1}</div>
+                                    `}
+                                    ${step.index === steps.length - 1 ? "" : `<div class="timeline-line"></div>`}
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.duration}</span></div>
+                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${step.attempts}</span></div>
+                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${workflow.name}" data-step="${step.name}">Open error: ${step.error.name}</button>` : ""}
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
         }
 
         function executionDetail(execution) {
-            const steps = [
-                { name: "charge-card", status: "completed", input: { amount: 1200, currency: "USD" }, time: "1.2s" },
-                { name: "deduct-inventory", status: execution.status === "queued" ? "queued" : "completed", input: { sku: "hoodie_black_m" }, time: "420ms" },
-                { name: "create-order", status: execution.status === "failed" ? "failed" : execution.status, input: { userId: "user_123" }, time: execution.status === "failed" ? "3 attempts" : "800ms" },
-                { name: "notify-warehouse", status: execution.status === "completed" ? "completed" : "queued", input: { warehouse: "blr-01" }, time: "-" }
-            ];
+            const workflow = state.workflows.find((item) => item.name === execution.workflow) || {
+                name: execution.workflow,
+                chain: (execution.steps || []).map((step) => step.stepName || step.name),
+                lastStatus: execution.status,
+                failures: execution.status === "failed" ? 1 : 0,
+            };
+            const steps = workflowExecutionSteps(workflow, execution);
 
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
@@ -2690,14 +4489,17 @@
                         ${steps.map((step, index) => `
                             <div class="timeline-item">
                                 <div class="timeline-rail">
-                                    <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${index + 1}</div>
+                                    ${step.error ? `
+                                        <button type="button" class="timeline-node bad" title="Open ${step.name} error" data-workflow-error="${workflow.name}" data-step="${step.name}">${index + 1}</button>
+                                    ` : `
+                                        <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${index + 1}</div>
+                                    `}
                                     ${index === steps.length - 1 ? "" : `<div class="timeline-line"></div>`}
                                 </div>
                                 <div class="timeline-content">
-                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.time}</span></div>
-                                    <div class="timeline-desc">${badgeForStatus(step.status)} <span class="mono subtle">retry policy: max 3</span></div>
-                                    <pre class="code-box">${JSON.stringify(step.input, null, 2)}</pre>
-                                    ${step.status === "failed" ? `<pre class="code-box" style="color: #fca5a5;">QueryTimeoutError: database timeout while creating order</pre>` : ""}
+                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.duration}</span></div>
+                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${step.attempts}</span></div>
+                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${workflow.name}" data-step="${step.name}">Open error: ${step.error.name}</button>` : ""}
                                 </div>
                             </div>
                         `).join("")}
@@ -2758,7 +4560,7 @@
         document.getElementById("error-search").addEventListener("input", renderErrors);
         document.getElementById("trace-status-filter").addEventListener("change", renderTraces);
         document.getElementById("trace-search").addEventListener("input", renderTraces);
-        document.getElementById("refresh-button").addEventListener("click", renderAll);
+        document.getElementById("refresh-button").addEventListener("click", loadDashboardData);
         document.getElementById("open-flag-modal").addEventListener("click", () => flagModal.classList.add("open"));
         document.getElementById("close-flag-modal").addEventListener("click", () => flagModal.classList.remove("open"));
         document.getElementById("cancel-flag").addEventListener("click", () => flagModal.classList.remove("open"));
@@ -2781,21 +4583,74 @@
             }
         });
 
-        document.getElementById("flag-form").addEventListener("submit", (event) => {
+        document.getElementById("flag-form").addEventListener("submit", async (event) => {
             event.preventDefault();
-            state.flags.unshift({
+            const draft = {
                 key: document.getElementById("flag-key").value.trim(),
+                description: document.getElementById("flag-description").value.trim(),
                 enabled: false,
-                rollout: Number(document.getElementById("flag-rollout").value || 0),
-                rules: 0,
-                changedBy: "dashboard"
-            });
+                rolloutPercentage: Number(document.getElementById("flag-rollout").value || 0),
+                changedBy: "dashboard",
+            };
+
+            try {
+                const { flag } = await apiRequest("flags", {
+                    method: "POST",
+                    body: JSON.stringify(draft),
+                });
+                state.flags.unshift(normalizeFlag(flag));
+            }
+            catch (error) {
+                if (state.apiBacked) {
+                    alert(error instanceof Error ? error.message : "Could not create feature flag.");
+                    return;
+                }
+
+                state.flags.unshift(normalizeFlag({
+                    key: draft.key,
+                    description: draft.description,
+                    enabled: draft.enabled,
+                    rollout: draft.rolloutPercentage,
+                    rules: 0,
+                    changedBy: draft.changedBy,
+                }));
+            }
+
             document.getElementById("flag-form").reset();
             flagModal.classList.remove("open");
             renderFlags();
         });
 
-        document.addEventListener("click", (event) => {
+        document.addEventListener("click", async (event) => {
+            const askPrompt = event.target.closest("[data-ask-prompt]");
+            if (askPrompt) {
+                const askInput = document.getElementById("ask-ai-input");
+                if (askInput) {
+                    askInput.value = askPrompt.dataset.askPrompt;
+                    askInput.focus();
+                }
+                return;
+            }
+
+            const workflowErrorNode = event.target.closest("[data-workflow-error]");
+            if (workflowErrorNode) {
+                event.stopPropagation();
+                const workflow = state.workflows.find((item) => item.name === workflowErrorNode.dataset.workflowError);
+                const stepName = workflowErrorNode.dataset.step;
+
+                if (workflow && stepName) {
+                    const execution = latestExecutionForWorkflow(workflow.name);
+                    const step = workflowExecutionSteps(workflow, execution).find((item) => item.name === stepName);
+                    const error = workflowErrorForStep(workflow.name, stepName);
+
+                    if (step) {
+                        openDrawer(`${stepName} error`, workflow.name, workflowStepErrorDetail(workflow, step, error));
+                    }
+                }
+
+                return;
+            }
+
             const routeTarget = event.target.closest("[data-go]");
             if (routeTarget) {
                 showPage(routeTarget.dataset.go);
@@ -2840,6 +4695,7 @@
                     }
 
                     workflow.pinned = !workflow.pinned;
+                    savePinnedWorkflowNames();
                     renderWorkflows();
                     return;
                 }
@@ -2849,27 +4705,8 @@
             if (workflowRow) {
                 const workflow = state.workflows.find((item) => item.name === workflowRow.dataset.workflow);
                 if (workflow) {
-                    openDrawer(workflow.name, `version ${workflow.version}`, `
-                        <div class="field-grid">
-                            <div class="field"><div class="field-label">Step count</div><div class="field-value mono">${workflow.steps}</div></div>
-                            <div class="field"><div class="field-label">Failures</div><div class="field-value mono">${workflow.failures}</div></div>
-                            <div class="field"><div class="field-label">Created</div><div class="field-value mono">${workflow.created}</div></div>
-                            <div class="field"><div class="field-label">Last status</div><div class="field-value">${badgeForStatus(workflow.lastStatus)}</div></div>
-                        </div>
-                        <div class="workflow-chain" style="margin-top: 14px; border: 1px solid var(--line-soft); border-radius: 8px;">
-                            ${workflow.chain.map((step, index) => `
-                                ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
-                                <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
-                                    <div class="workflow-step-name">${step}</div>
-                                    <div class="workflow-step-meta">step ${index + 1}</div>
-                                </div>
-                            `).join("")}
-                        </div>
-                        <pre class="code-box">pilot.workflow("${workflow.name}", [
-  { name: "charge-card", input: {...}, run: async (input) => {} },
-  { name: "create-order", input: {...}, run: async (input) => {} }
-])</pre>
-                    `);
+                    const execution = latestExecutionForWorkflow(workflow.name);
+                    openDrawer(workflow.name, execution ? `latest execution ${execution.id}` : `version ${workflow.version}`, workflowDetail(workflow));
                 }
             }
 
@@ -2878,7 +4715,27 @@
                 event.stopPropagation();
                 const flag = state.flags.find((item) => item.key === toggle.dataset.toggleFlag);
                 if (flag) {
-                    flag.enabled = !flag.enabled;
+                    const nextEnabled = !flag.enabled;
+
+                    try {
+                        const { flag: updatedFlag } = await apiRequest(`flags/${encodeURIComponent(flag.key)}`, {
+                            method: "PATCH",
+                            body: JSON.stringify({
+                                enabled: nextEnabled,
+                                changedBy: "dashboard",
+                            }),
+                        });
+                        Object.assign(flag, normalizeFlag(updatedFlag));
+                    }
+                    catch (error) {
+                        if (state.apiBacked) {
+                            alert(error instanceof Error ? error.message : "Could not update feature flag.");
+                            return;
+                        }
+
+                        flag.enabled = nextEnabled;
+                    }
+
                     renderFlags();
                 }
             }
@@ -2886,12 +4743,27 @@
             const deleteFlag = event.target.closest("[data-delete-flag]");
             if (deleteFlag) {
                 event.stopPropagation();
-                state.flags = state.flags.filter((item) => item.key !== deleteFlag.dataset.deleteFlag);
+                const flagKey = deleteFlag.dataset.deleteFlag;
+
+                try {
+                    await apiRequest(`flags/${encodeURIComponent(flagKey)}`, {
+                        method: "DELETE",
+                        body: JSON.stringify({ changedBy: "dashboard" }),
+                    });
+                }
+                catch (error) {
+                    if (state.apiBacked) {
+                        alert(error instanceof Error ? error.message : "Could not delete feature flag.");
+                        return;
+                    }
+                }
+
+                state.flags = state.flags.filter((item) => item.key !== flagKey);
                 renderFlags();
             }
         });
 
-        renderAll();
+        loadDashboardData();
     </script>
 </body>
 </html>

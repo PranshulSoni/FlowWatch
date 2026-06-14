@@ -16,6 +16,8 @@ export interface WorkflowDefinitionRecord {
     id: string
     name: string
     version: number
+    created_at?: Date
+    updated_at?: Date
 }
 
 export interface WorkflowStepRecord {
@@ -244,6 +246,139 @@ export async function getWorkflowExecution(
     )
 
     return result.rows[0]
+}
+
+export async function listWorkflowDefinitions(pool: Pool): Promise<WorkflowDefinitionRecord[]> {
+    const result = await pool.query<WorkflowDefinitionRecord>(
+        `
+        SELECT *
+        FROM pilot_workflows
+        ORDER BY name ASC, version DESC
+        `
+    )
+
+    return result.rows
+}
+
+export async function getLatestWorkflowDefinitionByName(
+    pool: Pool,
+    workflowName: string
+): Promise<WorkflowDefinitionRecord | undefined> {
+    const result = await pool.query<WorkflowDefinitionRecord>(
+        `
+        SELECT *
+        FROM pilot_workflows
+        WHERE name = $1
+        ORDER BY version DESC
+        LIMIT 1
+        `,
+        [workflowName]
+    )
+
+    return result.rows[0]
+}
+
+export async function listWorkflowExecutions(pool: Pool, limit = 50): Promise<WorkflowExecutionRow[]> {
+    const result = await pool.query<WorkflowExecutionRow>(
+        `
+        SELECT *
+        FROM pilot_workflow_executions
+        ORDER BY created_at DESC
+        LIMIT $1
+        `,
+        [limit]
+    )
+
+    return result.rows
+}
+
+export async function listWorkflowExecutionsByWorkflowName(
+    pool: Pool,
+    workflowName: string,
+    limit = 50
+): Promise<WorkflowExecutionRow[]> {
+    const result = await pool.query<WorkflowExecutionRow>(
+        `
+        SELECT *
+        FROM pilot_workflow_executions
+        WHERE workflow_name = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+        `,
+        [workflowName, limit]
+    )
+
+    return result.rows
+}
+
+export async function listWorkflowStepExecutionsByExecutionIds(
+    pool: Pool,
+    executionIds: string[]
+): Promise<Map<string, WorkflowStepExecutionRow[]>> {
+    if (executionIds.length === 0) {
+        return new Map()
+    }
+
+    const result = await pool.query<WorkflowStepExecutionRow>(
+        `
+        SELECT *
+        FROM pilot_workflow_step_executions
+        WHERE execution_id = ANY($1::uuid[])
+        ORDER BY execution_id ASC, step_index ASC
+        `,
+        [executionIds]
+    )
+
+    const grouped = new Map<string, WorkflowStepExecutionRow[]>()
+
+    for (const row of result.rows) {
+        const existing = grouped.get(row.execution_id) || []
+        existing.push(row)
+        grouped.set(row.execution_id, existing)
+    }
+
+    return grouped
+}
+
+export async function listWorkflowStepsByWorkflowIds(
+    pool: Pool,
+    workflowIds: string[]
+): Promise<Map<string, WorkflowStepRecord[]>> {
+    if (workflowIds.length === 0) {
+        return new Map()
+    }
+
+    const result = await pool.query<{
+        id: string
+        workflow_id: string
+        step_index: number
+        name: string
+        max_retries: number
+    }>(
+        `
+        SELECT *
+        FROM pilot_workflow_steps
+        WHERE workflow_id = ANY($1::uuid[])
+        ORDER BY workflow_id ASC, step_index ASC
+        `,
+        [workflowIds]
+    )
+
+    const grouped = new Map<string, WorkflowStepRecord[]>()
+
+    for (const row of result.rows) {
+        const existing = grouped.get(row.workflow_id) || []
+        existing.push({
+            id: row.id,
+            workflowId: row.workflow_id,
+            stepIndex: row.step_index,
+            name: row.name,
+            maxRetries: row.max_retries,
+        })
+        grouped.set(row.workflow_id, existing)
+    }
+
+    return grouped
 }
 
 export async function getWorkflowExecutionSteps(

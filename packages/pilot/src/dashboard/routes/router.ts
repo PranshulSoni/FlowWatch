@@ -13,12 +13,35 @@ import {
     deleteFlagRule,
     getFlagByKey,
     listFlagAuditLogs,
+    listFlagsWithRuleCounts,
     listFlagRules,
-    listFlags,
     updateFlag,
     updateFlagRule,
 } from "../../persistence/repositories/flags/flagRepository.js"
 import { createRequestTracingMiddleware } from "../../runtime/tracing/tracingMiddleware.js"
+import { getErrorById, getErrorsByTrace, listErrors } from "../../persistence/repositories/errors/errorRepository.js"
+import { getRequestTrace, getTraceSpans, listRequestTraces } from "../../persistence/repositories/traces/traceRepository.js"
+import {
+    getLatestWorkflowDefinitionByName,
+    getWorkflowExecution,
+    getWorkflowExecutionSteps,
+    listWorkflowDefinitions,
+    listWorkflowExecutions,
+    listWorkflowExecutionsByWorkflowName,
+    listWorkflowStepExecutionsByExecutionIds,
+    listWorkflowStepsByWorkflowIds,
+} from "../../persistence/repositories/workflows/workflowRepository.js"
+import {
+    latestByWorkflow,
+    serializeAuditLog,
+    serializeError,
+    serializeExecution,
+    serializeFlag,
+    serializeRule,
+    serializeSettings,
+    serializeTrace,
+    serializeWorkflowSummary,
+} from "./dashboardResponse.js"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -29,6 +52,16 @@ interface DashboardRouterOptions {
 
 async function invalidateFlagCache(redisClient: Redis, flagKey: string): Promise<void> {
     await redisClient.del(`pilot:flags:${flagKey}`)
+}
+
+async function dashboardError(res: any, error: unknown): Promise<void> {
+    const message = error instanceof Error ? error.message : "Dashboard API request failed"
+    res.status(500).json({
+        error: {
+            code: "dashboard_api_error",
+            message,
+        },
+    })
 }
 
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
@@ -44,7 +77,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     router.use(express.static(staticPath))
 
     router.get("/", (req, res) => {
-        res.sendFile(join(staticPath, "index.html"))
+        res.sendFile(join(staticPath, "dashboard-v2.html"))
     })
 
     router.get("/api/health", async (req, res) => {
@@ -64,9 +97,68 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         })
     })
 
+    router.get("/api/dashboard-data", async (req, res) => {
+        try {
+            const [healthResult, flagsResult, workflowsResult, executionsResult, tracesResult, errors] = await Promise.all([
+                Promise.all([
+                    checkPostgresHealth(postgresPool),
+                    checkRedisHealth(redisClient),
+                    checkElasticsearchHealth(elasticsearchClient),
+                ]),
+                listFlagsWithRuleCounts(postgresPool),
+                listWorkflowDefinitions(postgresPool),
+                listWorkflowExecutions(postgresPool, 50),
+                listRequestTraces(postgresPool, 50),
+                listErrors(postgresPool, 50),
+            ])
+
+            const [postgres, redis, elasticsearch] = healthResult
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executionsResult.map((execution) => execution.id))
+            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflowsResult.map((workflow) => workflow.id))
+            const latestExecutions = latestByWorkflow(executionsResult)
+            const traceSpans = new Map<string, any[]>()
+
+            await Promise.all(tracesResult.map(async (trace) => {
+                traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
+            }))
+
+            res.json({
+                serviceName: config.runtime.serviceName,
+                environment: config.runtime.environment,
+                settings: serializeSettings(config),
+                workflows: workflowsResult.map((workflow) => {
+                    const latestExecution = latestExecutions.get(workflow.name)
+                    const steps = executionSteps.get(latestExecution?.id) || []
+                    const definitionSteps = workflowSteps.get(workflow.id) || []
+
+                    return serializeWorkflowSummary(workflow, executionsResult, definitionSteps, latestExecution, steps)
+                }),
+                executions: executionsResult.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
+                flags: flagsResult.map((flag) => serializeFlag(flag, flag.rule_count)),
+                errors: errors.map(serializeError),
+                traces: tracesResult.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
+                health: [
+                    { name: "Postgres", status: postgres.status, latency: postgres.latencyMs, description: "Primary persistence for workflows, flags, traces, and errors." },
+                    { name: "Redis", status: redis.status, latency: redis.latencyMs, description: "BullMQ queue transport and feature flag cache." },
+                    { name: "Elasticsearch", status: elasticsearch.status, latency: elasticsearch.latencyMs, description: "Search index for errors and trace spans." },
+                    { name: "BullMQ Worker", status: config.worker.enabled ? "ok" : "degraded", latency: 0, description: "Background workflow execution worker." },
+                ],
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.get("/api/settings", async (req, res) => {
+        res.json({
+            settings: serializeSettings(config),
+        })
+    })
+
     router.get("/api/flags", async (req, res) => {
-        const flags = await listFlags(postgresPool)
-        res.json({ flags })
+        const flags = await listFlagsWithRuleCounts(postgresPool)
+        res.json({ flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)) })
     })
 
     router.post("/api/flags", async (req, res) => {
@@ -80,7 +172,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         await invalidateFlagCache(redisClient, flag.key)
 
-        res.status(201).json({ flag })
+        res.status(201).json({ flag: serializeFlag(flag) })
     })
 
     router.get("/api/flags/:key", async (req, res) => {
@@ -94,8 +186,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         const rules = await listFlagRules(postgresPool, req.params.key)
 
         res.json({
-            flag,
-            rules,
+            flag: serializeFlag(flag, rules.length),
+            rules: rules.map(serializeRule),
         })
     })
 
@@ -114,7 +206,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         await invalidateFlagCache(redisClient, req.params.key)
 
-        res.json({ flag })
+        const rules = await listFlagRules(postgresPool, req.params.key)
+        res.json({ flag: serializeFlag(flag, rules.length) })
     })
 
     router.delete("/api/flags/:key", async (req, res) => {
@@ -139,7 +232,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
 
         const rules = await listFlagRules(postgresPool, req.params.key)
-        res.json({ rules })
+        res.json({ rules: rules.map(serializeRule) })
     })
 
     router.post("/api/flags/:key/rules", async (req, res) => {
@@ -159,7 +252,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         await invalidateFlagCache(redisClient, req.params.key)
 
-        res.status(201).json({ rule })
+        res.status(201).json({ rule: serializeRule(rule) })
     })
 
     router.patch("/api/flags/:key/rules/:ruleId", async (req, res) => {
@@ -185,7 +278,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
         await invalidateFlagCache(redisClient, req.params.key)
 
-        res.json({ rule })
+        res.json({ rule: serializeRule(rule) })
     })
 
     router.delete("/api/flags/:key/rules/:ruleId", async (req, res) => {
@@ -217,45 +310,156 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
 
         const auditLogs = await listFlagAuditLogs(postgresPool, req.params.key)
-        res.json({ auditLogs })
+        res.json({ auditLogs: auditLogs.map(serializeAuditLog) })
     })
 
     router.get("/api/workflows", async (req, res) => {
         try {
-            const result = await postgresPool.query("SELECT * FROM pilot_workflows ORDER BY name ASC")
-            res.json({ workflows: result.rows })
-        } catch (error: any) {
-            res.status(500).json({ error: error.message })
+            const workflows = await listWorkflowDefinitions(postgresPool)
+            const executions = await listWorkflowExecutions(postgresPool, 200)
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflows.map((workflow) => workflow.id))
+            const latestExecutions = latestByWorkflow(executions)
+
+            res.json({
+                workflows: workflows.map((workflow) => {
+                    const latestExecution = latestExecutions.get(workflow.name)
+                    const steps = executionSteps.get(latestExecution?.id) || []
+                    const definitionSteps = workflowSteps.get(workflow.id) || []
+
+                    return serializeWorkflowSummary(workflow, executions, definitionSteps, latestExecution, steps)
+                }),
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.get("/api/workflows/:name", async (req, res) => {
+        try {
+            const workflow = await getLatestWorkflowDefinitionByName(postgresPool, req.params.name)
+
+            if (!workflow) {
+                res.status(404).json({ message: "Workflow not found" })
+                return
+            }
+
+            const executions = await listWorkflowExecutionsByWorkflowName(postgresPool, req.params.name, 50)
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, [workflow.id])
+            const latestExecution = executions[0]
+            const latestSteps = executionSteps.get(latestExecution?.id) || []
+            const definitionSteps = workflowSteps.get(workflow.id) || []
+
+            res.json({
+                workflow: serializeWorkflowSummary(workflow, executions, definitionSteps, latestExecution, latestSteps),
+                executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
         }
     })
 
     router.get("/api/executions", async (req, res) => {
         try {
-            const result = await postgresPool.query("SELECT * FROM pilot_workflow_executions ORDER BY created_at DESC LIMIT 50")
-            res.json({ executions: result.rows })
-        } catch (error: any) {
-            res.status(500).json({ error: error.message })
+            const workflowName = typeof req.query.workflow === "string" ? req.query.workflow : undefined
+            const executions = workflowName
+                ? await listWorkflowExecutionsByWorkflowName(postgresPool, workflowName, 50)
+                : await listWorkflowExecutions(postgresPool, 50)
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+
+            res.json({ executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.get("/api/executions/:executionId", async (req, res) => {
+        try {
+            const execution = await getWorkflowExecution(postgresPool, req.params.executionId)
+
+            if (!execution) {
+                res.status(404).json({ message: "Workflow execution not found" })
+                return
+            }
+
+            const steps = await getWorkflowExecutionSteps(postgresPool, req.params.executionId)
+            res.json({ execution: serializeExecution(execution, steps) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
         }
     })
 
     router.get("/api/traces", async (req, res) => {
         try {
-            const result = await postgresPool.query("SELECT * FROM pilot_request_traces ORDER BY started_at DESC LIMIT 50")
-            res.json({ traces: result.rows })
-        } catch (error: any) {
-            res.status(500).json({ error: error.message })
+            const traces = await listRequestTraces(postgresPool, 50)
+            const traceSpans = new Map<string, any[]>()
+
+            await Promise.all(traces.map(async (trace) => {
+                traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
+            }))
+
+            res.json({ traces: traces.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.get("/api/traces/:traceId", async (req, res) => {
+        try {
+            const trace = await getRequestTrace(postgresPool, req.params.traceId)
+
+            if (!trace) {
+                res.status(404).json({ message: "Trace not found" })
+                return
+            }
+
+            const [spans, errors] = await Promise.all([
+                getTraceSpans(postgresPool, req.params.traceId),
+                getErrorsByTrace(postgresPool, req.params.traceId),
+            ])
+
+            res.json({
+                trace: serializeTrace(trace, spans),
+                errors: errors.map(serializeError),
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
         }
     })
 
     router.get("/api/errors", async (req, res) => {
         try {
-            const result = await postgresPool.query("SELECT * FROM pilot_errors ORDER BY occurred_at DESC LIMIT 50")
-            res.json({ errors: result.rows })
-        } catch (error: any) {
-            res.status(500).json({ error: error.message })
+            const traceId = typeof req.query.traceId === "string" ? req.query.traceId : undefined
+            const errors = traceId ? await getErrorsByTrace(postgresPool, traceId) : await listErrors(postgresPool, 50)
+            res.json({ errors: errors.map(serializeError) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.get("/api/errors/:errorId", async (req, res) => {
+        try {
+            const error = await getErrorById(postgresPool, req.params.errorId)
+
+            if (!error) {
+                res.status(404).json({ message: "Error not found" })
+                return
+            }
+
+            res.json({ error: serializeError(error) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
         }
     })
 
     return router
 }
-

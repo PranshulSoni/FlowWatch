@@ -115,6 +115,22 @@ export async function getErrorsByTrace(
     return result.rows
 }
 
+export async function getErrorById(
+    pool: Pool,
+    errorId: string
+): Promise<ErrorRow | undefined> {
+    const result = await pool.query<ErrorRow>(
+        `
+        SELECT *
+        FROM pilot_errors
+        WHERE id = $1
+        `,
+        [errorId]
+    )
+
+    return result.rows[0]
+}
+
 export async function listErrors(
     pool: Pool,
     limit = 50

@@ -206,6 +206,23 @@ export async function getRequestTrace(
     return result.rows[0]
 }
 
+export async function listRequestTraces(
+    pool: Pool,
+    limit = 50
+): Promise<RequestTraceRow[]> {
+    const result = await pool.query<RequestTraceRow>(
+        `
+        SELECT *
+        FROM pilot_request_traces
+        ORDER BY started_at DESC
+        LIMIT $1
+        `,
+        [limit]
+    )
+
+    return result.rows
+}
+
 export async function getTraceSpans(
     pool: Pool,
     traceId: string
