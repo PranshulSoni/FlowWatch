@@ -1577,6 +1577,33 @@
             border-color: rgba(79, 140, 255, 0.72);
         }
 
+        .setting-control {
+            display: grid;
+            justify-items: end;
+            gap: 6px;
+            min-width: 180px;
+        }
+
+        .setting-control .input {
+            width: 100%;
+            max-width: 260px;
+        }
+
+        .setting-note {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            text-align: right;
+        }
+
+        .setting-note.status-ok {
+            color: #33d47c;
+        }
+
+        .setting-note.status-missing {
+            color: #f4805b;
+        }
+
         .switch {
             position: relative;
             width: 40px;
@@ -3781,15 +3808,22 @@
                                         <div class="setting-help">Required before the AI Insights page can generate
                                             analysis.</div>
                                     </div>
-                                    <button id="setting-groq-api-key" class="switch"
-                                        title="Groq API key state"></button>
+                                    <div class="setting-control">
+                                        <input id="setting-groq-api-key-input" type="password" class="input" placeholder="Enter Groq API key" spellcheck="false">
+                                        <button id="setting-groq-api-key-save" class="button" type="button">Save</button>
+                                        <span id="setting-groq-api-key-status" class="setting-note"></span>
+                                    </div>
                                 </div>
                                 <div class="setting-row">
                                     <div>
                                         <div class="setting-name">Groq model</div>
                                         <div class="setting-help">Model name sent by the backend insight service.</div>
                                     </div>
-                                    <div id="setting-groq-model" class="setting-value">-</div>
+                                    <div class="setting-control">
+                                        <input id="setting-groq-model-input" class="input" placeholder="e.g. llama-3.3-70b-versatile" spellcheck="false">
+                                        <button id="setting-groq-model-save" class="button" type="button">Save</button>
+                                        <span id="setting-groq-model-status" class="setting-note"></span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -4759,12 +4793,53 @@
             document.getElementById("setting-environment").textContent = settings.environment || state.environment || "-";
             document.getElementById("setting-worker-concurrency").textContent = worker.concurrency ?? "-";
             document.getElementById("setting-worker-prefix").textContent = worker.queuePrefix || "-";
-            document.getElementById("setting-groq-model").textContent = ai.groqModel || "-";
+            document.getElementById("setting-groq-model-input").value = ai.groqModel || "";
             setSwitch("setting-dashboard-auth", dashboard.authEnabled);
             setSwitch("setting-worker-enabled", worker.enabled);
             setSwitch("setting-migrations-auto-run", migrations.autoRun);
             setSwitch("setting-dashboard-enabled", dashboard.enabled);
-            setSwitch("setting-groq-api-key", ai.groqApiKeyConfigured);
+
+            const keyStatus = document.getElementById("setting-groq-api-key-status");
+            if (keyStatus) {
+                keyStatus.textContent = ai.groqApiKeyConfigured ? "configured" : "not configured";
+                keyStatus.className = "setting-note " + (ai.groqApiKeyConfigured ? "status-ok" : "status-missing");
+            }
+        }
+
+        async function saveGroqApiKey() {
+            const input = document.getElementById("setting-groq-api-key-input");
+            const statusEl = document.getElementById("setting-groq-api-key-status");
+            const key = input.value.trim();
+            if (!key) return;
+
+            const modelInput = document.getElementById("setting-groq-model-input");
+            const model = modelInput ? modelInput.value.trim() : undefined;
+
+            statusEl.textContent = "saving...";
+            statusEl.className = "setting-note";
+
+            try {
+                const body = { groqApiKey: key };
+                if (model) body.groqModel = model;
+
+                await apiRequest("settings/ai-key", {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                });
+
+                state.settings = state.settings || {};
+                state.settings.ai = state.settings.ai || {};
+                state.settings.ai.groqApiKeyConfigured = true;
+                if (model) state.settings.ai.groqModel = model;
+
+                statusEl.textContent = "saved";
+                statusEl.className = "setting-note status-ok";
+                input.value = "";
+            }
+            catch (error) {
+                statusEl.textContent = error.message || "failed";
+                statusEl.className = "setting-note status-missing";
+            }
         }
 
         function renderAiPlaceholders() {
@@ -5048,6 +5123,51 @@
         document.getElementById("open-flag-modal").addEventListener("click", () => flagModal.classList.add("open"));
         document.getElementById("close-flag-modal").addEventListener("click", () => flagModal.classList.remove("open"));
         document.getElementById("cancel-flag").addEventListener("click", () => flagModal.classList.remove("open"));
+
+        document.getElementById("setting-groq-api-key-save").addEventListener("click", saveGroqApiKey);
+        document.getElementById("setting-groq-api-key-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") saveGroqApiKey();
+        });
+        document.getElementById("setting-groq-model-save").addEventListener("click", async () => {
+            const input = document.getElementById("setting-groq-model-input");
+            const statusEl = document.getElementById("setting-groq-model-status");
+            const model = input.value.trim();
+            if (!model) return;
+
+            statusEl.textContent = "saving...";
+            statusEl.className = "setting-note";
+
+            try {
+                const keyInput = document.getElementById("setting-groq-api-key-input");
+                const key = keyInput ? keyInput.value.trim() : undefined;
+
+                const body = { groqModel: model };
+                if (key) body.groqApiKey = key;
+
+                await apiRequest("settings/ai-key", {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                });
+
+                state.settings.ai = state.settings.ai || {};
+                state.settings.ai.groqModel = model;
+                if (key) {
+                    state.settings.ai.groqApiKeyConfigured = true;
+                    keyInput.value = "";
+                }
+
+                statusEl.textContent = "saved";
+                statusEl.className = "setting-note status-ok";
+            }
+            catch (error) {
+                statusEl.textContent = error.message || "failed";
+                statusEl.className = "setting-note status-missing";
+            }
+        });
+        document.getElementById("setting-groq-model-input").addEventListener("keydown", (event) => {
+            if (event.key === "Enter") document.getElementById("setting-groq-model-save").click();
+        });
+
         globalSearchInput.addEventListener("focus", () => {
             globalSearchShell.classList.add("open");
             renderGlobalSearch();

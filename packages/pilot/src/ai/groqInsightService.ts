@@ -28,7 +28,13 @@ export interface PilotAiInsight {
 }
 
 const GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
+const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
+
+export interface GroqModelOption {
+    id: string
+    ownedBy?: string
+}
 
 function normalizeInsight(value: any, context: PilotAiInsightContext): PilotAiInsight {
     return {
@@ -59,7 +65,37 @@ function parseInsightJson(content: string): unknown {
     return JSON.parse(fenced?.[1] || trimmed)
 }
 
-export async function generateGroqInsight(context: PilotAiInsightContext): Promise<PilotAiInsight> {
+export async function listGroqModels(): Promise<GroqModelOption[]> {
+    const apiKey = process.env.GROQ_API_KEY
+
+    if (!apiKey) {
+        throw new Error("GROQ_API_KEY is not configured")
+    }
+
+    const response = await fetch(GROQ_MODELS_URL, {
+        headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+        },
+    })
+
+    if (!response.ok) {
+        const message = await response.text()
+        throw new Error(`Groq model request failed: ${response.status} ${message}`)
+    }
+
+    const models = await response.json() as any
+    return Array.isArray(models?.data)
+        ? models.data
+            .map((model: any) => ({
+                id: String(model?.id || ""),
+                ownedBy: model?.owned_by ? String(model.owned_by) : undefined,
+            }))
+            .filter((model: GroqModelOption) => model.id)
+        : []
+}
+
+export async function generateGroqInsight(context: PilotAiInsightContext, model?: string): Promise<PilotAiInsight> {
     const apiKey = process.env.GROQ_API_KEY
 
     if (!apiKey) {
@@ -73,7 +109,7 @@ export async function generateGroqInsight(context: PilotAiInsightContext): Promi
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
+            model: model || process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
             temperature: 0.2,
             response_format: { type: "json_object" },
             messages: [

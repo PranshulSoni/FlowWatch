@@ -1,3 +1,7 @@
+import { readFile } from "node:fs/promises"
+import { dirname, join } from "node:path"
+import { fileURLToPath } from "node:url"
+import { load } from "js-yaml"
 import { createDashboardRouter } from "./dashboard/routes/router.js"
 import type { PilotConfig } from "./types/index.js"
 import { validateConfig } from "./runtime/config/validationConfig.js"
@@ -33,6 +37,18 @@ export interface Pilot {
 }
 
 export async function createPilot(config: PilotConfig): Promise<Pilot> {
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
+    const configPath = join(__dirname, "../config.yaml")
+    try {
+        const raw = await readFile(configPath, "utf-8")
+        const yaml = load(raw) as Record<string, any>
+        if (yaml?.groq?.apiKey) process.env.GROQ_API_KEY = yaml.groq.apiKey
+        if (yaml?.groq?.model) process.env.GROQ_MODEL = yaml.groq.model
+    } catch {
+        // config.yaml doesn't exist yet
+    }
+
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)

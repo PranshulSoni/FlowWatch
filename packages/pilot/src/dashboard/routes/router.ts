@@ -42,7 +42,8 @@ import {
     serializeTrace,
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
-import { generateGroqInsight, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
+import { generateGroqInsight, listGroqModels, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
+import { addToConfig } from "../../utils/addToConfig.js"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -230,6 +231,28 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         })
     })
 
+    router.get("/api/ai-models", async (req, res) => {
+        try {
+            if (!process.env.GROQ_API_KEY) {
+                res.status(428).json({
+                    error: {
+                        code: "groq_api_key_missing",
+                        message: "Add GROQ_API_KEY before syncing Groq models.",
+                    },
+                    models: [],
+                })
+                return
+            }
+
+            res.json({
+                models: await listGroqModels(),
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
     router.get("/api/ai-insights", async (req, res) => {
         try {
             if (!process.env.GROQ_API_KEY) {
@@ -244,7 +267,8 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             }
 
             const context = await buildAiInsightContext(options)
-            const insight = await generateGroqInsight(context)
+            const model = typeof req.query.model === "string" ? req.query.model : undefined
+            const insight = await generateGroqInsight(context, model)
 
             res.json({
                 insight,
@@ -557,6 +581,21 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ error: serializeError(error) })
         }
         catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.post("/api/settings/ai-key",async (req,res)=>{
+        try {
+            const { groqApiKey, groqModel } = req.body
+            const configPath = join(__dirname, "../../../config.yaml")
+
+            await addToConfig(configPath, groqApiKey || "", groqModel || "")
+            if (groqApiKey) process.env.GROQ_API_KEY = groqApiKey
+            if (groqModel) process.env.GROQ_MODEL = groqModel
+
+            res.json({ success: true })
+        } catch (error) {
             await dashboardError(res, error)
         }
     })
