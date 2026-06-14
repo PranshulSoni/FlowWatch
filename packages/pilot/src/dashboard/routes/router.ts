@@ -69,7 +69,7 @@ function validate(schema: z.ZodSchema) {
             res.status(400).json({
                 error: {
                     code: "validation_error",
-                    message: result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
+                    message: result.error.issues.map((e: any) => `${e.path.join(".")}: ${e.message}`).join("; "),
                 },
             })
             return
