@@ -160,6 +160,8 @@ export async function askGroqAssistant(
         throw new Error("GROQ_API_KEY is not configured")
     }
 
+    const safeHistory = (history || []).filter((m: any) => m.role !== "system")
+
     const messages = [
         {
             role: "system",
@@ -168,14 +170,14 @@ export async function askGroqAssistant(
                 "You help developers diagnose errors, traces, feature flags, workflows, and health checks.",
                 "Use the provided JSON context of the system which contains recent workflows, executions, errors, traces, feature flags, and health check statuses.",
                 "Answer the user's question accurately. Focus on diagnostics, suggestions, and resolving issues.",
-                "Keep answers developer-friendly, clear, and actionable. Use markdown formatting for lists, tables, and code snippets.",
+                "Keep answers developer-friendly, clear, and actionable. Use markdown formatting for lists, codes, and code snippets.",
             ].join(" "),
         },
         {
             role: "system",
             content: `Here is the current system context: ${JSON.stringify(context)}`,
         },
-        ...history,
+        ...safeHistory,
         {
             role: "user",
             content: message,
