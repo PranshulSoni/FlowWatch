@@ -1,5 +1,6 @@
-import type { Pool } from "pg"
+import type { Pool, PoolClient } from "pg"
 import type { Migration } from "./migrations.js"
+import { withTransaction } from "../transaction.js"
 
 export async function runMigrations(pool: Pool, migrationsToRun: Migration[]) {
     await createMigrationsTable(pool)
@@ -10,19 +11,13 @@ export async function runMigrations(pool: Pool, migrationsToRun: Migration[]) {
         if (appliedMigrations.has(migration.name)) {
             continue
         }
-        await pool.query("BEGIN")
-        try {
-            await pool.query(migration.up)
-            await pool.query(
+        await withTransaction(pool, async (client) => {
+            await client.query(migration.up)
+            await client.query(
                 "INSERT INTO pilot_migrations (name) VALUES ($1)",
                 [migration.name]
             )
-            await pool.query("COMMIT")
-        }
-        catch (error) {
-            await pool.query("ROLLBACK")
-            throw error
-        }
+        })
     }
 }
 

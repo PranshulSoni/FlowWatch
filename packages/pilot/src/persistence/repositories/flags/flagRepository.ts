@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
 import type { Pool, PoolClient } from "pg"
+import { withTransaction } from "../../transaction.js"
 export type FlagRuleOperator =
     | "equals"
     | "not_equals"
@@ -76,24 +77,6 @@ export interface UpdateFlagRuleInput {
     value?: unknown
     enabled?: boolean
     changedBy?: string
-}
-
-// ─── Transaction helper ───────────────────────────────────────────────────────
-// All BEGIN/COMMIT/ROLLBACK must run on the SAME dedicated PoolClient.
-// pool.query() dispatches to any connection in the pool — never use it for txns.
-async function withTransaction<T>(pool: Pool, fn: (client: PoolClient) => Promise<T>): Promise<T> {
-    const client = await pool.connect()
-    try {
-        await client.query("BEGIN")
-        const result = await fn(client)
-        await client.query("COMMIT")
-        return result
-    } catch (error) {
-        await client.query("ROLLBACK")
-        throw error
-    } finally {
-        client.release()
-    }
 }
 
 // ─── Flag CRUD ────────────────────────────────────────────────────────────────

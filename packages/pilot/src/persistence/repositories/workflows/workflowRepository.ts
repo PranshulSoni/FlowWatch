@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto"
-import type { Pool } from "pg"
+import type { Pool, PoolClient } from "pg"
+import { withTransaction } from "../../transaction.js"
 
 export interface WorkflowStepDefinitionInput {
     name: string
@@ -87,15 +88,12 @@ export interface WorkflowStepExecutionRow {
     next_retry_at: Date | null
 }
 
-export async function insertWorkflow(pool: Pool,input: CreateWorkflowDefinitionInput
-): Promise<InsertWorkflowResult> {
+export async function insertWorkflow(pool: Pool, input: CreateWorkflowDefinitionInput): Promise<InsertWorkflowResult> {
     const workflowId = randomUUID()
     const version = input.version ?? 1
 
-    await pool.query("BEGIN")
-
-    try {
-        const workflowResult = await pool.query<WorkflowDefinitionRecord>(
+    return withTransaction(pool, async (client) => {
+        const workflowResult = await client.query<WorkflowDefinitionRecord>(
             `
             INSERT INTO pilot_workflows (id, name, version)
             VALUES ($1, $2, $3)
@@ -112,7 +110,7 @@ export async function insertWorkflow(pool: Pool,input: CreateWorkflowDefinitionI
         for (let i = 0; i < input.steps.length; i++) {
             const step = input.steps[i]
 
-            const stepResult = await pool.query<{
+            const stepResult = await client.query<{
                 id: string
                 workflow_id: string
                 step_index: number
@@ -154,26 +152,19 @@ export async function insertWorkflow(pool: Pool,input: CreateWorkflowDefinitionI
             })
         }
 
-        await pool.query("COMMIT")
-
         return {
             workflow,
             steps: workflowSteps,
         }
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 
-export async function insertWorkflowExecution(pool: Pool,input: WorkflowExecutionInput): Promise<WorkflowExecutionRecord> {
+export async function insertWorkflowExecution(pool: Pool, input: WorkflowExecutionInput): Promise<WorkflowExecutionRecord> {
     const executionId = randomUUID()
 
-    await pool.query("BEGIN")
-    try {
-        await pool.query(
+    return withTransaction(pool, async (client) => {
+        await client.query(
             `
       INSERT INTO pilot_workflow_executions (
         id,
@@ -196,7 +187,7 @@ export async function insertWorkflowExecution(pool: Pool,input: WorkflowExecutio
         )
 
         for (const step of input.steps) {
-            await pool.query(
+            await client.query(
                 `
         INSERT INTO pilot_workflow_step_executions (
           id,
@@ -225,14 +216,8 @@ export async function insertWorkflowExecution(pool: Pool,input: WorkflowExecutio
             )
         }
 
-        await pool.query("COMMIT")
-
         return { executionId }
-    }
-    catch (error) {
-        await pool.query("ROLLBACK")
-        throw error
-    }
+    })
 }
 
 
