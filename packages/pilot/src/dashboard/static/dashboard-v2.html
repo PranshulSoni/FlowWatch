@@ -4228,9 +4228,10 @@
         }
 
         function badgeForStatus(status) {
-            if (status === "completed" || status === "ok") return `<span class="badge ok"><span class="dot"></span>${status}</span>`;
-            if (status === "running" || status === "queued" || status === "degraded") return `<span class="badge warn"><span class="dot"></span>${status}</span>`;
-            return `<span class="badge bad"><span class="dot"></span>${status}</span>`;
+            const s = escapeHtml(status);
+            if (status === "completed" || status === "ok") return `<span class="badge ok"><span class="dot"></span>${s}</span>`;
+            if (status === "running" || status === "queued" || status === "degraded") return `<span class="badge warn"><span class="dot"></span>${s}</span>`;
+            return `<span class="badge bad"><span class="dot"></span>${s}</span>`;
         }
 
         function graphStatusClass(status) {
@@ -4263,10 +4264,11 @@
         }
 
         function badgeForMethod(method) {
-            if (method === "GET") return `<span class="badge ok">${method}</span>`;
-            if (method === "POST") return `<span class="badge info">${method}</span>`;
-            if (method === "PATCH") return `<span class="badge warn">${method}</span>`;
-            return `<span class="badge bad">${method}</span>`;
+            const m = escapeHtml(method);
+            if (method === "GET") return `<span class="badge ok">${m}</span>`;
+            if (method === "POST") return `<span class="badge info">${m}</span>`;
+            if (method === "PATCH") return `<span class="badge warn">${m}</span>`;
+            return `<span class="badge bad">${m}</span>`;
         }
 
         function showPage(pageName) {
@@ -4373,21 +4375,21 @@
 
         function badgeForStepStatus(status) {
             if (status === "completed") return badgeForStatus("completed");
-            if (status === "running" || status === "queued" || status === "pending") return `<span class="badge warn"><span class="dot"></span>${status}</span>`;
+            if (status === "running" || status === "queued" || status === "pending") return `<span class="badge warn"><span class="dot"></span>${escapeHtml(status)}</span>`;
             return badgeForStatus("failed");
         }
 
         function workflowStepErrorDetail(workflow, step, error) {
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
-                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${workflow.name}</div></div>
-                    <div class="field"><div class="field-label">Failed step</div><div class="field-value">${step.name}</div></div>
-                    <div class="field"><div class="field-label">Attempts</div><div class="field-value mono">${step.attempts}</div></div>
-                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${error?.trace || "-"}</div></div>
+                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${escapeHtml(workflow.name)}</div></div>
+                    <div class="field"><div class="field-label">Failed step</div><div class="field-value">${escapeHtml(step.name)}</div></div>
+                    <div class="field"><div class="field-label">Attempts</div><div class="field-value mono">${escapeHtml(step.attempts)}</div></div>
+                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${escapeHtml(error?.trace || "-")}</div></div>
                 </div>
-                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Error message</div><div class="field-value">${error?.message || "No captured error is linked to this workflow step yet."}</div></div>
-                <pre class="code-box">${error?.name || "WorkflowStepError"}: ${error?.message || "Step failed without a captured error record."}
-    at runWorkflowStep (${workflow.name}.${step.name})
+                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Error message</div><div class="field-value">${escapeHtml(error?.message || "No captured error is linked to this workflow step yet.")}</div></div>
+                <pre class="code-box">${escapeHtml(error?.name || "WorkflowStepError")}: ${escapeHtml(error?.message || "Step failed without a captured error record.")}
+    at runWorkflowStep (${escapeHtml(workflow.name)}.${escapeHtml(step.name)})
     at executeWorkflow (workflowWorker.ts)</pre>
             `;
         }
@@ -4449,22 +4451,22 @@
             }
 
             document.getElementById("overview-executions").innerHTML = state.executions.length ? state.executions.slice(0, 5).map((execution) => `
-                <tr data-execution="${execution.id}">
-                    <td class="mono">${execution.id}</td>
-                    <td>${execution.workflow}</td>
+                <tr data-execution="${escapeHtml(execution.id)}">
+                    <td class="mono">${escapeHtml(execution.id)}</td>
+                    <td>${escapeHtml(execution.workflow)}</td>
                     <td>${badgeForStatus(execution.status)}</td>
-                    <td>${execution.failedStep}</td>
-                    <td class="right mono">${execution.duration}</td>
+                    <td>${escapeHtml(execution.failedStep)}</td>
+                    <td class="right mono">${escapeHtml(execution.duration)}</td>
                 </tr>
             `).join("") : tableEmptyRow(5, "No execution records", "Workflow executions will appear after rows exist in pilot_workflow_executions.");
 
             document.getElementById("overview-errors").innerHTML = state.errors.length ? state.errors.slice(0, 4).map((error, index) => `
                 <tr data-error="${index}">
-                    <td>${error.message}</td>
+                    <td>${escapeHtml(error.message)}</td>
                     <td>${badgeForStatus(error.category === "client" ? "queued" : "failed")}</td>
-                    <td>${error.source}</td>
-                    <td class="mono">${error.trace}</td>
-                    <td class="right mono">${error.occurred}</td>
+                    <td>${escapeHtml(error.source)}</td>
+                    <td class="mono">${escapeHtml(error.trace)}</td>
+                    <td class="right mono">${escapeHtml(error.occurred)}</td>
                 </tr>
             `).join("") : tableEmptyRow(5, "No captured errors", "Captured errors will appear after rows exist in the Pilot error tables.");
 
@@ -4473,16 +4475,16 @@
             overviewHealth.innerHTML = state.health.length ? state.health.map((item) => `
                 <div class="health-row">
                     <div class="health-top">
-                        <div class="health-name">${item.name}</div>
+                        <div class="health-name">${escapeHtml(item.name)}</div>
                         ${badgeForStatus(item.status)}
                     </div>
-                    <div class="muted" style="font-size: 12px;">${item.description}</div>
+                    <div class="muted" style="font-size: 12px;">${escapeHtml(item.description)}</div>
                     <div class="health-top mono subtle"><span>${item.latency > 0 ? item.latency + 'ms' : '--'} latency</span><span>last checked now</span></div>
                 </div>
             `).join("") : `
                 <div class="empty-state">
                     <div class="empty-title">No health checks loaded</div>
-                    <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
+                    <div class="empty-copy">${escapeHtml(state.apiError) || "Health checks will appear after the dashboard API responds."}</div>
                 </div>
             `;
         }
@@ -4491,11 +4493,11 @@
             const pinnedWorkflows = state.workflows.filter((workflow) => workflow.pinned).slice(0, 4);
             document.getElementById("pinned-count").textContent = `${pinnedWorkflows.length} / 4 pinned`;
             document.getElementById("workflow-chain-grid").innerHTML = pinnedWorkflows.length ? pinnedWorkflows.map((workflow) => `
-                <div class="workflow-card" data-workflow="${workflow.name}">
+                <div class="workflow-card" data-workflow="${escapeHtml(workflow.name)}">
                     <div class="workflow-card-head">
                         <div>
-                            <div class="workflow-card-title">${workflow.name}</div>
-                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">v${workflow.version} / ${workflow.steps} steps</div>
+                            <div class="workflow-card-title">${escapeHtml(workflow.name)}</div>
+                            <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">v${escapeHtml(workflow.version)} / ${escapeHtml(workflow.steps)} steps</div>
                         </div>
                         ${badgeForStatus(workflow.lastStatus)}
                     </div>
@@ -4503,7 +4505,7 @@
                         ${workflow.chain.map((step, index) => `
                             ${index > 0 ? `<span class="chain-arrow ${getWorkflowArrowClass(workflow, step)}"></span>` : ""}
                             <div class="workflow-step ${getWorkflowStepClass(workflow, step)}">
-                                <div class="workflow-step-name">${step}</div>
+                                <div class="workflow-step-name">${escapeHtml(step)}</div>
                                 <div class="workflow-step-meta">step ${index + 1} / ${workflow.completedRuns || 0} runs ok</div>
                             </div>
                         `).join("")}
@@ -4511,19 +4513,19 @@
                 </div>
             `).join("") : `
                 <div class="empty-state" style="grid-column: 1 / -1; margin: 0;">
-                    <div class="empty-title">${state.workflows.length ? "No pinned workflows" : "No workflow records"}</div>
-                    <div class="empty-copy">${state.workflows.length ? "Pin workflows from the table below." : "Rows from pilot_workflows will appear here."}</div>
+                    <div class="empty-title">${escapeHtml(state.workflows.length ? "No pinned workflows" : "No workflow records")}</div>
+                    <div class="empty-copy">${escapeHtml(state.workflows.length ? "Pin workflows from the table below." : "Rows from pilot_workflows will appear here.")}</div>
                 </div>
             `;
 
             document.getElementById("workflow-table").innerHTML = state.workflows.length ? state.workflows.map((workflow) => `
-                <tr data-workflow="${workflow.name}">
-                    <td><strong>${workflow.name}</strong></td>
-                    <td class="mono">v${workflow.version}</td>
-                    <td class="mono">${workflow.steps}</td>
-                    <td class="mono">${workflow.created}</td>
+                <tr data-workflow="${escapeHtml(workflow.name)}">
+                    <td><strong>${escapeHtml(workflow.name)}</strong></td>
+                    <td class="mono">v${escapeHtml(workflow.version)}</td>
+                    <td class="mono">${escapeHtml(workflow.steps)}</td>
+                    <td class="mono">${escapeHtml(workflow.created)}</td>
                     <td>${badgeForStatus(workflow.lastStatus)}</td>
-                    <td><button class="pin-button ${workflow.pinned ? "active" : ""}" data-toggle-pin="${workflow.name}">${workflow.pinned ? "Pinned" : "Pin"}</button></td>
+                    <td><button class="pin-button ${workflow.pinned ? "active" : ""}" data-toggle-pin="${escapeHtml(workflow.name)}">${workflow.pinned ? "Pinned" : "Pin"}</button></td>
                     <td class="right mono">${workflow.totalRuns || 0} <span class="subtle">runs &middot; ${workflow.completedRuns || 0} ok &middot; ${workflow.failedRuns || 0} failed</span></td>
                 </tr>
             `).join("") : tableEmptyRow(7, "No workflow records", "Registered workflows will appear after rows exist in pilot_workflows.");
@@ -4557,30 +4559,30 @@
             });
 
             document.getElementById("execution-table").innerHTML = rows.length ? rows.map((execution) => `
-                <tr data-execution="${execution.id}">
-                    <td class="mono">${execution.id}</td>
-                    <td>${execution.workflow}</td>
+                <tr data-execution="${escapeHtml(execution.id)}">
+                    <td class="mono">${escapeHtml(execution.id)}</td>
+                    <td>${escapeHtml(execution.workflow)}</td>
                     <td>${badgeForStatus(execution.status)}</td>
-                    <td class="mono">${execution.started}</td>
-                    <td class="mono">${execution.finished}</td>
-                    <td>${execution.failedStep}</td>
-                    <td class="right mono">${execution.attempts}</td>
+                    <td class="mono">${escapeHtml(execution.started)}</td>
+                    <td class="mono">${escapeHtml(execution.finished)}</td>
+                    <td>${escapeHtml(execution.failedStep)}</td>
+                    <td class="right mono">${escapeHtml(execution.attempts)}</td>
                 </tr>
             `).join("") : tableEmptyRow(7, "No execution records", "Workflow execution rows from pilot_workflow_executions will appear here.");
         }
 
         function renderFlags() {
             document.getElementById("flag-table").innerHTML = state.flags.length ? state.flags.map((flag) => `
-                <tr data-flag="${flag.key}">
-                    <td><strong>${flag.key}</strong></td>
-                    <td><button class="switch ${flag.enabled ? "on" : ""}" data-toggle-flag="${flag.key}" title="Toggle ${flag.key}"></button></td>
+                <tr data-flag="${escapeHtml(flag.key)}">
+                    <td><strong>${escapeHtml(flag.key)}</strong></td>
+                    <td><button class="switch ${flag.enabled ? "on" : ""}" data-toggle-flag="${escapeHtml(flag.key)}" title="Toggle ${escapeHtml(flag.key)}"></button></td>
                     <td>
-                        <div class="mono">${flag.rollout}%</div>
-                        <div class="bar" style="margin-top: 6px;"><div class="bar-fill" style="width: ${flag.rollout}%;"></div></div>
+                        <div class="mono">${escapeHtml(flag.rollout)}%</div>
+                        <div class="bar" style="margin-top: 6px;"><div class="bar-fill" style="width: ${escapeHtml(flag.rollout)}%;"></div></div>
                     </td>
-                    <td class="mono">${flag.rules}</td>
-                    <td>${flag.changedBy}</td>
-                    <td class="right"><button class="button" data-delete-flag="${flag.key}">Delete</button></td>
+                    <td class="mono">${escapeHtml(flag.rules)}</td>
+                    <td>${escapeHtml(flag.changedBy)}</td>
+                    <td class="right"><button class="button" data-delete-flag="${escapeHtml(flag.key)}">Delete</button></td>
                 </tr>
             `).join("") : tableEmptyRow(6, "No feature flag records", "Feature flags from pilot_feature_flags will appear here.");
         }
@@ -4596,14 +4598,14 @@
 
             document.getElementById("error-table").innerHTML = rows.length ? rows.map((error, index) => `
                 <tr data-error="${state.errors.indexOf(error)}">
-                    <td>${error.message}</td>
-                    <td>${error.name}</td>
-                    <td>${error.category}</td>
-                    <td>${error.level === "critical" ? badgeForStatus("failed") : `<span class="badge warn">${error.level}</span>`}</td>
-                    <td>${error.source}</td>
-                    <td class="mono">${error.status}</td>
-                    <td class="mono">${error.trace}</td>
-                    <td class="right mono">${error.occurred}</td>
+                    <td>${escapeHtml(error.message)}</td>
+                    <td>${escapeHtml(error.name)}</td>
+                    <td>${escapeHtml(error.category)}</td>
+                    <td>${error.level === "critical" ? badgeForStatus("failed") : `<span class="badge warn">${escapeHtml(error.level)}</span>`}</td>
+                    <td>${escapeHtml(error.source)}</td>
+                    <td class="mono">${escapeHtml(error.status)}</td>
+                    <td class="mono">${escapeHtml(error.trace)}</td>
+                    <td class="right mono">${escapeHtml(error.occurred)}</td>
                 </tr>
             `).join("") : tableEmptyRow(8, "No captured error records", "Captured errors will appear after Pilot writes error rows.");
         }
@@ -4618,14 +4620,14 @@
             });
 
             document.getElementById("trace-table").innerHTML = rows.length ? rows.map((trace) => `
-                <tr data-trace="${trace.id}" class="${trace.id === state._selectedTraceId ? 'selected-row' : ''}">
-                    <td class="mono">${trace.id.slice(0, 8)}&hellip;</td>
+                <tr data-trace="${escapeHtml(trace.id)}" class="${trace.id === state._selectedTraceId ? 'selected-row' : ''}">
+                    <td class="mono">${escapeHtml(trace.id.slice(0, 8))}&hellip;</td>
                     <td>${badgeForMethod(trace.method)}</td>
-                    <td>${trace.path}</td>
-                    <td class="mono">${trace.status ?? '-'}</td>
-                    <td class="mono">${formatTime(trace.startedAt || trace.createdAt)}</td>
-                    <td class="mono">${trace.ip}</td>
-                    <td class="right mono">${trace.duration != null ? trace.duration + 'ms' : '-'}</td>
+                    <td>${escapeHtml(trace.path)}</td>
+                    <td class="mono">${escapeHtml(trace.status ?? '-')}</td>
+                    <td class="mono">${escapeHtml(formatTime(trace.startedAt || trace.createdAt))}</td>
+                    <td class="mono">${escapeHtml(trace.ip)}</td>
+                    <td class="right mono">${trace.duration != null ? escapeHtml(trace.duration) + 'ms' : '-'}</td>
                 </tr>
             `).join("") : tableEmptyRow(7, "No trace records", "Request trace rows from pilot_request_traces will appear here.");
 
@@ -4686,10 +4688,10 @@
             const truncate = (value, limit = 20) => value && value.length > limit ? `${value.slice(0, limit)}...` : (value || '');
             const nodeName = (span) => {
                 if (!span.name) return 'Span';
-                if (span.name === "http.request") return `${trace.method} ${trace.path.length > 18 ? trace.path.slice(0, 18) + '...' : trace.path}`;
+                if (span.name === "http.request") return `${escapeHtml(trace.method)} ${escapeHtml(trace.path.length > 18 ? trace.path.slice(0, 18) + '...' : trace.path)}`;
                 if (span.name.startsWith("pilot.flag")) return "Feature Flag";
                 if (span.name.startsWith("pilot.workflow")) return "Workflow";
-                return span.name;
+                return escapeHtml(span.name);
             };
             const nodeStatusClass = (span) => {
                 const s = String(span.status || '');
@@ -4749,8 +4751,8 @@
                     ${nodes.map((span, index) => node(span, index)).join("")}
                 </svg>
                 <div class="trace-request-card">
-                    <div class="trace-request-title">${trace.method} ${trace.path}</div>
-                    <div class="trace-request-meta">${trace.id} &middot; ${trace.status ?? '-'} &middot; ${trace.duration != null ? trace.duration + 'ms' : 'pending'} &middot; ${formatTime(trace.startedAt || trace.createdAt)}</div>
+                    <div class="trace-request-title">${escapeHtml(trace.method)} ${escapeHtml(trace.path)}</div>
+                    <div class="trace-request-meta">${escapeHtml(trace.id)} &middot; ${escapeHtml(trace.status ?? '-')} &middot; ${trace.duration != null ? escapeHtml(trace.duration) + 'ms' : 'pending'} &middot; ${escapeHtml(formatTime(trace.startedAt || trace.createdAt))}</div>
                 </div>
                 <div class="trace-scroll-note">scroll trace chain</div>
             `;
@@ -4761,7 +4763,7 @@
                 <div class="span-row">
                     <div>
                         <div class="span-name">${nodeName(span)}</div>
-                        <div class="span-type">${span.type}${index === 0 ? ` &middot; ${trace.status ?? 'pending'}` : ` &middot; ${span.status}`}</div>
+                        <div class="span-type">${escapeHtml(span.type)}${index === 0 ? ` &middot; ${escapeHtml(trace.status ?? 'pending')}` : ` &middot; ${escapeHtml(span.status)}`}</div>
                     </div>
                     <span class="mono ${nodeStatusClass(span) === 'failed' ? 'bad' : 'muted'}">${nodeSub(span, index) || '-'}</span>
                 </div>
@@ -4842,15 +4844,15 @@
             ].filter((item) => `${item.type} ${item.title} ${item.meta}`.toLowerCase().includes(query)).slice(0, 6);
 
             globalSearchResults.innerHTML = results.length ? results.map((item) => `
-                <div class="search-result" data-go="${item.action}">
-                    <span class="result-type">${item.type}</span>
-                    <span class="result-title">${item.title}</span>
-                    <span class="mono subtle">${item.meta}</span>
+                <div class="search-result" data-go="${escapeHtml(item.action)}">
+                    <span class="result-type">${escapeHtml(item.type)}</span>
+                    <span class="result-title">${escapeHtml(item.title)}</span>
+                    <span class="mono subtle">${escapeHtml(item.meta)}</span>
                 </div>
             `).join("") : `
                 <div class="search-result">
                     <span class="result-type">No match</span>
-                    <span class="result-title">No local dashboard result for "${query}"</span>
+                    <span class="result-title">No local dashboard result for "${escapeHtml(query)}"</span>
                     <span class="mono subtle">search</span>
                 </div>
             `;
@@ -4870,13 +4872,13 @@
             document.getElementById("health-cards").innerHTML = state.health.length ? state.health.map((item) => `
                 <div class="panel">
                     <div class="panel-header">
-                        <div class="panel-title">${item.name}</div>
+                        <div class="panel-title">${escapeHtml(item.name)}</div>
                         ${badgeForStatus(item.status)}
                     </div>
                     <div style="padding: 14px; display: grid; gap: 12px;">
-                        <div class="muted">${item.description}</div>
+                        <div class="muted">${escapeHtml(item.description)}</div>
                         <div class="field-grid">
-                            <div class="field"><div class="field-label">Latency</div><div class="field-value mono">${item.latency > 0 ? item.latency + 'ms' : '--'}</div></div>
+                            <div class="field"><div class="field-label">Latency</div><div class="field-value mono">${item.latency > 0 ? escapeHtml(item.latency) + 'ms' : '--'}</div></div>
                             <div class="field"><div class="field-label">Last checked</div><div class="field-value mono">now</div></div>
                         </div>
                     </div>
@@ -4884,7 +4886,7 @@
             `).join("") : `
                 <div class="empty-state" style="grid-column: 1 / -1;">
                     <div class="empty-title">No health checks loaded</div>
-                    <div class="empty-copy">${state.apiError || "Health checks will appear after the dashboard API responds."}</div>
+                    <div class="empty-copy">${escapeHtml(state.apiError || "Health checks will appear after the dashboard API responds.")}</div>
                 </div>
             `;
         }
@@ -4913,7 +4915,7 @@
 
             const modelSelect = document.getElementById("setting-groq-model-select");
             if (modelSelect) {
-                const savedModel = localStorage.getItem("pilot:groq-model") || ai.groqModel || "llama-3.3-70b-versatile";
+                const savedModel = ai.groqModel || "llama-3.3-70b-versatile";
                 modelSelect.value = savedModel;
             }
 
@@ -5011,14 +5013,11 @@
                     body: JSON.stringify(body),
                 });
 
+                // Update in-memory state — backend is the source of truth
                 state.settings = state.settings || {};
                 state.settings.ai = state.settings.ai || {};
                 state.settings.ai.groqApiKeyConfigured = true;
                 if (model) state.settings.ai.groqModel = model;
-
-                // Persist in localStorage so the key/model survive page refreshes
-                localStorage.setItem("pilot:groq-api-key", key);
-                if (model) localStorage.setItem("pilot:groq-model", model);
 
                 statusEl.textContent = "saved";
                 statusEl.className = "setting-note status-ok";
@@ -5033,26 +5032,18 @@
         }
 
         function loadSavedGroqCredentials() {
-            const savedKey = localStorage.getItem("pilot:groq-api-key");
-            const savedModel = localStorage.getItem("pilot:groq-model");
+            // Key status comes from backend settings (state.settings.ai) — never from localStorage
+            // Model preference also comes from backend settings
+            const ai = state.settings?.ai || {};
             const keyInput = document.getElementById("setting-groq-api-key-input");
             const modelSelect = document.getElementById("setting-groq-model-select");
 
-            if (savedKey && keyInput) {
-                keyInput.placeholder = "••••••••••••" + savedKey.slice(-4);
+            if (ai.groqApiKeyConfigured && keyInput) {
+                keyInput.placeholder = "•••••••••••• (configured)";
             }
-            if (savedModel) {
-                if (modelSelect) {
-                    modelSelect.value = savedModel;
-                    state._savedGroqModel = savedModel;
-                }
-            }
-
-            // Silently re-apply saved credentials to backend so AI features work on every page load
-            if (savedKey) {
-                const body = { groqApiKey: savedKey };
-                if (savedModel) body.groqModel = savedModel;
-                apiRequest("settings/ai-key", { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+            if (ai.groqModel && modelSelect) {
+                modelSelect.value = ai.groqModel;
+                state._savedGroqModel = ai.groqModel;
             }
         }
 
@@ -5332,7 +5323,7 @@
             const text = inputEl.value.trim();
             if (!text) return;
 
-            const selectedModel = localStorage.getItem("pilot:groq-model") || state.settings?.ai?.groqModel || "llama-3.3-70b-versatile";
+            const selectedModel = state.settings?.ai?.groqModel || "llama-3.3-70b-versatile";
 
             // Push User Message
             state.aiMessages.push({ role: "user", content: text });
@@ -5398,12 +5389,12 @@
 
             const execHistoryRows = allExecs.length
                 ? allExecs.map((ex) => `
-                    <tr data-execution="${ex.id}" style="cursor:pointer">
-                        <td class="mono" style="font-size:11px">${ex.id.slice(0, 8)}…</td>
+                    <tr data-execution="${escapeHtml(ex.id)}" style="cursor:pointer">
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}…</td>
                         <td>${badgeForStatus(ex.status)}</td>
-                        <td class="mono" style="font-size:11px">${ex.started || '-'}</td>
-                        <td class="mono" style="font-size:11px">${ex.finished || '-'}</td>
-                        <td class="mono" style="font-size:11px">${ex.failedStep !== '-' ? ex.failedStep : ''}</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.started || '-')}</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.finished || '-')}</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.failedStep !== '-' ? ex.failedStep : '')}</td>
                     </tr>
                 `).join("")
                 : `<tr><td colspan="5" style="padding:12px;color:var(--muted);text-align:center">No executions recorded yet</td></tr>`;
@@ -5413,7 +5404,7 @@
                     <div class="field"><div class="field-label">Total runs</div><div class="field-value mono">${workflow.totalRuns || 0}</div></div>
                     <div class="field"><div class="field-label">Completed</div><div class="field-value mono" style="color:var(--green)">${workflow.completedRuns || 0}</div></div>
                     <div class="field"><div class="field-label">Failed</div><div class="field-value mono" style="color:var(--red)">${workflow.failedRuns || 0}</div></div>
-                    <div class="field"><div class="field-label">Version</div><div class="field-value mono">v${workflow.version}</div></div>
+                    <div class="field"><div class="field-label">Version</div><div class="field-value mono">v${escapeHtml(workflow.version)}</div></div>
                 </div>
                 <div class="panel" style="box-shadow:none;margin-bottom:14px">
                     <div class="panel-header">
@@ -5439,16 +5430,16 @@
                             <div class="timeline-item">
                                 <div class="timeline-rail">
                                     ${step.error ? `
-                                        <button type="button" class="timeline-node bad" title="Open ${step.name} error" data-workflow-error="${workflow.name}" data-step="${step.name}">${step.index + 1}</button>
+                                        <button type="button" class="timeline-node bad" title="Open ${escapeHtml(step.name)} error" data-workflow-error="${escapeHtml(workflow.name)}" data-step="${escapeHtml(step.name)}">${step.index + 1}</button>
                                     ` : `
                                         <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${step.index + 1}</div>
                                     `}
                                     ${step.index === steps.length - 1 ? "" : `<div class="timeline-line"></div>`}
                                 </div>
                                 <div class="timeline-content">
-                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.duration}</span></div>
-                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${step.attempts}</span></div>
-                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${workflow.name}" data-step="${step.name}">Open error: ${step.error.name}</button>` : ""}
+                                    <div class="timeline-title"><span>${escapeHtml(step.name)}</span><span class="mono muted">${escapeHtml(step.duration)}</span></div>
+                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${escapeHtml(step.attempts)}</span></div>
+                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${escapeHtml(workflow.name)}" data-step="${escapeHtml(step.name)}">Open error: ${escapeHtml(step.error.name)}</button>` : ""}
                                 </div>
                             </div>
                         `).join("")}
@@ -5468,10 +5459,10 @@
 
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
-                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${execution.workflow}</div></div>
+                    <div class="field"><div class="field-label">Workflow</div><div class="field-value">${escapeHtml(execution.workflow)}</div></div>
                     <div class="field"><div class="field-label">Status</div><div class="field-value">${badgeForStatus(execution.status)}</div></div>
-                    <div class="field"><div class="field-label">Started</div><div class="field-value mono">${execution.started}</div></div>
-                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${execution.duration}</div></div>
+                    <div class="field"><div class="field-label">Started</div><div class="field-value mono">${escapeHtml(execution.started)}</div></div>
+                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${escapeHtml(execution.duration)}</div></div>
                 </div>
                 <div class="panel" style="box-shadow: none;">
                     <div class="panel-header"><div class="panel-title">Step timeline</div></div>
@@ -5480,16 +5471,16 @@
                             <div class="timeline-item">
                                 <div class="timeline-rail">
                                     ${step.error ? `
-                                        <button type="button" class="timeline-node bad" title="Open ${step.name} error" data-workflow-error="${workflow.name}" data-step="${step.name}">${index + 1}</button>
+                                        <button type="button" class="timeline-node bad" title="Open ${escapeHtml(step.name)} error" data-workflow-error="${escapeHtml(workflow.name)}" data-step="${escapeHtml(step.name)}">${index + 1}</button>
                                     ` : `
                                         <div class="timeline-node ${step.status === "failed" ? "bad" : step.status === "completed" ? "ok" : "warn"}">${index + 1}</div>
                                     `}
                                     ${index === steps.length - 1 ? "" : `<div class="timeline-line"></div>`}
                                 </div>
                                 <div class="timeline-content">
-                                    <div class="timeline-title"><span>${step.name}</span><span class="mono muted">${step.duration}</span></div>
-                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${step.attempts}</span></div>
-                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${workflow.name}" data-step="${step.name}">Open error: ${step.error.name}</button>` : ""}
+                                    <div class="timeline-title"><span>${escapeHtml(step.name)}</span><span class="mono muted">${escapeHtml(step.duration)}</span></div>
+                                    <div class="timeline-desc">${badgeForStepStatus(step.status)} <span class="mono subtle">attempts: ${escapeHtml(step.attempts)}</span></div>
+                                    ${step.error ? `<button type="button" class="timeline-error-action" data-workflow-error="${escapeHtml(workflow.name)}" data-step="${escapeHtml(step.name)}">Open error: ${escapeHtml(step.error.name)}</button>` : ""}
                                 </div>
                             </div>
                         `).join("")}
@@ -5501,13 +5492,13 @@
         function errorDetail(error) {
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
-                    <div class="field"><div class="field-label">Name</div><div class="field-value">${error.name}</div></div>
-                    <div class="field"><div class="field-label">Category</div><div class="field-value">${error.category}</div></div>
-                    <div class="field"><div class="field-label">Level</div><div class="field-value">${error.level}</div></div>
-                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${error.trace}</div></div>
+                    <div class="field"><div class="field-label">Name</div><div class="field-value">${escapeHtml(error.name)}</div></div>
+                    <div class="field"><div class="field-label">Category</div><div class="field-value">${escapeHtml(error.category)}</div></div>
+                    <div class="field"><div class="field-label">Level</div><div class="field-value">${escapeHtml(error.level)}</div></div>
+                    <div class="field"><div class="field-label">Trace ID</div><div class="field-value mono">${escapeHtml(error.trace)}</div></div>
                 </div>
-                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Message</div><div class="field-value">${error.message}</div></div>
-                <pre class="code-box">Error: ${error.message}
+                <div class="field" style="margin-bottom: 12px;"><div class="field-label">Message</div><div class="field-value">${escapeHtml(error.message)}</div></div>
+                <pre class="code-box">Error: ${escapeHtml(error.message)}
     at runWorkflowStep (workflowWorker.ts:74:15)
     at executeWorkflow (workflowWorker.ts:39:9)
     at Worker.processJob (bullmq)</pre>
@@ -5519,10 +5510,10 @@
 
             return `
                 <div class="field-grid" style="margin-bottom: 14px;">
-                    <div class="field"><div class="field-label">Request</div><div class="field-value">${trace.method} ${trace.path}</div></div>
-                    <div class="field"><div class="field-label">Status code</div><div class="field-value mono">${trace.status}</div></div>
-                    <div class="field"><div class="field-label">IP address</div><div class="field-value mono">${trace.ip}</div></div>
-                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${trace.duration}ms</div></div>
+                    <div class="field"><div class="field-label">Request</div><div class="field-value">${escapeHtml(trace.method)} ${escapeHtml(trace.path)}</div></div>
+                    <div class="field"><div class="field-label">Status code</div><div class="field-value mono">${escapeHtml(trace.status)}</div></div>
+                    <div class="field"><div class="field-label">IP address</div><div class="field-value mono">${escapeHtml(trace.ip)}</div></div>
+                    <div class="field"><div class="field-label">Duration</div><div class="field-value mono">${escapeHtml(trace.duration)}ms</div></div>
                 </div>
                 <div class="timeline">
                     ${spans.map((span, index) => `
@@ -5532,8 +5523,8 @@
                                 ${index === spans.length - 1 ? "" : `<div class="timeline-line"></div>`}
                             </div>
                             <div class="timeline-content">
-                                <div class="timeline-title"><span>${span.name}</span><span class="mono muted">${span.duration}ms</span></div>
-                                <div class="timeline-desc"><span class="badge info">${span.type}</span> ${badgeForStatus(span.status)}</div>
+                                <div class="timeline-title"><span>${escapeHtml(span.name)}</span><span class="mono muted">${escapeHtml(span.duration)}ms</span></div>
+                                <div class="timeline-desc"><span class="badge info">${escapeHtml(span.type)}</span> ${badgeForStatus(span.status)}</div>
                             </div>
                         </div>
                     `).join("")}
@@ -5853,21 +5844,21 @@
             if (flagRow && !event.target.closest("[data-toggle-flag]") && !event.target.closest("[data-delete-flag]")) {
                 const flag = state.flags.find((item) => item.key === flagRow.dataset.flag);
                 if (flag) {
-                    openDrawer(flag.key, flag.description || "Feature flag", `
+                    openDrawer(escapeHtml(flag.key), escapeHtml(flag.description || "Feature flag"), `
                         <div class="field-grid" style="margin-bottom:16px">
-                            <div class="field"><div class="field-label">Key</div><div class="field-value mono">${flag.key}</div></div>
+                            <div class="field"><div class="field-label">Key</div><div class="field-value mono">${escapeHtml(flag.key)}</div></div>
                             <div class="field"><div class="field-label">Status</div><div class="field-value">${flag.enabled ? '<span class="badge ok"><span class="dot"></span>enabled</span>' : '<span class="badge bad"><span class="dot"></span>disabled</span>'}</div></div>
-                            <div class="field"><div class="field-label">Rules</div><div class="field-value mono">${flag.rules}</div></div>
-                            <div class="field"><div class="field-label">Changed by</div><div class="field-value mono">${flag.changedBy || '-'}</div></div>
+                            <div class="field"><div class="field-label">Rules</div><div class="field-value mono">${escapeHtml(flag.rules)}</div></div>
+                            <div class="field"><div class="field-label">Changed by</div><div class="field-value mono">${escapeHtml(flag.changedBy || '-')}</div></div>
                         </div>
                         <div style="margin-bottom:16px">
                             <div class="field-label" style="margin-bottom:8px">Rollout percentage</div>
                             <div style="display:flex;align-items:center;gap:12px">
-                                <input id="drawer-rollout-slider" type="range" min="0" max="100" value="${flag.rollout}" style="flex:1;accent-color:var(--indigo)">
-                                <input id="drawer-rollout-input" type="number" min="0" max="100" value="${flag.rollout}" class="input" style="width:70px;text-align:center">
+                                <input id="drawer-rollout-slider" type="range" min="0" max="100" value="${escapeHtml(flag.rollout)}" style="flex:1;accent-color:var(--indigo)">
+                                <input id="drawer-rollout-input" type="number" min="0" max="100" value="${escapeHtml(flag.rollout)}" class="input" style="width:70px;text-align:center">
                                 <span class="muted" style="font-size:12px">%</span>
                             </div>
-                            <div class="bar" style="margin-top:10px"><div id="drawer-rollout-bar" class="bar-fill" style="width:${flag.rollout}%"></div></div>
+                            <div class="bar" style="margin-top:10px"><div id="drawer-rollout-bar" class="bar-fill" style="width:${escapeHtml(flag.rollout)}%"></div></div>
                         </div>
                         <button id="drawer-save-rollout" class="button" type="button" style="width:100%">Save rollout %</button>
                         <span id="drawer-rollout-status" class="setting-note" style="display:block;margin-top:8px"></span>
