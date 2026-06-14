@@ -1,3 +1,5 @@
+import { getGroqApiKey, getGroqModel } from "../utils/pilotEnvStore.js"
+
 export interface PilotAiInsightContext {
     serviceName: string
     environment: string
@@ -66,7 +68,7 @@ function parseInsightJson(content: string): unknown {
 }
 
 export async function listGroqModels(): Promise<GroqModelOption[]> {
-    const apiKey = process.env.GROQ_API_KEY
+    const apiKey = getGroqApiKey()
 
     if (!apiKey) {
         throw new Error("GROQ_API_KEY is not configured")
@@ -96,7 +98,7 @@ export async function listGroqModels(): Promise<GroqModelOption[]> {
 }
 
 export async function generateGroqInsight(context: PilotAiInsightContext, model?: string): Promise<PilotAiInsight> {
-    const apiKey = process.env.GROQ_API_KEY
+    const apiKey = getGroqApiKey()
 
     if (!apiKey) {
         throw new Error("GROQ_API_KEY is not configured")
@@ -109,7 +111,7 @@ export async function generateGroqInsight(context: PilotAiInsightContext, model?
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: model || process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
+            model: model || getGroqModel() || DEFAULT_GROQ_MODEL,
             temperature: 0.2,
             response_format: { type: "json_object" },
             messages: [
@@ -152,7 +154,7 @@ export async function askGroqAssistant(
     history: Array<{ role: string; content: string }>,
     model?: string
 ): Promise<string> {
-    const apiKey = process.env.GROQ_API_KEY
+    const apiKey = getGroqApiKey()
 
     if (!apiKey) {
         throw new Error("GROQ_API_KEY is not configured")
@@ -187,7 +189,7 @@ export async function askGroqAssistant(
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
-            model: model || process.env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
+            model: model || getGroqModel() || DEFAULT_GROQ_MODEL,
             temperature: 0.5,
             messages,
         }),

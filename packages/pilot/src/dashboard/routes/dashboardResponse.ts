@@ -1,4 +1,5 @@
 import type { NormalizedPilotConfig } from "../../types/index.js"
+import { isGroqApiKeyConfigured, getGroqModel } from "../../utils/pilotEnvStore.js"
 
 function asIso(value: unknown): string | null {
     if (!value) {
@@ -235,8 +236,8 @@ export function serializeSettings(config: NormalizedPilotConfig) {
         },
         migrations: config.migrations,
         ai: {
-            groqApiKeyConfigured: Boolean(process.env.GROQ_API_KEY),
-            groqModel: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+            groqApiKeyConfigured: isGroqApiKeyConfigured(),
+            groqModel: getGroqModel() || "llama-3.3-70b-versatile",
         },
     }
 }

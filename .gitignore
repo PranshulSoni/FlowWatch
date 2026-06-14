@@ -32,6 +32,7 @@ pnpm-debug.log*
 !.env.example
 !.env*.example
 config.yaml
+.pilot.env
 
 # Test app (internal development only)
 apps/test-app/

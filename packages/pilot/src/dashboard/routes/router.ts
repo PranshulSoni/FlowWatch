@@ -1,7 +1,5 @@
 import { fileURLToPath } from "node:url"
 import { dirname, join } from "node:path"
-import { readFile, writeFile } from "node:fs/promises"
-import { load, dump } from "js-yaml"
 import type { Client } from "@elastic/elasticsearch"
 import express, { json, Router } from "express"
 import type { Redis } from "ioredis"
@@ -46,7 +44,7 @@ import {
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
 import { generateGroqInsight, listGroqModels, askGroqAssistant, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
-import { addToConfig } from "../../utils/addToConfig.js"
+import { savePilotEnv, isGroqApiKeyConfigured, getGroqModel } from "../../utils/pilotEnvStore.js"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -227,7 +225,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/ai-models", async (req, res) => {
         try {
-            if (!process.env.GROQ_API_KEY) {
+            if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
                     error: {
                         code: "groq_api_key_missing",
@@ -249,7 +247,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/ai-insights", async (req, res) => {
         try {
-            if (!process.env.GROQ_API_KEY) {
+            if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
                     error: {
                         code: "groq_api_key_missing",
@@ -583,14 +581,19 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
-    router.post("/api/settings/ai-key",async (req,res)=>{
+    router.post("/api/settings/ai-key", async (req, res) => {
         try {
             const { groqApiKey, groqModel } = req.body
-            const configPath = join(__dirname, "../../../config.yaml")
 
-            await addToConfig(configPath, groqApiKey || "", groqModel || "")
-            if (groqApiKey) process.env.GROQ_API_KEY = groqApiKey
-            if (groqModel) process.env.GROQ_MODEL = groqModel
+            if (!groqApiKey && !groqModel) {
+                res.status(400).json({ error: "groqApiKey or groqModel is required" })
+                return
+            }
+
+            await savePilotEnv({
+                ...(groqApiKey ? { groqApiKey } : {}),
+                ...(groqModel ? { groqModel } : {}),
+            })
 
             res.json({ success: true })
         } catch (error) {
@@ -609,10 +612,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 workerConcurrency,
                 queuePrefix,
                 autoRunMigrations,
-                requestTracing,
-                errorCapture,
-                elasticsearchIndexing,
-                groqModel
+                groqModel,
             } = req.body
 
             // Update in-memory config
@@ -623,45 +623,11 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             if (workerConcurrency !== undefined) config.worker.workflowConcurrency = Number(workerConcurrency)
             if (queuePrefix !== undefined) config.worker.queuePrefix = queuePrefix
             if (autoRunMigrations !== undefined) config.migrations.autoRun = autoRunMigrations
+
+            // Model preference is persisted to .pilot.env (not process.env)
             if (groqModel !== undefined) {
-                process.env.GROQ_MODEL = groqModel
+                await savePilotEnv({ groqModel })
             }
-
-            // Save to config.yaml
-            const configPath = join(__dirname, "../../../config.yaml")
-            let data: Record<string, any> = {}
-            try {
-                const raw = await readFile(configPath, "utf-8")
-                data = load(raw) as Record<string, any> || {}
-            } catch {
-                data = {}
-            }
-
-            if (environment !== undefined) {
-                data.runtime = data.runtime || {}
-                data.runtime.environment = environment
-            }
-            if (dashboardPath !== undefined || dashboardEnabled !== undefined) {
-                data.dashboard = data.dashboard || {}
-                if (dashboardPath !== undefined) data.dashboard.path = dashboardPath
-                if (dashboardEnabled !== undefined) data.dashboard.enabled = dashboardEnabled
-            }
-            if (workerEnabled !== undefined || workerConcurrency !== undefined || queuePrefix !== undefined) {
-                data.worker = data.worker || {}
-                if (workerEnabled !== undefined) data.worker.enabled = workerEnabled
-                if (workerConcurrency !== undefined) data.worker.workflowConcurrency = Number(workerConcurrency)
-                if (queuePrefix !== undefined) data.worker.queuePrefix = queuePrefix
-            }
-            if (autoRunMigrations !== undefined) {
-                data.migrations = data.migrations || {}
-                data.migrations.autoRun = autoRunMigrations
-            }
-            if (groqModel !== undefined) {
-                data.groq = data.groq || {}
-                data.groq.model = groqModel
-            }
-
-            await writeFile(configPath, dump(data, { lineWidth: 120, noRefs: true }), "utf-8")
 
             res.json({ success: true, settings: serializeSettings(config) })
         } catch (error) {
@@ -671,7 +637,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.post("/api/ai-chat", async (req, res) => {
         try {
-            if (!process.env.GROQ_API_KEY) {
+            if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
                     error: {
                         code: "groq_api_key_missing",
