@@ -30,42 +30,6 @@ export interface PilotAiInsight {
 const GROQ_CHAT_COMPLETIONS_URL = "https://api.groq.com/openai/v1/chat/completions"
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 
-function fallbackInsight(context: PilotAiInsightContext): PilotAiInsight {
-    const failedExecutions = context.executions.filter((execution: any) => execution.status === "failed")
-    const latestError = context.errors[0] as any
-
-    return {
-        summary: failedExecutions.length > 0
-            ? `${failedExecutions.length} failed workflow execution record${failedExecutions.length === 1 ? "" : "s"} found in the loaded dashboard context.`
-            : "No failed workflow execution records were found in the loaded dashboard context.",
-        likelyCause: latestError?.message || "No likely cause is available without a configured Groq response.",
-        impact: failedExecutions.length > 0
-            ? "Review failed workflow steps and linked traces before replaying executions."
-            : "No active incident impact is visible from the loaded records.",
-        evidence: [
-            `${context.workflows.length} workflow records`,
-            `${context.executions.length} execution records`,
-            `${context.errors.length} captured error records`,
-            `${context.traces.length} trace records`,
-            `${context.flags.length} feature flag records`,
-        ],
-        recommendedActions: [
-            "Configure GROQ_API_KEY to enable model-generated analysis.",
-            "Inspect failed executions, linked trace spans, and captured errors.",
-            "Verify idempotency before replaying failed workflow steps.",
-        ],
-        confidence: 0,
-        sourceCounts: {
-            workflows: context.workflows.length,
-            executions: context.executions.length,
-            errors: context.errors.length,
-            traces: context.traces.length,
-            flags: context.flags.length,
-            health: context.health.length,
-        },
-    }
-}
-
 function normalizeInsight(value: any, context: PilotAiInsightContext): PilotAiInsight {
     return {
         summary: String(value?.summary || "No summary returned."),
@@ -89,11 +53,17 @@ function normalizeInsight(value: any, context: PilotAiInsightContext): PilotAiIn
     }
 }
 
+function parseInsightJson(content: string): unknown {
+    const trimmed = content.trim()
+    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/)
+    return JSON.parse(fenced?.[1] || trimmed)
+}
+
 export async function generateGroqInsight(context: PilotAiInsightContext): Promise<PilotAiInsight> {
     const apiKey = process.env.GROQ_API_KEY
 
     if (!apiKey) {
-        return fallbackInsight(context)
+        throw new Error("GROQ_API_KEY is not configured")
     }
 
     const response = await fetch(GROQ_CHAT_COMPLETIONS_URL, {
@@ -137,5 +107,5 @@ export async function generateGroqInsight(context: PilotAiInsightContext): Promi
         throw new Error("Groq returned an empty insight response")
     }
 
-    return normalizeInsight(JSON.parse(content), context)
+    return normalizeInsight(parseInsightJson(content), context)
 }

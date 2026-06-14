@@ -231,6 +231,10 @@ export function serializeSettings(config: NormalizedPilotConfig) {
         },
         worker: config.worker,
         migrations: config.migrations,
+        ai: {
+            groqApiKeyConfigured: Boolean(process.env.GROQ_API_KEY),
+            groqModel: process.env.GROQ_MODEL || "llama-3.3-70b-versatile",
+        },
     }
 }
 

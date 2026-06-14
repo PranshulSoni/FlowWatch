@@ -42,6 +42,7 @@ import {
     serializeTrace,
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
+import { generateGroqInsight, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -62,6 +63,73 @@ async function dashboardError(res: any, error: unknown): Promise<void> {
             message,
         },
     })
+}
+
+async function buildAiInsightContext(options: DashboardRouterOptions): Promise<PilotAiInsightContext> {
+    const { config, postgresPool, redisClient, elasticsearchClient } = options
+    const [
+        postgres,
+        redis,
+        elasticsearch,
+        flags,
+        workflows,
+        executions,
+        traces,
+        errors,
+    ] = await Promise.all([
+        checkPostgresHealth(postgresPool),
+        checkRedisHealth(redisClient),
+        checkElasticsearchHealth(elasticsearchClient),
+        listFlagsWithRuleCounts(postgresPool),
+        listWorkflowDefinitions(postgresPool),
+        listWorkflowExecutions(postgresPool, 25),
+        listRequestTraces(postgresPool, 25),
+        listErrors(postgresPool, 25),
+    ])
+    const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+    const traceSpans = new Map<string, any[]>()
+
+    await Promise.all(traces.slice(0, 10).map(async (trace) => {
+        traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
+    }))
+
+    return {
+        serviceName: config.runtime.serviceName,
+        environment: config.runtime.environment,
+        generatedAt: new Date().toISOString(),
+        workflows: workflows.slice(0, 25).map((workflow) => ({
+            id: workflow.id,
+            name: workflow.name,
+            version: workflow.version,
+        })),
+        executions: executions.map((execution) => ({
+            ...serializeExecution(execution, executionSteps.get(execution.id) || []),
+            input: undefined,
+            output: undefined,
+        })),
+        errors: errors.map((error) => {
+            const serialized = serializeError(error)
+            return {
+                id: serialized.id,
+                name: serialized.name,
+                message: serialized.message,
+                category: serialized.category,
+                level: serialized.level,
+                source: serialized.source,
+                status: serialized.status,
+                trace: serialized.trace,
+                occurredAt: serialized.occurredAt,
+            }
+        }),
+        traces: traces.slice(0, 10).map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
+        flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)),
+        health: [
+            { name: "Postgres", status: postgres.status, latency: postgres.latencyMs },
+            { name: "Redis", status: redis.status, latency: redis.latencyMs },
+            { name: "Elasticsearch", status: elasticsearch.status, latency: elasticsearch.latencyMs },
+            { name: "BullMQ Worker", status: config.worker.enabled ? "ok" : "degraded", latency: 0 },
+        ],
+    }
 }
 
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
@@ -160,6 +228,32 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         res.json({
             settings: serializeSettings(config),
         })
+    })
+
+    router.get("/api/ai-insights", async (req, res) => {
+        try {
+            if (!process.env.GROQ_API_KEY) {
+                res.status(428).json({
+                    error: {
+                        code: "groq_api_key_missing",
+                        message: "Add GROQ_API_KEY in settings to enable AI Insights.",
+                    },
+                    modelConfigured: false,
+                })
+                return
+            }
+
+            const context = await buildAiInsightContext(options)
+            const insight = await generateGroqInsight(context)
+
+            res.json({
+                insight,
+                modelConfigured: true,
+            })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
     })
 
     router.get("/api/flags", async (req, res) => {

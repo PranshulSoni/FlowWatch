@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -43,10 +44,12 @@
                 opacity: 0;
                 transform: scale(0.72);
             }
+
             12%,
             78% {
                 opacity: 1;
             }
+
             100% {
                 left: calc(100% - 3px);
                 opacity: 0;
@@ -55,20 +58,24 @@
         }
 
         @keyframes nodeGlow {
+
             0%,
             100% {
                 box-shadow: 0 0 0 rgba(34, 197, 94, 0);
             }
+
             50% {
                 box-shadow: 0 0 22px rgba(34, 197, 94, 0.18);
             }
         }
 
         @keyframes failurePulse {
+
             0%,
             100% {
                 box-shadow: 0 0 0 rgba(239, 68, 68, 0);
             }
+
             50% {
                 box-shadow: 0 0 24px rgba(239, 68, 68, 0.26);
             }
@@ -511,6 +518,7 @@
                 opacity: 0;
                 transform: translateY(4px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -1773,6 +1781,40 @@
             padding: 14px;
             display: grid;
             gap: 12px;
+        }
+
+        .ai-locked-shell {
+            position: relative;
+        }
+
+        .ai-locked-shell.is-locked .ai-lock-blur {
+            filter: blur(6px);
+            opacity: 0.28;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        .ai-key-empty-state {
+            align-items: center;
+            background: rgba(10, 14, 20, 0.92);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            display: none;
+            gap: 14px;
+            left: 50%;
+            max-width: 520px;
+            padding: 24px;
+            position: absolute;
+            text-align: center;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(520px, calc(100% - 32px));
+            z-index: 5;
+        }
+
+        .ai-locked-shell.is-locked .ai-key-empty-state {
+            display: grid;
         }
 
         .ai-map {
@@ -3054,15 +3096,18 @@
         }
     </style>
 </head>
+
 <body>
     <div class="app">
         <aside class="sidebar">
             <div class="brand">
                 <div class="brand-mark" aria-hidden="true">
                     <svg viewBox="0 0 32 32">
-                        <path d="M7 9.5h7.5c4.6 0 7.5 2.6 7.5 6.5s-2.9 6.5-7.5 6.5H12v5H7v-18Z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/>
-                        <circle cx="23.5" cy="7.5" r="2.5" fill="currentColor"/>
-                        <path d="M20.5 9.5 14 16l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                        <path d="M7 9.5h7.5c4.6 0 7.5 2.6 7.5 6.5s-2.9 6.5-7.5 6.5H12v5H7v-18Z" fill="none"
+                            stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" />
+                        <circle cx="23.5" cy="7.5" r="2.5" fill="currentColor" />
+                        <path d="M20.5 9.5 14 16l6.5 6.5" fill="none" stroke="currentColor" stroke-width="1.7"
+                            stroke-linecap="round" />
                     </svg>
                 </div>
                 <div class="brand-copy">
@@ -3071,21 +3116,52 @@
                 </div>
             </div>
             <nav class="nav" aria-label="Dashboard navigation">
-                <button class="nav-button active" data-page-button="overview"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z"/></svg></span><span class="nav-label">Overview</span></button>
-                <button class="nav-button" data-page-button="workflows"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 7h5m2 0h5M8.5 7v5m0 5h7M15.5 12v5M5 12h7v5H5v-5Zm7-10h8v5h-8V2Zm0 10h8v5h-8v-5Z"/></svg></span><span class="nav-label">Workflows</span></button>
-                <button class="nav-button" data-page-button="executions"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7-11-7ZM4 5v14"/></svg></span><span class="nav-label">Executions</span></button>
-                <button class="nav-button" data-page-button="flags"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 21V4m0 0h11l-1.5 4L17 12H6"/></svg></span><span class="nav-label">Feature Flags</span></button>
-                <button class="nav-button" data-page-button="errors"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 8v5m0 4h.01M10.3 3.8 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/></svg></span><span class="nav-label">Errors</span></button>
-                <button class="nav-button" data-page-button="traces"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l3-7 3 14 3-7h3"/></svg></span><span class="nav-label">Traces</span></button>
-                <button class="nav-button" data-page-button="ai-insights"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3l1.4 4.4L18 9l-4.6 1.6L12 15l-1.4-4.4L6 9l4.6-1.6L12 3Zm6 9 .8 2.2L21 15l-2.2.8L18 18l-.8-2.2L15 15l2.2-.8L18 12ZM5 13l.9 2.8L9 17l-3.1 1.2L5 21l-.9-2.8L1 17l3.1-1.2L5 13Z"/></svg></span><span class="nav-label">AI Insights</span></button>
-                <button class="nav-button" data-page-button="ask-ai"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-5 5v-5.5A2.5 2.5 0 0 1 4 13V5.5Zm4 2h8M8 11h5"/></svg></span><span class="nav-label">Ask Pilot AI</span></button>
-                <button class="nav-button" data-page-button="health"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-8 8-8 8s-8-3-8-8V5l8-3 8 3v8Zm-12-1h2l1.5-3 2.5 6 1.5-3H18"/></svg></span><span class="nav-label">Health</span></button>
-                <button class="nav-button" data-page-button="settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .9l-.03.08A2 2 0 0 1 12.13 21h-.26a2 2 0 0 1-1.84-1.22l-.03-.08a1.7 1.7 0 0 0-1-.9 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.9-1l-.08-.03A2 2 0 0 1 3 12.13v-.26a2 2 0 0 1 1.22-1.84l.08-.03a1.7 1.7 0 0 0 .9-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.9l.03-.08A2 2 0 0 1 11.87 3h.26a2 2 0 0 1 1.84 1.22l.03.08a1.7 1.7 0 0 0 1 .9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.14.38.46.7.9.9l.08.03A2 2 0 0 1 21 11.87v.26a2 2 0 0 1-1.22 1.84l-.08.03a1.7 1.7 0 0 0-.3 1Z"/></svg></span><span class="nav-label">Settings</span></button>
+                <button class="nav-button active" data-page-button="overview"><span class="nav-icon"><svg
+                            viewBox="0 0 24 24">
+                            <path d="M4 13h7V4H4v9Zm9 7h7V4h-7v16ZM4 20h7v-5H4v5Z" />
+                        </svg></span><span class="nav-label">Overview</span></button>
+                <button class="nav-button" data-page-button="workflows"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M6 7h5m2 0h5M8.5 7v5m0 5h7M15.5 12v5M5 12h7v5H5v-5Zm7-10h8v5h-8V2Zm0 10h8v5h-8v-5Z" />
+                        </svg></span><span class="nav-label">Workflows</span></button>
+                <button class="nav-button" data-page-button="executions"><span class="nav-icon"><svg
+                            viewBox="0 0 24 24">
+                            <path d="M8 5v14l11-7-11-7ZM4 5v14" />
+                        </svg></span><span class="nav-label">Executions</span></button>
+                <button class="nav-button" data-page-button="flags"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path d="M6 21V4m0 0h11l-1.5 4L17 12H6" />
+                        </svg></span><span class="nav-label">Feature Flags</span></button>
+                <button class="nav-button" data-page-button="errors"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M12 8v5m0 4h.01M10.3 3.8 2.8 17a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z" />
+                        </svg></span><span class="nav-label">Errors</span></button>
+                <button class="nav-button" data-page-button="traces"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path d="M4 12h4l3-7 3 14 3-7h3" />
+                        </svg></span><span class="nav-label">Traces</span></button>
+                <button class="nav-button" data-page-button="ai-insights"><span class="nav-icon"><svg
+                            viewBox="0 0 24 24">
+                            <path
+                                d="M12 3l1.4 4.4L18 9l-4.6 1.6L12 15l-1.4-4.4L6 9l4.6-1.6L12 3Zm6 9 .8 2.2L21 15l-2.2.8L18 18l-.8-2.2L15 15l2.2-.8L18 12ZM5 13l.9 2.8L9 17l-3.1 1.2L5 21l-.9-2.8L1 17l3.1-1.2L5 13Z" />
+                        </svg></span><span class="nav-label">AI Insights</span></button>
+                <button class="nav-button" data-page-button="ask-ai"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path
+                                d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8A2.5 2.5 0 0 1 17.5 16H9l-5 5v-5.5A2.5 2.5 0 0 1 4 13V5.5Zm4 2h8M8 11h5" />
+                        </svg></span><span class="nav-label">Ask Pilot AI</span></button>
+                <button class="nav-button" data-page-button="health"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path d="M20 13c0 5-8 8-8 8s-8-3-8-8V5l8-3 8 3v8Zm-12-1h2l1.5-3 2.5 6 1.5-3H18" />
+                        </svg></span><span class="nav-label">Health</span></button>
+                <button class="nav-button" data-page-button="settings"><span class="nav-icon"><svg viewBox="0 0 24 24">
+                            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
+                            <path
+                                d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.37a1.7 1.7 0 0 0-1 .9l-.03.08A2 2 0 0 1 12.13 21h-.26a2 2 0 0 1-1.84-1.22l-.03-.08a1.7 1.7 0 0 0-1-.9 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.63 15a1.7 1.7 0 0 0-.9-1l-.08-.03A2 2 0 0 1 3 12.13v-.26a2 2 0 0 1 1.22-1.84l.08-.03a1.7 1.7 0 0 0 .9-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.63a1.7 1.7 0 0 0 1-.9l.03-.08A2 2 0 0 1 11.87 3h.26a2 2 0 0 1 1.84 1.22l.03.08a1.7 1.7 0 0 0 1 .9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.37 9c.14.38.46.7.9.9l.08.03A2 2 0 0 1 21 11.87v.26a2 2 0 0 1-1.22 1.84l-.08.03a1.7 1.7 0 0 0-.3 1Z" />
+                        </svg></span><span class="nav-label">Settings</span></button>
             </nav>
             <div class="sidebar-footer">
                 <div class="health-line"><span>Service</span><strong id="sidebar-service">-</strong></div>
-                <div class="health-line"><span>Postgres</span><span id="sidebar-postgres" class="badge warn"><span class="dot"></span>unknown</span></div>
-                <div class="health-line"><span>Worker</span><span id="sidebar-worker" class="badge warn"><span class="dot"></span>unknown</span></div>
+                <div class="health-line"><span>Postgres</span><span id="sidebar-postgres" class="badge warn"><span
+                            class="dot"></span>unknown</span></div>
+                <div class="health-line"><span>Worker</span><span id="sidebar-worker" class="badge warn"><span
+                            class="dot"></span>unknown</span></div>
             </div>
         </aside>
 
@@ -3098,7 +3174,8 @@
                 <div class="topbar-right">
                     <div class="global-search" id="global-search-shell">
                         <span class="search-icon">/</span>
-                        <input id="global-search" class="search" type="search" placeholder="Search errors, traces, workflow IDs">
+                        <input id="global-search" class="search" type="search"
+                            placeholder="Search errors, traces, workflow IDs">
                         <span class="search-kbd">Ctrl K</span>
                         <div class="search-results" id="global-search-results"></div>
                     </div>
@@ -3116,32 +3193,74 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Overview</h1>
-                            <div class="page-meta">System health, workflow failures, feature flag state, and recent captured errors.</div>
+                            <div class="page-meta">System health, workflow failures, feature flag state, and recent
+                                captured errors.</div>
                         </div>
                     </div>
                     <div class="overview-summary">
                         <div class="summary-primary">
                             <div class="summary-kicker">Current state</div>
                             <h2 id="summary-title" class="summary-title">Loading dashboard records.</h2>
-                            <p id="summary-copy" class="summary-copy">Pilot is reading workflows, executions, feature flags, traces, errors, and health checks from the configured tables.</p>
+                            <p id="summary-copy" class="summary-copy">Pilot is reading workflows, executions, feature
+                                flags, traces, errors, and health checks from the configured tables.</p>
                             <div id="summary-actions" class="summary-actions">
                                 <span class="badge warn"><span class="dot"></span>loading</span>
                             </div>
                         </div>
                         <div class="summary-side">
-                            <div class="summary-stat"><span>Workflow records</span><strong id="summary-workflow-count">-</strong></div>
-                            <div class="summary-stat"><span>Execution records</span><strong id="summary-execution-count">-</strong></div>
-                            <div class="summary-stat"><span>Error records</span><strong id="summary-error-count">-</strong></div>
-                            <div class="summary-stat"><span>Trace records</span><strong id="summary-trace-count">-</strong></div>
+                            <div class="summary-stat"><span>Workflow records</span><strong
+                                    id="summary-workflow-count">-</strong></div>
+                            <div class="summary-stat"><span>Execution records</span><strong
+                                    id="summary-execution-count">-</strong></div>
+                            <div class="summary-stat"><span>Error records</span><strong
+                                    id="summary-error-count">-</strong></div>
+                            <div class="summary-stat"><span>Trace records</span><strong
+                                    id="summary-trace-count">-</strong></div>
                         </div>
                     </div>
                     <div class="metrics">
-                        <div class="metric"><div class="metric-label">Total workflows</div><div><div id="metric-workflows" class="metric-value">-</div><div id="metric-workflows-delta" class="metric-delta">from pilot_workflows</div></div></div>
-                        <div class="metric"><div class="metric-label">Running executions</div><div><div id="metric-running" class="metric-value" style="color: var(--amber)">-</div><div id="metric-running-delta" class="metric-delta">from pilot_workflow_executions</div></div></div>
-                        <div class="metric"><div class="metric-label">Failed executions</div><div><div id="metric-failed" class="metric-value" style="color: var(--red)">-</div><div id="metric-failed-delta" class="metric-delta">from pilot_workflow_executions</div></div></div>
-                        <div class="metric"><div class="metric-label">Recent errors</div><div><div id="metric-errors" class="metric-value" style="color: var(--red)">-</div><div id="metric-errors-delta" class="metric-delta">from pilot_errors</div></div></div>
-                        <div class="metric"><div class="metric-label">Active flags</div><div><div id="metric-flags" class="metric-value">-</div><div id="metric-flags-delta" class="metric-delta">from pilot_feature_flags</div></div></div>
-                        <div class="metric"><div class="metric-label">Avg latency</div><div><div id="metric-latency" class="metric-value" style="color: var(--green)">-</div><div id="metric-latency-delta" class="metric-delta">from pilot_request_traces</div></div></div>
+                        <div class="metric">
+                            <div class="metric-label">Total workflows</div>
+                            <div>
+                                <div id="metric-workflows" class="metric-value">-</div>
+                                <div id="metric-workflows-delta" class="metric-delta">from pilot_workflows</div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Running executions</div>
+                            <div>
+                                <div id="metric-running" class="metric-value" style="color: var(--amber)">-</div>
+                                <div id="metric-running-delta" class="metric-delta">from pilot_workflow_executions</div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Failed executions</div>
+                            <div>
+                                <div id="metric-failed" class="metric-value" style="color: var(--red)">-</div>
+                                <div id="metric-failed-delta" class="metric-delta">from pilot_workflow_executions</div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Recent errors</div>
+                            <div>
+                                <div id="metric-errors" class="metric-value" style="color: var(--red)">-</div>
+                                <div id="metric-errors-delta" class="metric-delta">from pilot_errors</div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Active flags</div>
+                            <div>
+                                <div id="metric-flags" class="metric-value">-</div>
+                                <div id="metric-flags-delta" class="metric-delta">from pilot_feature_flags</div>
+                            </div>
+                        </div>
+                        <div class="metric">
+                            <div class="metric-label">Avg latency</div>
+                            <div>
+                                <div id="metric-latency" class="metric-value" style="color: var(--green)">-</div>
+                                <div id="metric-latency-delta" class="metric-delta">from pilot_request_traces</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="grid-2">
                         <div class="stack">
@@ -3152,7 +3271,15 @@
                                 </div>
                                 <div class="table-wrap">
                                     <table>
-                                        <thead><tr><th>Execution</th><th>Workflow</th><th>Status</th><th>Failed step</th><th class="right">Duration</th></tr></thead>
+                                        <thead>
+                                            <tr>
+                                                <th>Execution</th>
+                                                <th>Workflow</th>
+                                                <th>Status</th>
+                                                <th>Failed step</th>
+                                                <th class="right">Duration</th>
+                                            </tr>
+                                        </thead>
                                         <tbody id="overview-executions"></tbody>
                                     </table>
                                 </div>
@@ -3164,14 +3291,24 @@
                                 </div>
                                 <div class="table-wrap">
                                     <table>
-                                        <thead><tr><th>Error</th><th>Category</th><th>Source</th><th>Trace</th><th class="right">Occurred</th></tr></thead>
+                                        <thead>
+                                            <tr>
+                                                <th>Error</th>
+                                                <th>Category</th>
+                                                <th>Source</th>
+                                                <th>Trace</th>
+                                                <th class="right">Occurred</th>
+                                            </tr>
+                                        </thead>
                                         <tbody id="overview-errors"></tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
                         <div class="panel health-panel">
-                            <div class="panel-header"><div class="panel-title">Infrastructure health</div></div>
+                            <div class="panel-header">
+                                <div class="panel-title">Infrastructure health</div>
+                            </div>
                             <div class="health-list dynamic-fill" id="overview-health"></div>
                         </div>
                     </div>
@@ -3181,24 +3318,38 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Workflows</h1>
-                            <div class="page-meta">Registered through code with pilot.workflow(...). Creation is intentionally not exposed here.</div>
+                            <div class="page-meta">Registered through code with pilot.workflow(...). Creation is
+                                intentionally not exposed here.</div>
                         </div>
                     </div>
                     <div class="pinned-workflows">
                         <div class="panel-header">
                             <div>
                                 <div class="panel-title">Pinned workflow chains</div>
-                                <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin up to 4 workflows from the table below</div>
+                                <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin up to 4 workflows
+                                    from the table below</div>
                             </div>
                             <span class="badge info" id="pinned-count">0 / 4 pinned</span>
                         </div>
                         <div class="workflow-grid" id="workflow-chain-grid"></div>
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><div class="panel-title">Registered workflows</div></div>
+                        <div class="panel-header">
+                            <div class="panel-title">Registered workflows</div>
+                        </div>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Name</th><th>Version</th><th>Steps</th><th>Created</th><th>Last status</th><th>Pinned</th><th class="right">Failures</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Version</th>
+                                        <th>Steps</th>
+                                        <th>Created</th>
+                                        <th>Last status</th>
+                                        <th>Pinned</th>
+                                        <th class="right">Failures</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="workflow-table"></tbody>
                             </table>
                         </div>
@@ -3209,7 +3360,8 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Executions</h1>
-                            <div class="page-meta">Inspect workflow runs, retries, inputs, failed steps, and timing.</div>
+                            <div class="page-meta">Inspect workflow runs, retries, inputs, failed steps, and timing.
+                            </div>
                         </div>
                     </div>
                     <div class="filters">
@@ -3220,13 +3372,26 @@
                             <option value="completed">Completed</option>
                             <option value="failed">Failed</option>
                         </select>
-                        <input id="execution-search" class="search" type="search" placeholder="Filter workflow or execution ID">
+                        <input id="execution-search" class="search" type="search"
+                            placeholder="Filter workflow or execution ID">
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><div class="panel-title">Workflow executions</div></div>
+                        <div class="panel-header">
+                            <div class="panel-title">Workflow executions</div>
+                        </div>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Execution</th><th>Workflow</th><th>Status</th><th>Started</th><th>Finished</th><th>Failed step</th><th class="right">Attempts</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Execution</th>
+                                        <th>Workflow</th>
+                                        <th>Status</th>
+                                        <th>Started</th>
+                                        <th>Finished</th>
+                                        <th>Failed step</th>
+                                        <th class="right">Attempts</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="execution-table"></tbody>
                             </table>
                         </div>
@@ -3237,15 +3402,27 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Feature Flags</h1>
-                            <div class="page-meta">Manage enabled state, deterministic rollout percentage, rules, and audit history.</div>
+                            <div class="page-meta">Manage enabled state, deterministic rollout percentage, rules, and
+                                audit history.</div>
                         </div>
                         <button id="open-flag-modal" class="button primary">Create flag</button>
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><div class="panel-title">Flags</div></div>
+                        <div class="panel-header">
+                            <div class="panel-title">Flags</div>
+                        </div>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Key</th><th>Enabled</th><th>Rollout</th><th>Rules</th><th>Changed by</th><th class="right">Actions</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Key</th>
+                                        <th>Enabled</th>
+                                        <th>Rollout</th>
+                                        <th>Rules</th>
+                                        <th>Changed by</th>
+                                        <th class="right">Actions</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="flag-table"></tbody>
                             </table>
                         </div>
@@ -3256,11 +3433,13 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Errors</h1>
-                            <div class="page-meta">Captured from Express middleware, workflows, flags, traces, and manual pilot.captureError(...).</div>
+                            <div class="page-meta">Captured from Express middleware, workflows, flags, traces, and
+                                manual pilot.captureError(...).</div>
                         </div>
                     </div>
                     <div class="filters">
-                        <input id="error-search" class="search" type="search" placeholder="Search message, stack, source">
+                        <input id="error-search" class="search" type="search"
+                            placeholder="Search message, stack, source">
                         <select id="error-category-filter" class="select">
                             <option value="all">All categories</option>
                             <option value="server">Server</option>
@@ -3271,10 +3450,24 @@
                         </select>
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><div class="panel-title">Captured errors</div><span class="badge cyan"><span class="dot"></span>Elasticsearch search</span></div>
+                        <div class="panel-header">
+                            <div class="panel-title">Captured errors</div><span class="badge cyan"><span
+                                    class="dot"></span>Elasticsearch search</span>
+                        </div>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Message</th><th>Name</th><th>Category</th><th>Level</th><th>Source</th><th>Status</th><th>Trace</th><th class="right">Occurred</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Message</th>
+                                        <th>Name</th>
+                                        <th>Category</th>
+                                        <th>Level</th>
+                                        <th>Source</th>
+                                        <th>Status</th>
+                                        <th>Trace</th>
+                                        <th class="right">Occurred</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="error-table"></tbody>
                             </table>
                         </div>
@@ -3285,7 +3478,8 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Traces</h1>
-                            <div class="page-meta">Request traces and spans for HTTP, workflow, feature flag, database, external API, and custom blocks.</div>
+                            <div class="page-meta">Request traces and spans for HTTP, workflow, feature flag, database,
+                                external API, and custom blocks.</div>
                         </div>
                     </div>
                     <div class="grid-2" style="margin-bottom: 14px;">
@@ -3303,8 +3497,14 @@
                             </div>
                             <div class="trace-inspector">
                                 <div class="field-grid">
-                                    <div class="field"><div class="field-label">Trace</div><div class="field-value mono" id="trace-inspector-id">-</div></div>
-                                    <div class="field"><div class="field-label">Critical path</div><div class="field-value mono" id="trace-inspector-critical">-</div></div>
+                                    <div class="field">
+                                        <div class="field-label">Trace</div>
+                                        <div class="field-value mono" id="trace-inspector-id">-</div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="field-label">Critical path</div>
+                                        <div class="field-value mono" id="trace-inspector-critical">-</div>
+                                    </div>
                                 </div>
                                 <div class="span-list" id="trace-span-list"></div>
                             </div>
@@ -3320,10 +3520,22 @@
                         </select>
                     </div>
                     <div class="panel">
-                        <div class="panel-header"><div class="panel-title">Request traces</div><span class="badge cyan"><span class="dot"></span>Indexed spans</span></div>
+                        <div class="panel-header">
+                            <div class="panel-title">Request traces</div><span class="badge cyan"><span
+                                    class="dot"></span>Indexed spans</span>
+                        </div>
                         <div class="table-wrap">
                             <table>
-                                <thead><tr><th>Trace ID</th><th>Method</th><th>Path</th><th>Status</th><th>IP</th><th class="right">Duration</th></tr></thead>
+                                <thead>
+                                    <tr>
+                                        <th>Trace ID</th>
+                                        <th>Method</th>
+                                        <th>Path</th>
+                                        <th>Status</th>
+                                        <th>IP</th>
+                                        <th class="right">Duration</th>
+                                    </tr>
+                                </thead>
                                 <tbody id="trace-table"></tbody>
                             </table>
                         </div>
@@ -3334,55 +3546,98 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">AI Insights</h1>
-                            <div class="page-meta">Current backend findings generated from request traces, workflow runs, captured errors, feature flags, and health checks.</div>
+                            <div class="page-meta">Current backend findings generated from request traces, workflow
+                                runs, captured errors, feature flags, and health checks.</div>
                         </div>
-                        <span class="badge bad"><span class="dot"></span>action required</span>
+                        <span id="ai-insight-status" class="badge warn"><span class="dot"></span>not loaded</span>
                     </div>
 
-                    <div class="ai-diagnosis-hero">
-                        <div>
-                            <div class="ai-kicker">AI not connected</div>
-                            <h2 class="ai-diagnosis-title">No AI insight has been generated from your tables yet.</h2>
-                            <p class="ai-diagnosis-copy">This page is intentionally not showing a sample incident. Once the AI backend is connected, it should summarize real rows from workflows, executions, traces, errors, feature flags, and health checks.</p>
-                            <div class="ai-diagnosis-tags">
-                                <span class="ai-tag">source: <strong>not connected</strong></span>
-                                <span class="ai-tag">sample data: <strong>disabled</strong></span>
-                                <span class="ai-tag">status: <strong>waiting for AI endpoint</strong></span>
-                            </div>
-                        </div>
-                        <div class="ai-suspect-panel">
+                    <div id="ai-locked-shell" class="ai-locked-shell">
+                        <div id="ai-key-empty-state" class="ai-key-empty-state" aria-live="polite">
                             <div>
-                                <div class="ai-suspect-label">Required connection</div>
-                                <div class="ai-suspect-title">Use table-backed dashboard records as the AI context.</div>
+                                <div class="ai-kicker">Groq API key required</div>
+                                <h2 class="ai-diagnosis-title">Insert your API key in the settings page.</h2>
+                                <p class="ai-diagnosis-copy">AI Insights will stay locked until <span
+                                        class="mono">GROQ_API_KEY</span> is configured on the backend.</p>
                             </div>
-                            <div class="ai-suspect-meta">
-                                <div class="ai-suspect-row"><span>Workflows</span><strong id="ai-workflow-count">0</strong></div>
-                                <div class="ai-suspect-row"><span>Executions</span><strong id="ai-execution-count">0</strong></div>
-                                <div class="ai-suspect-row"><span>Errors</span><strong id="ai-error-count">0</strong></div>
-                            </div>
+                            <button class="button primary" type="button" data-go="settings">Open settings</button>
                         </div>
-                    </div>
 
-                    <div class="ai-insight-grid">
-                        <div class="ai-insight-card">
-                            <div class="ai-insight-label">Context source</div>
-                            <div class="ai-insight-value">Dashboard API</div>
-                            <div class="ai-insight-desc">Use the same table-backed records already loaded by the dashboard.</div>
-                        </div>
-                        <div class="ai-insight-card">
-                            <div class="ai-insight-label">Required input</div>
-                            <div class="ai-insight-value">Recent records</div>
-                            <div class="ai-insight-desc">Executions, step failures, traces, errors, flags, and health checks should be passed to the AI endpoint.</div>
-                        </div>
-                        <div class="ai-insight-card">
-                            <div class="ai-insight-label">Required output</div>
-                            <div class="ai-insight-value">Actionable finding</div>
-                            <div class="ai-insight-desc">The AI response should name the evidence rows it used and avoid unsupported guesses.</div>
-                        </div>
-                        <div class="ai-insight-card">
-                            <div class="ai-insight-label">Current state</div>
-                            <div class="ai-insight-value">Disabled</div>
-                            <div class="ai-insight-desc">No fake diagnosis is rendered while the AI endpoint is missing.</div>
+                        <div class="ai-lock-blur">
+                            <div class="ai-diagnosis-hero">
+                                <div>
+                                    <div id="ai-insight-kicker" class="ai-kicker">AI insight</div>
+                                    <h2 id="ai-insight-summary" class="ai-diagnosis-title">Open AI Insights to generate
+                                        analysis from your Pilot tables.</h2>
+                                    <p id="ai-insight-cause" class="ai-diagnosis-copy">The dashboard will call the
+                                        mounted <span class="mono">/api/ai-insights</span> endpoint, send structured
+                                        context to Groq on the server, and render the model response here.</p>
+                                    <div id="ai-insight-tags" class="ai-diagnosis-tags">
+                                        <span class="ai-tag">source: <strong>table context</strong></span>
+                                        <span class="ai-tag">status: <strong>waiting</strong></span>
+                                    </div>
+                                </div>
+                                <div class="ai-suspect-panel">
+                                    <div>
+                                        <div class="ai-suspect-label">Impact</div>
+                                        <div id="ai-insight-impact" class="ai-suspect-title">No model response loaded
+                                            yet.</div>
+                                    </div>
+                                    <div class="ai-suspect-meta">
+                                        <div class="ai-suspect-row"><span>Workflows</span><strong
+                                                id="ai-workflow-count">0</strong></div>
+                                        <div class="ai-suspect-row"><span>Executions</span><strong
+                                                id="ai-execution-count">0</strong></div>
+                                        <div class="ai-suspect-row"><span>Errors</span><strong
+                                                id="ai-error-count">0</strong></div>
+                                        <div class="ai-suspect-row"><span>Confidence</span><strong
+                                                id="ai-confidence">0%</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="ai-insight-grid">
+                                <div class="ai-insight-card">
+                                    <div class="ai-insight-label">Context source</div>
+                                    <div id="ai-context-source" class="ai-insight-value">Server endpoint</div>
+                                    <div class="ai-insight-desc">The browser calls the mounted dashboard route, and Groq
+                                        is called only from the backend.</div>
+                                </div>
+                                <div class="ai-insight-card">
+                                    <div class="ai-insight-label">Evidence</div>
+                                    <div id="ai-evidence-count" class="ai-insight-value">0 items</div>
+                                    <div id="ai-evidence-preview" class="ai-insight-desc">No evidence returned yet.
+                                    </div>
+                                </div>
+                                <div class="ai-insight-card">
+                                    <div class="ai-insight-label">Recommended actions</div>
+                                    <div id="ai-action-count" class="ai-insight-value">0 actions</div>
+                                    <div id="ai-action-preview" class="ai-insight-desc">No action returned yet.</div>
+                                </div>
+                                <div class="ai-insight-card">
+                                    <div class="ai-insight-label">Current state</div>
+                                    <div id="ai-model-state" class="ai-insight-value">Waiting</div>
+                                    <div id="ai-model-state-copy" class="ai-insight-desc">The endpoint has not been
+                                        called yet.</div>
+                                </div>
+                            </div>
+
+                            <div class="grid-2" style="margin-top: 14px;">
+                                <div class="ai-card">
+                                    <div class="ai-card-head">
+                                        <div class="ai-card-title">Evidence used</div>
+                                        <span class="badge info"><span class="dot"></span>model output</span>
+                                    </div>
+                                    <div id="ai-evidence-list" class="ai-action-list"></div>
+                                </div>
+                                <div class="ai-card">
+                                    <div class="ai-card-head">
+                                        <div class="ai-card-title">Recommended actions</div>
+                                        <span class="badge ok"><span class="dot"></span>ordered</span>
+                                    </div>
+                                    <div id="ai-action-list" class="ai-action-list"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -3393,31 +3648,42 @@
                         <div class="ask-ai-center">
                             <div class="ask-ai-kicker">Pilot assistant</div>
                             <h1 class="ask-ai-home-title">What should we inspect first?</h1>
-                            <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact, captured errors, or infrastructure health. The assistant is framed around the backend signals Pilot already collects.</p>
+                            <p class="ask-ai-home-copy">Ask about traces, failed workflow steps, feature flag impact,
+                                captured errors, or infrastructure health. The assistant is framed around the backend
+                                signals Pilot already collects.</p>
 
                             <div class="ask-ai-prompt-grid" aria-label="Suggested Pilot AI prompts">
-                                <button class="ask-ai-prompt-card" data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
+                                <button class="ask-ai-prompt-card"
+                                    data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
                                     <span class="ask-ai-prompt-title">Explain a failed execution</span>
-                                    <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and step timeline.</span>
+                                    <span class="ask-ai-prompt-copy">Start from the failed workflow, retry count, and
+                                        step timeline.</span>
                                 </button>
-                                <button class="ask-ai-prompt-card" data-ask-prompt="Use the selected trace to identify the slowest backend span and any linked captured error.">
+                                <button class="ask-ai-prompt-card"
+                                    data-ask-prompt="Use the selected trace to identify the slowest backend span and any linked captured error.">
                                     <span class="ask-ai-prompt-title">Read a trace</span>
-                                    <span class="ask-ai-prompt-copy">Find the slow span, connected error, and affected request.</span>
+                                    <span class="ask-ai-prompt-copy">Find the slow span, connected error, and affected
+                                        request.</span>
                                 </button>
-                                <button class="ask-ai-prompt-card" data-ask-prompt="Compare enabled feature flags with recent traces, errors, and workflow failures.">
+                                <button class="ask-ai-prompt-card"
+                                    data-ask-prompt="Compare enabled feature flags with recent traces, errors, and workflow failures.">
                                     <span class="ask-ai-prompt-title">Check rollout impact</span>
-                                    <span class="ask-ai-prompt-copy">Compare flag state with traces, errors, and workflow failures.</span>
+                                    <span class="ask-ai-prompt-copy">Compare flag state with traces, errors, and
+                                        workflow failures.</span>
                                 </button>
-                                <button class="ask-ai-prompt-card" data-ask-prompt="Give me a safe replay plan for the selected failed workflow execution.">
+                                <button class="ask-ai-prompt-card"
+                                    data-ask-prompt="Give me a safe replay plan for the selected failed workflow execution.">
                                     <span class="ask-ai-prompt-title">Plan a safe replay</span>
-                                    <span class="ask-ai-prompt-copy">Separate completed side effects from steps that can be retried.</span>
+                                    <span class="ask-ai-prompt-copy">Separate completed side effects from steps that can
+                                        be retried.</span>
                                 </button>
                             </div>
                         </div>
 
                         <div class="ask-ai-home-composer">
                             <div class="ask-ai-composer">
-                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
+                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2"
+                                    placeholder="Ask Pilot about traces, workflows, errors, flags, or health..."></textarea>
                                 <button class="button primary" type="button">Ask</button>
                             </div>
                         </div>
@@ -3438,27 +3704,39 @@
                     <div class="page-header">
                         <div>
                             <h1 class="page-title">Settings</h1>
-                            <div class="page-meta">Runtime settings exposed by Pilot. Secrets and connection strings stay hidden.</div>
+                            <div class="page-meta">Runtime settings exposed by Pilot. Secrets and connection strings
+                                stay hidden.</div>
                         </div>
                     </div>
                     <div class="settings-grid">
                         <div class="setting-card">
                             <div class="setting-card-head">
                                 <div class="setting-card-title">Dashboard</div>
-                                <div class="setting-card-desc">Where the embedded dashboard is mounted and how access is guarded.</div>
+                                <div class="setting-card-desc">Where the embedded dashboard is mounted and how access is
+                                    guarded.</div>
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Mount path</div><div class="setting-help">Express route used by app.use(...).</div></div>
+                                    <div>
+                                        <div class="setting-name">Mount path</div>
+                                        <div class="setting-help">Express route used by app.use(...).</div>
+                                    </div>
                                     <div id="setting-dashboard-path" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Environment</div><div class="setting-help">Shown in the header and attached to traces.</div></div>
+                                    <div>
+                                        <div class="setting-name">Environment</div>
+                                        <div class="setting-help">Shown in the header and attached to traces.</div>
+                                    </div>
                                     <div id="setting-environment" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Dashboard auth</div><div class="setting-help">Token protection for internal routes.</div></div>
-                                    <button id="setting-dashboard-auth" class="switch" title="Dashboard auth state"></button>
+                                    <div>
+                                        <div class="setting-name">Dashboard auth</div>
+                                        <div class="setting-help">Token protection for internal routes.</div>
+                                    </div>
+                                    <button id="setting-dashboard-auth" class="switch"
+                                        title="Dashboard auth state"></button>
                                 </div>
                             </div>
                         </div>
@@ -3469,35 +3747,80 @@
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Worker enabled</div><div class="setting-help">Consumes jobs from the workflow queue.</div></div>
+                                    <div>
+                                        <div class="setting-name">Worker enabled</div>
+                                        <div class="setting-help">Consumes jobs from the workflow queue.</div>
+                                    </div>
                                     <button id="setting-worker-enabled" class="switch" title="Worker state"></button>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Workflow concurrency</div><div class="setting-help">Maximum active workflow jobs per worker process.</div></div>
+                                    <div>
+                                        <div class="setting-name">Workflow concurrency</div>
+                                        <div class="setting-help">Maximum active workflow jobs per worker process.</div>
+                                    </div>
                                     <div id="setting-worker-concurrency" class="setting-value">-</div>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Queue prefix</div><div class="setting-help">Redis key namespace for Pilot queues.</div></div>
+                                    <div>
+                                        <div class="setting-name">Queue prefix</div>
+                                        <div class="setting-help">Redis key namespace for Pilot queues.</div>
+                                    </div>
                                     <div id="setting-worker-prefix" class="setting-value">-</div>
                                 </div>
                             </div>
                         </div>
                         <div class="setting-card">
                             <div class="setting-card-head">
-                                <div class="setting-card-title">Observability</div>
-                                <div class="setting-card-desc">Trace and error capture settings used by middleware and package internals.</div>
+                                <div class="setting-card-title">AI Provider</div>
+                                <div class="setting-card-desc">Server-side Groq configuration used by AI Insights.</div>
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Request tracing</div><div class="setting-help">Creates a trace record for incoming HTTP requests.</div></div>
+                                    <div>
+                                        <div class="setting-name">Groq API key</div>
+                                        <div class="setting-help">Required before the AI Insights page can generate
+                                            analysis.</div>
+                                    </div>
+                                    <button id="setting-groq-api-key" class="switch"
+                                        title="Groq API key state"></button>
+                                </div>
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-name">Groq model</div>
+                                        <div class="setting-help">Model name sent by the backend insight service.</div>
+                                    </div>
+                                    <div id="setting-groq-model" class="setting-value">-</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="setting-card">
+                            <div class="setting-card-head">
+                                <div class="setting-card-title">Observability</div>
+                                <div class="setting-card-desc">Trace and error capture settings used by middleware and
+                                    package internals.</div>
+                            </div>
+                            <div class="setting-list">
+                                <div class="setting-row">
+                                    <div>
+                                        <div class="setting-name">Request tracing</div>
+                                        <div class="setting-help">Creates a trace record for incoming HTTP requests.
+                                        </div>
+                                    </div>
                                     <button class="switch on" title="Request tracing enabled by middleware"></button>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Error capture</div><div class="setting-help">Stores thrown errors with trace/span context when available.</div></div>
+                                    <div>
+                                        <div class="setting-name">Error capture</div>
+                                        <div class="setting-help">Stores thrown errors with trace/span context when
+                                            available.</div>
+                                    </div>
                                     <button class="switch on" title="Error capture enabled by Pilot"></button>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Elasticsearch indexing</div><div class="setting-help">Indexes errors and traces for dashboard search.</div></div>
+                                    <div>
+                                        <div class="setting-name">Elasticsearch indexing</div>
+                                        <div class="setting-help">Indexes errors and traces for dashboard search.</div>
+                                    </div>
                                     <button class="switch on" title="Elasticsearch client configured"></button>
                                 </div>
                             </div>
@@ -3505,20 +3828,34 @@
                         <div class="setting-card">
                             <div class="setting-card-head">
                                 <div class="setting-card-title">Persistence</div>
-                                <div class="setting-card-desc">Database and retention defaults used by migrations and dashboard queries.</div>
+                                <div class="setting-card-desc">Database and retention defaults used by migrations and
+                                    dashboard queries.</div>
                             </div>
                             <div class="setting-list">
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Migration table</div><div class="setting-help">Tracks which Pilot SQL migrations already ran.</div></div>
+                                    <div>
+                                        <div class="setting-name">Migration table</div>
+                                        <div class="setting-help">Tracks which Pilot SQL migrations already ran.</div>
+                                    </div>
                                     <div class="setting-value">pilot_migrations</div>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Migrations auto-run</div><div class="setting-help">Whether Pilot runs pending migrations during startup.</div></div>
-                                    <button id="setting-migrations-auto-run" class="switch" title="Migration auto-run state"></button>
+                                    <div>
+                                        <div class="setting-name">Migrations auto-run</div>
+                                        <div class="setting-help">Whether Pilot runs pending migrations during startup.
+                                        </div>
+                                    </div>
+                                    <button id="setting-migrations-auto-run" class="switch"
+                                        title="Migration auto-run state"></button>
                                 </div>
                                 <div class="setting-row">
-                                    <div><div class="setting-name">Dashboard enabled</div><div class="setting-help">Whether the embedded dashboard router is enabled by config.</div></div>
-                                    <button id="setting-dashboard-enabled" class="switch" title="Dashboard enabled state"></button>
+                                    <div>
+                                        <div class="setting-name">Dashboard enabled</div>
+                                        <div class="setting-help">Whether the embedded dashboard router is enabled by
+                                            config.</div>
+                                    </div>
+                                    <button id="setting-dashboard-enabled" class="switch"
+                                        title="Dashboard enabled state"></button>
                                 </div>
                             </div>
                         </div>
@@ -3579,6 +3916,11 @@
             serviceName: "-",
             environment: "-",
             settings: null,
+            aiInsight: null,
+            aiInsightError: null,
+            aiInsightLoading: false,
+            aiModelConfigured: false,
+            aiKeyMissing: false,
             apiBacked: false,
             apiError: null
         };
@@ -3626,6 +3968,15 @@
             return `${dashboardBasePath()}api/${String(path).replace(/^\/+/, "")}`;
         }
 
+        function escapeHtml(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         async function apiRequest(path, options = {}) {
             const response = await fetch(apiPath(path), {
                 headers: {
@@ -3637,16 +3988,21 @@
 
             if (!response.ok) {
                 let message = `Request failed with ${response.status}`;
+                let code = "";
 
                 try {
                     const body = await response.json();
                     message = body?.error?.message || body?.message || message;
+                    code = body?.error?.code || body?.code || "";
                 }
                 catch {
                     // Keep the status-based message when the response is not JSON.
                 }
 
-                throw new Error(message);
+                const error = new Error(message);
+                error.status = response.status;
+                error.code = code;
+                throw error;
             }
 
             if (response.status === 204) {
@@ -3816,6 +4172,10 @@
             pageButtons.forEach((button) => button.classList.toggle("active", button.dataset.pageButton === pageName));
             pages.forEach((page) => page.classList.toggle("active", page.id === `page-${pageName}`));
             closeDrawer();
+
+            if (pageName === "ai-insights") {
+                loadAiInsights();
+            }
         }
 
         function openDrawer(title, subtitle, html) {
@@ -4387,6 +4747,7 @@
             const dashboard = settings.dashboard || {};
             const worker = settings.worker || {};
             const migrations = settings.migrations || {};
+            const ai = settings.ai || {};
             const setSwitch = (id, enabled) => {
                 const element = document.getElementById(id);
                 if (!element) return;
@@ -4398,20 +4759,143 @@
             document.getElementById("setting-environment").textContent = settings.environment || state.environment || "-";
             document.getElementById("setting-worker-concurrency").textContent = worker.concurrency ?? "-";
             document.getElementById("setting-worker-prefix").textContent = worker.queuePrefix || "-";
+            document.getElementById("setting-groq-model").textContent = ai.groqModel || "-";
             setSwitch("setting-dashboard-auth", dashboard.authEnabled);
             setSwitch("setting-worker-enabled", worker.enabled);
             setSwitch("setting-migrations-auto-run", migrations.autoRun);
             setSwitch("setting-dashboard-enabled", dashboard.enabled);
+            setSwitch("setting-groq-api-key", ai.groqApiKeyConfigured);
         }
 
         function renderAiPlaceholders() {
             const workflowCount = document.getElementById("ai-workflow-count");
             const executionCount = document.getElementById("ai-execution-count");
             const errorCount = document.getElementById("ai-error-count");
+            const lockedShell = document.getElementById("ai-locked-shell");
+            const insight = state.aiInsight;
+            const evidence = insight?.evidence || [];
+            const actions = insight?.recommendedActions || [];
 
-            if (workflowCount) workflowCount.textContent = state.workflows.length;
-            if (executionCount) executionCount.textContent = state.executions.length;
-            if (errorCount) errorCount.textContent = state.errors.length;
+            if (state.aiInsightLoading) {
+                state.aiKeyMissing = false;
+            }
+
+            if (lockedShell) {
+                lockedShell.classList.toggle("is-locked", state.aiKeyMissing);
+            }
+
+            if (workflowCount) workflowCount.textContent = insight?.sourceCounts?.workflows ?? state.workflows.length;
+            if (executionCount) executionCount.textContent = insight?.sourceCounts?.executions ?? state.executions.length;
+            if (errorCount) errorCount.textContent = insight?.sourceCounts?.errors ?? state.errors.length;
+
+            document.getElementById("ai-confidence").textContent = `${insight?.confidence ?? 0}%`;
+
+            if (state.aiInsightLoading) {
+                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>generating</span>`;
+                document.getElementById("ai-insight-kicker").textContent = "Generating insight";
+                document.getElementById("ai-insight-summary").textContent = "Sending current Pilot table context to Groq.";
+                document.getElementById("ai-insight-cause").textContent = "The server is gathering workflows, executions, traces, errors, flags, and health checks before calling the model.";
+                document.getElementById("ai-model-state").textContent = "Loading";
+                document.getElementById("ai-model-state-copy").textContent = "Waiting for /api/ai-insights.";
+                return;
+            }
+
+            if (state.aiKeyMissing) {
+                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>API key required</span>`;
+                document.getElementById("ai-insight-kicker").textContent = "Groq API key required";
+                document.getElementById("ai-insight-summary").textContent = "Insert the API key in the settings page.";
+                document.getElementById("ai-insight-cause").textContent = "AI Insights is locked until GROQ_API_KEY is configured on the backend.";
+                document.getElementById("ai-insight-impact").textContent = "AI generation is disabled until the server has a Groq API key.";
+                document.getElementById("ai-model-state").textContent = "Locked";
+                document.getElementById("ai-model-state-copy").textContent = "Set GROQ_API_KEY before generating analysis.";
+                document.getElementById("ai-context-source").textContent = "Locked";
+                document.getElementById("ai-evidence-count").textContent = "0 items";
+                document.getElementById("ai-action-count").textContent = "0 actions";
+                document.getElementById("ai-evidence-preview").textContent = "Add GROQ_API_KEY in settings.";
+                document.getElementById("ai-action-preview").textContent = "Open settings to configure the AI provider.";
+                document.getElementById("ai-insight-tags").innerHTML = `
+                <span class="ai-tag">source: <strong>locked</strong></span>
+                <span class="ai-tag">status: <strong>API key required</strong></span>
+            `;
+                document.getElementById("ai-evidence-list").innerHTML = "";
+                document.getElementById("ai-action-list").innerHTML = "";
+                return;
+            }
+
+            if (state.aiInsightError) {
+                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge bad"><span class="dot"></span>error</span>`;
+                document.getElementById("ai-insight-kicker").textContent = "AI insight failed";
+                document.getElementById("ai-insight-summary").textContent = "Could not generate AI insight.";
+                document.getElementById("ai-insight-cause").textContent = state.aiInsightError;
+                document.getElementById("ai-model-state").textContent = "Error";
+                document.getElementById("ai-model-state-copy").textContent = "Check the backend logs and Groq configuration.";
+                return;
+            }
+
+            if (!insight) {
+                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>not loaded</span>`;
+                document.getElementById("ai-evidence-list").innerHTML = "";
+                document.getElementById("ai-action-list").innerHTML = "";
+                return;
+            }
+
+            document.getElementById("ai-insight-status").outerHTML = state.aiModelConfigured
+                ? `<span id="ai-insight-status" class="badge ok"><span class="dot"></span>generated</span>`
+                : `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>not configured</span>`;
+            document.getElementById("ai-insight-kicker").textContent = state.aiModelConfigured ? "Groq insight" : "AI insight";
+            document.getElementById("ai-insight-summary").textContent = insight.summary;
+            document.getElementById("ai-insight-cause").textContent = insight.likelyCause;
+            document.getElementById("ai-insight-impact").textContent = insight.impact;
+            document.getElementById("ai-context-source").textContent = state.aiModelConfigured ? "Groq" : "Server";
+            document.getElementById("ai-evidence-count").textContent = `${evidence.length} item${evidence.length === 1 ? "" : "s"}`;
+            document.getElementById("ai-action-count").textContent = `${actions.length} action${actions.length === 1 ? "" : "s"}`;
+            document.getElementById("ai-evidence-preview").textContent = evidence[0] || "No evidence returned.";
+            document.getElementById("ai-action-preview").textContent = actions[0] || "No action returned.";
+            document.getElementById("ai-model-state").textContent = state.aiModelConfigured ? "Model configured" : "Groq key missing";
+            document.getElementById("ai-model-state-copy").textContent = state.aiModelConfigured
+                ? "Response came from the Groq API."
+                : "Set GROQ_API_KEY to enable model-generated analysis.";
+            document.getElementById("ai-insight-tags").innerHTML = `
+                <span class="ai-tag">source: <strong>${state.aiModelConfigured ? "Groq" : "not configured"}</strong></span>
+                <span class="ai-tag">context: <strong>${insight.sourceCounts.executions} executions</strong></span>
+                <span class="ai-tag">errors: <strong>${insight.sourceCounts.errors}</strong></span>
+            `;
+            document.getElementById("ai-evidence-list").innerHTML = evidence.length ? evidence.map((item, index) => `
+                <div class="ai-action">
+                    <div class="ai-action-index">${index + 1}</div>
+                    <div><div class="ai-action-title">${escapeHtml(item)}</div></div>
+                </div>
+            `).join("") : `<div class="empty-state"><div class="empty-title">No evidence returned</div></div>`;
+            document.getElementById("ai-action-list").innerHTML = actions.length ? actions.map((item, index) => `
+                <div class="ai-action">
+                    <div class="ai-action-index">${index + 1}</div>
+                    <div><div class="ai-action-title">${escapeHtml(item)}</div></div>
+                </div>
+            `).join("") : `<div class="empty-state"><div class="empty-title">No actions returned</div></div>`;
+        }
+
+        async function loadAiInsights() {
+            state.aiInsightLoading = true;
+            state.aiInsightError = null;
+            state.aiKeyMissing = false;
+            renderAiPlaceholders();
+
+            try {
+                const data = await apiRequest("ai-insights");
+                state.aiInsight = data.insight || null;
+                state.aiModelConfigured = Boolean(data.modelConfigured);
+                state.aiKeyMissing = false;
+            }
+            catch (error) {
+                state.aiInsight = null;
+                state.aiModelConfigured = false;
+                state.aiKeyMissing = error?.status === 428 || error?.code === "groq_api_key_missing";
+                state.aiInsightError = state.aiKeyMissing ? null : error instanceof Error ? error.message : "AI insight request failed";
+            }
+            finally {
+                state.aiInsightLoading = false;
+                renderAiPlaceholders();
+            }
         }
 
         function renderAll() {
@@ -4766,4 +5250,5 @@
         loadDashboardData();
     </script>
 </body>
+
 </html>
