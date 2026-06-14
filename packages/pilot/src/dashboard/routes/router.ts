@@ -45,6 +45,7 @@ import {
 } from "./dashboardResponse.js"
 import { generateGroqInsight, listGroqModels, askGroqAssistant, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
 import { savePilotEnv, isGroqApiKeyConfigured, getGroqModel } from "../../utils/pilotEnvStore.js"
+import { z } from "zod"
 
 interface DashboardRouterOptions {
     config: NormalizedPilotConfig
@@ -61,12 +62,28 @@ async function invalidateFlagCache(redisClient: Redis, flagKey: string): Promise
     }
 }
 
+function validate(schema: z.ZodSchema) {
+    return (req: any, res: any, next: any) => {
+        const result = schema.safeParse(req.body)
+        if (!result.success) {
+            res.status(400).json({
+                error: {
+                    code: "validation_error",
+                    message: result.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join("; "),
+                },
+            })
+            return
+        }
+        req.body = result.data
+        next()
+    }
+}
+
 async function dashboardError(res: any, error: unknown): Promise<void> {
-    const message = error instanceof Error ? error.message : "Dashboard API request failed"
     res.status(500).json({
         error: {
             code: "dashboard_api_error",
-            message,
+            message: "An internal error occurred",
         },
     })
 }
@@ -128,7 +145,7 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
-    router.use(json())
+    router.use(json({ limit: "100kb" }))
     router.use(createRequestTracingMiddleware(postgresPool))
 
     const __filename = fileURLToPath(import.meta.url)
@@ -277,7 +294,30 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         res.json({ flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)) })
     })
 
-    router.post("/api/flags", async (req, res) => {
+    const flagCreateSchema = z.object({
+        key: z.string().min(1).max(128),
+        description: z.string().max(512).optional(),
+        enabled: z.boolean().optional(),
+        rolloutPercentage: z.number().min(0).max(100).optional(),
+        changedBy: z.string().max(128).optional(),
+    })
+
+    const flagUpdateSchema = z.object({
+        description: z.string().max(512).optional(),
+        enabled: z.boolean().optional(),
+        rolloutPercentage: z.number().min(0).max(100).optional(),
+        changedBy: z.string().max(128).optional(),
+    })
+
+    const flagRuleSchema = z.object({
+        attribute: z.string().min(1).max(128),
+        operator: z.enum(["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with"]),
+        value: z.string().min(1).max(512),
+        enabled: z.boolean().optional(),
+        changedBy: z.string().max(128).optional(),
+    })
+
+    router.post("/api/flags", validate(flagCreateSchema), async (req, res) => {
         const flag = await createFlag(postgresPool, {
             key: req.body.key,
             description: req.body.description,
@@ -307,7 +347,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         })
     })
 
-    router.patch("/api/flags/:key", async (req, res) => {
+    router.patch("/api/flags/:key", validate(flagUpdateSchema), async (req, res) => {
         const flag = await updateFlag(postgresPool, req.params.key, {
             description: req.body.description,
             enabled: req.body.enabled,
@@ -355,7 +395,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         res.json({ rules: rules.map(serializeRule) })
     })
 
-    router.post("/api/flags/:key/rules", async (req, res) => {
+    router.post("/api/flags/:key/rules", validate(flagRuleSchema), async (req, res) => {
         const rule = await createFlagRule(postgresPool, {
             flagKey: req.params.key,
             attribute: req.body.attribute,
@@ -581,18 +621,16 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
-    router.post("/api/settings/ai-key", async (req, res) => {
+    const aiKeySchema = z.object({
+        groqApiKey: z.string().min(1).max(512).optional(),
+        groqModel: z.string().min(1).max(128).optional(),
+    }).refine((d) => d.groqApiKey || d.groqModel, { message: "groqApiKey or groqModel is required" })
+
+    router.post("/api/settings/ai-key", validate(aiKeySchema), async (req, res) => {
         try {
-            const { groqApiKey, groqModel } = req.body
-
-            if (!groqApiKey && !groqModel) {
-                res.status(400).json({ error: "groqApiKey or groqModel is required" })
-                return
-            }
-
             await savePilotEnv({
-                ...(groqApiKey ? { groqApiKey } : {}),
-                ...(groqModel ? { groqModel } : {}),
+                ...(req.body.groqApiKey ? { groqApiKey: req.body.groqApiKey } : {}),
+                ...(req.body.groqModel ? { groqModel: req.body.groqModel } : {}),
             })
 
             res.json({ success: true })
@@ -601,7 +639,19 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
-    router.post("/api/settings", async (req, res) => {
+    const settingsSchema = z.object({
+        environment: z.string().max(64).optional(),
+        dashboardPath: z.string().max(256).optional(),
+        dashboardEnabled: z.boolean().optional(),
+        dashboardAuthEnabled: z.boolean().optional(),
+        workerEnabled: z.boolean().optional(),
+        workerConcurrency: z.number().int().min(1).max(100).optional(),
+        queuePrefix: z.string().max(64).optional(),
+        autoRunMigrations: z.boolean().optional(),
+        groqModel: z.string().max(128).optional(),
+    })
+
+    router.post("/api/settings", validate(settingsSchema), async (req, res) => {
         try {
             const {
                 environment,
@@ -635,7 +685,16 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
-    router.post("/api/ai-chat", async (req, res) => {
+    const aiChatSchema = z.object({
+        message: z.string().min(1).max(4096),
+        history: z.array(z.object({
+            role: z.enum(["user", "assistant"]),
+            content: z.string().max(4096),
+        })).max(50).default([]),
+        model: z.string().max(128).optional(),
+    })
+
+    router.post("/api/ai-chat", validate(aiChatSchema), async (req, res) => {
         try {
             if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
@@ -647,14 +706,9 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 return
             }
 
-            const { message, history, model } = req.body
-            if (!message) {
-                res.status(400).json({ error: "Message is required" })
-                return
-            }
-
+            const sanitizedHistory = req.body.history.filter((m: any) => m.role !== "system")
             const context = await buildAiInsightContext(options)
-            const responseText = await askGroqAssistant(context, message, history || [], model)
+            const responseText = await askGroqAssistant(context, req.body.message, sanitizedHistory, req.body.model)
 
             res.json({ response: responseText })
         }
