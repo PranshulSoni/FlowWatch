@@ -38,8 +38,23 @@ function getClientIp(req: Request): string | undefined {
     const forwardedFor = req.get("x-forwarded-for")
 
     if (forwardedFor) {
-        return forwardedFor.split(",")[0]?.trim()
+        return normalizeClientIp(forwardedFor.split(",")[0]?.trim())
     }
 
-    return req.ip || req.socket.remoteAddress || undefined
+    return normalizeClientIp(req.ip || req.socket.remoteAddress || undefined)
+}
+
+function normalizeClientIp(value: string | undefined): string | undefined {
+    if (!value) return undefined
+
+    const ip = value.trim()
+    if (ip === "::1" || ip === "::ffff:127.0.0.1") {
+        return "127.0.0.1"
+    }
+
+    if (ip.startsWith("::ffff:")) {
+        return ip.slice("::ffff:".length)
+    }
+
+    return ip
 }

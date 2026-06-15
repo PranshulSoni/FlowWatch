@@ -7,21 +7,22 @@
     <title>Flowwatch Dashboard</title>
     <style>
         :root {
-            --bg: #090b0f;
-            --panel: #11151b;
-            --panel-2: #171c24;
-            --panel-3: #1d2430;
-            --line: #27303d;
-            --line-soft: #1e2631;
+            --bg: #080b10;
+            --panel: #10151d;
+            --panel-2: #161d28;
+            --panel-3: #202938;
+            --line: #2b3748;
+            --line-soft: #1d2633;
             --text: #eef2f7;
-            --muted: #8d98a8;
-            --subtle: #5f6b7c;
+            --muted: #9aa7ba;
+            --subtle: #68778c;
             --blue: #4f8cff;
             --green: #22c55e;
             --amber: #f59e0b;
             --red: #ef4444;
             --cyan: #22d3ee;
-            --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+            --shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
+            --shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.18);
             color-scheme: dark;
             font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
@@ -33,7 +34,10 @@
         body {
             margin: 0;
             min-height: 100vh;
-            background: var(--bg);
+            background:
+                radial-gradient(circle at 18% 0%, rgba(79, 140, 255, 0.08), transparent 32%),
+                radial-gradient(circle at 100% 18%, rgba(34, 211, 238, 0.045), transparent 28%),
+                var(--bg);
             color: var(--text);
             overflow: hidden;
         }
@@ -106,7 +110,9 @@
 
         .sidebar {
             width: 100%;
-            background: #0d1117;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 18%),
+                #0b1017;
             border-right: 1px solid var(--line-soft);
             display: flex;
             flex-direction: column;
@@ -215,6 +221,19 @@
             font-size: 13px;
             text-align: left;
             white-space: nowrap;
+            position: relative;
+            transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+        }
+
+        .nav-button::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            top: 8px;
+            bottom: 8px;
+            width: 3px;
+            border-radius: 0 999px 999px 0;
+            background: transparent;
         }
 
         .nav-button:hover {
@@ -227,6 +246,10 @@
             color: #dbeafe;
             background: rgba(79, 140, 255, 0.14);
             border-color: rgba(79, 140, 255, 0.36);
+        }
+
+        .nav-button.active::before {
+            background: var(--blue);
         }
 
         .nav-icon {
@@ -280,7 +303,8 @@
         .topbar {
             height: 58px;
             border-bottom: 1px solid var(--line-soft);
-            background: rgba(13, 17, 23, 0.92);
+            background: rgba(9, 13, 19, 0.86);
+            backdrop-filter: blur(14px);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -455,6 +479,15 @@
             box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.08);
         }
 
+        .button:focus-visible,
+        .icon-button:focus-visible,
+        .select:focus-visible,
+        .search:focus-visible {
+            outline: 0;
+            border-color: rgba(79, 140, 255, 0.78);
+            box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.16);
+        }
+
         .button.primary {
             background:
                 linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent),
@@ -471,6 +504,16 @@
             display: grid;
             place-items: center;
             font-weight: 800;
+        }
+
+        .icon-button svg {
+            width: 15px;
+            height: 15px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
         }
 
         .content {
@@ -554,7 +597,9 @@
         }
 
         .metric {
-            background: var(--panel);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.026), transparent),
+                var(--panel);
             border: 1px solid var(--line-soft);
             border-radius: 8px;
             padding: 13px;
@@ -562,6 +607,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            box-shadow: var(--shadow-soft);
+            transition: transform 140ms ease, border-color 140ms ease;
+        }
+
+        .metric:hover {
+            transform: translateY(-1px);
+            border-color: rgba(79, 140, 255, 0.32);
         }
 
         .metric-label {
@@ -590,7 +642,9 @@
         }
 
         .panel {
-            background: rgba(17, 21, 27, 0.96);
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent),
+                rgba(16, 21, 29, 0.97);
             border: 1px solid var(--line-soft);
             border-radius: 8px;
             overflow: hidden;
@@ -605,7 +659,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            background: rgba(23, 28, 36, 0.72);
+            background: rgba(22, 29, 40, 0.82);
         }
 
         .panel-title {
@@ -768,6 +822,10 @@
             text-align: left;
             padding: 10px 12px;
             white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #10151d;
         }
 
         td {
@@ -3057,7 +3115,7 @@
         }
 
         #page-ask-ai .ask-ai-composer-wrap {
-            padding: 18px;
+            padding: 20px;
             border-top: 1px solid rgba(79, 140, 255, 0.16);
             background: linear-gradient(180deg, rgba(9, 13, 19, 0.5), #090d13 44%);
         }
@@ -3492,7 +3550,14 @@
                         <option>Last 24 hours</option>
                         <option>Last 7 days</option>
                     </select>
-                    <button id="refresh-button" class="icon-button" title="Refresh">R</button>
+                    <button id="refresh-button" class="icon-button" title="Refresh" aria-label="Refresh">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M20 6v5h-5" />
+                            <path d="M4 18v-5h5" />
+                            <path d="M18.5 9A7 7 0 0 0 6.2 6.8L4 9" />
+                            <path d="M5.5 15A7 7 0 0 0 17.8 17.2L20 15" />
+                        </svg>
+                    </button>
                 </div>
             </header>
 
