@@ -85,6 +85,19 @@
             }
         }
 
+        @keyframes softPulse {
+            0%,
+            100% {
+                opacity: 0.78;
+                box-shadow: 0 0 0 rgba(79, 140, 255, 0);
+            }
+
+            50% {
+                opacity: 1;
+                box-shadow: 0 0 18px rgba(79, 140, 255, 0.14);
+            }
+        }
+
         button,
         input,
         select,
@@ -326,12 +339,9 @@
             white-space: nowrap;
         }
 
-        .env-pill {
-            border: 1px solid rgba(34, 197, 94, 0.28);
-            color: #86efac;
-            background: rgba(34, 197, 94, 0.1);
-            border-radius: 6px;
-            padding: 4px 8px;
+        .env-label {
+            color: var(--muted);
+            padding: 0;
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 11px;
         }
@@ -477,6 +487,12 @@
             border-color: #455164;
             background-color: #101722;
             box-shadow: 0 0 0 3px rgba(79, 140, 255, 0.08);
+        }
+
+        .button:active,
+        .icon-button:active,
+        .ask-ai-send-button:active {
+            transform: translateY(1px);
         }
 
         .button:focus-visible,
@@ -649,6 +665,11 @@
             border-radius: 8px;
             overflow: hidden;
             box-shadow: var(--shadow);
+            transition: border-color 140ms ease, box-shadow 140ms ease;
+        }
+
+        .panel:hover {
+            border-color: rgba(79, 140, 255, 0.24);
         }
 
         .panel-header {
@@ -843,6 +864,21 @@
             background: rgba(79, 140, 255, 0.06);
         }
 
+        .badge.is-live .dot {
+            animation: softPulse 1.8s ease-in-out infinite;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.001ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+                transition-duration: 0.001ms !important;
+            }
+        }
+
         .mono {
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
         }
@@ -872,6 +908,16 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
             line-height: 1;
+        }
+
+        .meta-label {
+            color: var(--subtle);
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 10px;
+            font-weight: 650;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            white-space: nowrap;
         }
 
         .dot {
@@ -3524,7 +3570,7 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <div class="service-name" id="top-service">-</div>
-                    <span id="top-environment" class="env-pill">-</span>
+                    <span id="top-environment" class="env-label">-</span>
                 </div>
                 <div class="topbar-right">
                     <div class="global-search" id="global-search-shell">
@@ -3566,7 +3612,7 @@
                             <p id="summary-copy" class="summary-copy">Flowwatch is reading workflows, executions, feature
                                 flags, traces, errors, and health checks from the configured tables.</p>
                             <div id="summary-actions" class="summary-actions">
-                                <span class="badge warn"><span class="dot"></span>loading</span>
+                                <span class="badge warn is-live"><span class="dot"></span>loading</span>
                             </div>
                         </div>
                         <div class="summary-side">
@@ -3691,7 +3737,7 @@
                                 <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin up to 4 workflows
                                     from the table below</div>
                             </div>
-                            <span class="badge info" id="pinned-count">0 / 4 pinned</span>
+                            <span class="meta-label" id="pinned-count">0 / 4 pinned</span>
                         </div>
                         <div class="workflow-grid" id="workflow-chain-grid"></div>
                     </div>
@@ -3813,8 +3859,7 @@
                     </div>
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Captured errors</div><span class="badge cyan"><span
-                                    class="dot"></span>Elasticsearch search</span>
+                            <div class="panel-title">Captured errors</div><span class="meta-label">Elasticsearch search</span>
                         </div>
                         <div class="table-wrap">
                             <table>
@@ -3848,14 +3893,14 @@
                         <div class="panel">
                             <div class="panel-header">
                                 <div class="panel-title">Trace graph</div>
-                                <span class="badge info">green completed / yellow running / red failed</span>
+                                <span class="meta-label">Green completed / yellow running / red failed</span>
                             </div>
                             <div class="trace-board" id="trace-graph"></div>
                         </div>
                         <div class="panel">
                             <div class="panel-header">
                                 <div class="panel-title">Span inspector</div>
-                                <span class="badge info">selected trace</span>
+                                <span class="meta-label">Selected trace</span>
                             </div>
                             <div class="trace-inspector">
                                 <div class="field-grid">
@@ -3883,8 +3928,7 @@
                     </div>
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Request traces</div><span class="badge cyan"><span
-                                    class="dot"></span>Indexed spans</span>
+                            <div class="panel-title">Request traces</div><span class="meta-label">Indexed spans</span>
                         </div>
                         <div class="table-wrap">
                             <table>
@@ -3989,14 +4033,14 @@
                                 <div class="ai-card">
                                     <div class="ai-card-head">
                                         <div class="ai-card-title">Evidence used</div>
-                                        <span class="badge info"><span class="dot"></span>model output</span>
+                                        <span class="meta-label">Model output</span>
                                     </div>
                                     <div id="ai-evidence-list" class="ai-action-list"></div>
                                 </div>
                                 <div class="ai-card">
                                     <div class="ai-card-head">
                                         <div class="ai-card-title">Recommended actions</div>
-                                        <span class="badge ok"><span class="dot"></span>ordered</span>
+                                        <span class="meta-label">Ordered</span>
                                     </div>
                                     <div id="ai-action-list" class="ai-action-list"></div>
                                 </div>
@@ -4633,7 +4677,7 @@
                 document.getElementById("summary-actions").innerHTML = `
                     <span class="badge bad"><span class="dot"></span>${failedExecutions.length} failed executions</span>
                     <span class="badge warn"><span class="dot"></span>${runningExecutions.length} running executions</span>
-                    <span class="badge info">${state.errors.length} captured errors</span>
+                    <span class="meta-label">${state.errors.length} captured errors</span>
                 `;
             }
             else {
@@ -4643,8 +4687,8 @@
                     : "Run or trigger workflows in Flowwatch to populate dashboard tables.";
                 document.getElementById("summary-actions").innerHTML = `
                     <span class="badge ok"><span class="dot"></span>${state.workflows.length} workflows</span>
-                    <span class="badge info">${state.traces.length} traces</span>
-                    <span class="badge info">${state.flags.length} flags</span>
+                    <span class="meta-label">${state.traces.length} traces</span>
+                    <span class="meta-label">${state.flags.length} flags</span>
                 `;
             }
 
@@ -5286,7 +5330,7 @@
             document.getElementById("ai-confidence").textContent = `${insight?.confidence ?? 0}%`;
 
             if (state.aiInsightLoading) {
-                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>generating</span>`;
+                document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn is-live"><span class="dot"></span>generating</span>`;
                 document.getElementById("ai-insight-kicker").textContent = "Generating insight";
                 document.getElementById("ai-insight-summary").textContent = "Sending current Flowwatch table context to Groq.";
                 document.getElementById("ai-insight-cause").textContent = "The server is gathering workflows, executions, traces, errors, flags, and health checks before calling the model.";
@@ -5335,7 +5379,7 @@
             }
 
             document.getElementById("ai-insight-status").outerHTML = state.aiModelConfigured
-                ? `<span id="ai-insight-status" class="badge ok"><span class="dot"></span>generated</span>`
+                ? `<span id="ai-insight-status" class="meta-label">Generated</span>`
                 : `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>not configured</span>`;
             document.getElementById("ai-insight-kicker").textContent = state.aiModelConfigured ? "Groq insight" : "AI insight";
             document.getElementById("ai-insight-summary").textContent = insight.summary;
@@ -5641,7 +5685,7 @@
                 <div class="panel" style="box-shadow:none;margin-bottom:14px">
                     <div class="panel-header">
                         <div class="panel-title">Execution history</div>
-                        <span class="badge info"><span class="dot"></span>${allExecs.length} execution${allExecs.length !== 1 ? 's' : ''}</span>
+                        <span class="meta-label">${allExecs.length} execution${allExecs.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="table-wrap" style="max-height:200px;overflow-y:auto">
                         <table>
@@ -5655,7 +5699,7 @@
                 <div class="panel" style="box-shadow: none;">
                     <div class="panel-header">
                         <div class="panel-title">Latest execution steps</div>
-                        <span class="badge info"><span class="dot"></span>${steps.length} steps</span>
+                        <span class="meta-label">${steps.length} steps</span>
                     </div>
                     <div class="timeline">
                         ${steps.map((step) => `
@@ -5756,7 +5800,7 @@
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-title"><span>${escapeHtml(span.name)}</span><span class="mono muted">${escapeHtml(span.duration)}ms</span></div>
-                                <div class="timeline-desc"><span class="badge info">${escapeHtml(span.type)}</span> ${badgeForStatus(span.status)}</div>
+                                <div class="timeline-desc"><span class="meta-label">${escapeHtml(span.type)}</span> ${badgeForStatus(span.status)}</div>
                             </div>
                         </div>
                     `).join("")}
