@@ -49,7 +49,7 @@ And because all your operations data lives in the same database, we added **Groq
 ## What you get with one install
 
 ```bash
-npm install flowwatch
+npm install @pranshulsoni/flowwatch
 ```
 
 - **Durable Workflows** — define multi-step processes that survive server crashes and retry failed steps automatically
@@ -69,7 +69,7 @@ Everything stores in your own Postgres database. Redis is optional (but recommen
 
 ```ts
 import express from "express";
-import { createFlowwatch } from "flowwatch";
+import { createFlowwatch } from "@pranshulsoni/flowwatch";
 
 const app = express();
 app.use(express.json());
