@@ -218,7 +218,14 @@ async function aiProviderError(res: any, error: unknown): Promise<void> {
     })
 }
 
+// Cache AI insight context for 30 s so rapid dashboard polling doesn't hammer the DB
+let _aiContextCache: { value: PilotAiInsightContext; expiresAt: number } | null = null
+
 async function buildAiInsightContext(options: DashboardRouterOptions): Promise<PilotAiInsightContext> {
+    if (_aiContextCache && Date.now() < _aiContextCache.expiresAt) {
+        return _aiContextCache.value
+    }
+
     const { config, postgresPool, redisClient, elasticsearchClient } = options
     const [
         postgres,
@@ -244,7 +251,7 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         (executions as any[]).map((e) => e.id)
     ).catch(() => new Map<string, any[]>())
 
-    return {
+    const context: PilotAiInsightContext = {
         serviceName: config.runtime.serviceName,
         environment: config.runtime.environment,
         generatedAt: new Date().toISOString(),
@@ -292,6 +299,9 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
             { name: "Worker", status: config.worker.enabled ? "ok" : "degraded" },
         ],
     }
+
+    _aiContextCache = { value: context, expiresAt: Date.now() + 30_000 }
+    return context
 }
 
 
