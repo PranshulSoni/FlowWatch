@@ -21,8 +21,8 @@ test("Ask Flowwatch markup has a plain textbox and send button without a model p
 
     assert.match(html, /Ask Flowwatch AI/)
     assert.doesNotMatch(html, /Ask Flowwatch Assistant/)
-    assert.match(html, /Server context only/)
     assert.match(html, /only answers questions grounded in this server's observability data/)
+    assert.doesNotMatch(html, /ask-ai-scope/)
     assert.match(html, /id="ask-ai-input"/)
     assert.match(html, /id="ask-ai-submit-btn"/)
     assert.doesNotMatch(html, /id="ask-ai-model-trigger"/)
@@ -35,6 +35,8 @@ test("Ask Flowwatch AI uses full-page layout and formatted AI responses", async 
     const html = await readFile(dashboardHtmlPath, "utf8")
 
     assert.match(html, /#page-ask-ai \.ask-ai-main\s*{[^}]*border: 0;/s)
+    assert.match(html, /#page-ask-ai \.ask-ai-prompt-grid\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s)
+    assert.match(html, /#page-ask-ai \.ask-ai-input\s*{[^}]*resize: none;/s)
     assert.match(html, /ai-response/)
     assert.match(html, /function formatMessageMarkdown\(content\)/)
     assert.match(html, /\.ask-bubble\.ai-response h3/)

@@ -330,7 +330,7 @@
             border: 1px solid rgba(34, 197, 94, 0.28);
             color: #86efac;
             background: rgba(34, 197, 94, 0.1);
-            border-radius: 999px;
+            border-radius: 6px;
             padding: 4px 8px;
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 11px;
@@ -388,7 +388,7 @@
             border: 1px solid var(--line);
             background: #111722;
             color: var(--subtle);
-            border-radius: 6px;
+            border-radius: 4px;
             padding: 2px 6px;
             font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
             font-size: 10px;
@@ -864,7 +864,7 @@
             align-items: center;
             gap: 6px;
             height: 18px;
-            border-radius: 4px;
+            border-radius: 5px;
             padding: 0 6px;
             font-size: 10px;
             font-weight: 600;
@@ -2190,7 +2190,7 @@
             background: #090d13;
             color: var(--text);
             padding: 12px;
-            resize: vertical;
+            resize: none;
             outline: none;
             font-size: 13px;
             line-height: 1.5;
@@ -2241,7 +2241,7 @@
 
         .ai-tag {
             border: 1px solid var(--line);
-            border-radius: 999px;
+            border-radius: 5px;
             background: rgba(9, 13, 19, 0.78);
             padding: 6px 9px;
             color: var(--muted);
@@ -2663,7 +2663,7 @@
 
         .ai-prompt-chip {
             border: 1px solid var(--line);
-            border-radius: 999px;
+            border-radius: 6px;
             background: #090d13;
             color: var(--muted);
             padding: 7px 10px;
@@ -2686,7 +2686,7 @@
             max-height: 140px;
             border: 0;
             outline: 0;
-            resize: vertical;
+            resize: none;
             background: transparent;
             color: var(--text);
             padding: 2px;
@@ -2824,17 +2824,6 @@
             gap: 10px;
         }
 
-        .ask-ai-scope {
-            border: 1px solid rgba(34, 211, 238, 0.22);
-            border-radius: 999px;
-            background: rgba(34, 211, 238, 0.08);
-            color: #a5f3fc;
-            padding: 6px 10px;
-            font-size: 11px;
-            font-weight: 760;
-            white-space: nowrap;
-        }
-
         .ask-ai-messages {
             overflow: auto;
             padding: 22px 16px;
@@ -2922,7 +2911,7 @@
             max-height: 150px;
             border: 0;
             outline: 0;
-            resize: vertical;
+            resize: none;
             background: transparent;
             color: var(--text);
             padding: 3px;
@@ -3082,9 +3071,8 @@
 
         #page-ask-ai .ask-ai-prompt-grid {
             width: min(820px, 100%);
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 10px;
             margin-top: 8px;
         }
@@ -3123,7 +3111,7 @@
         #page-ask-ai .ask-ai-composer {
             max-width: 1040px;
             border: 1px solid rgba(79, 140, 255, 0.32);
-            border-radius: 24px;
+            border-radius: 8px;
             background:
                 linear-gradient(180deg, rgba(79, 140, 255, 0.11), rgba(79, 140, 255, 0.035)),
                 #0d1420;
@@ -3151,6 +3139,7 @@
             padding: 8px 10px;
             color: #eef5ff;
             font-size: 15px;
+            resize: none;
         }
 
         #page-ask-ai .ask-ai-input::placeholder {
@@ -3158,10 +3147,10 @@
         }
 
         .ask-ai-send-button {
-            min-width: 68px;
-            height: 36px;
+            min-width: 72px;
+            height: 40px;
             border: 1px solid rgba(147, 197, 253, 0.45);
-            border-radius: 999px;
+            border-radius: 7px;
             background: linear-gradient(180deg, #dbeafe, #bfdbfe);
             color: #07111f;
             font-size: 12px;
@@ -3447,9 +3436,9 @@
             }
 
             .ask-ai-prompt-grid {
-                grid-template-columns: repeat(4, minmax(220px, 1fr));
-                overflow-x: auto;
-                padding-bottom: 4px;
+                grid-template-columns: 1fr;
+                overflow-x: visible;
+                padding-bottom: 0;
             }
 
             .ask-ai-prompt-card {
@@ -4025,7 +4014,6 @@
                                 <div class="ask-ai-context-copy">Diagnose this server's errors, traces, workflows, flags, latency, and health.</div>
                             </div>
                             <div class="ask-ai-context-actions">
-                                <span class="ask-ai-scope">Server context only</span>
                                 <button id="ask-ai-clear-btn" class="button" type="button">Clear chat</button>
                             </div>
                         </div>
