@@ -1,6 +1,6 @@
 {
   "name": "flowwatch-monorepo",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "description": "Monorepo for the Flowwatch npm package and dashboard.",
   "private": true,
   "workspaces": [
@@ -19,8 +19,16 @@
     "type": "git",
     "url": "git+https://github.com/PranshulSoni/Flowwatch.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "express",
+    "backend",
+    "observability",
+    "dashboard",
+    "workflow",
+    "feature-flags",
+    "tracing"
+  ],
+  "author": "Pranshul Soni",
   "license": "ISC",
   "type": "module",
   "bugs": {

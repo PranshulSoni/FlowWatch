@@ -1,7 +1,7 @@
 {
   "name": "flowwatch",
-  "version": "0.0.0",
-  "description": "Embedded operations layer for Express backends.",
+  "version": "1.0.0",
+  "description": "Embedded operations dashboard, workflow runner, feature flags, tracing, error capture, health checks, and AI diagnostics for Express backends.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,10 +14,44 @@
   "files": [
     "dist"
   ],
+  "keywords": [
+    "express",
+    "backend",
+    "observability",
+    "dashboard",
+    "workflow",
+    "workflows",
+    "feature-flags",
+    "tracing",
+    "error-monitoring",
+    "health-checks",
+    "bullmq",
+    "postgres",
+    "redis",
+    "elasticsearch",
+    "groq",
+    "ai-diagnostics"
+  ],
+  "author": "Pranshul Soni",
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/copy-dashboard-static.cjs"
   },
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PranshulSoni/Flowwatch.git",
+    "directory": "packages/flowwatch"
+  },
+  "bugs": {
+    "url": "https://github.com/PranshulSoni/Flowwatch/issues"
+  },
+  "homepage": "https://github.com/PranshulSoni/Flowwatch#readme",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
     "bullmq": "^5.78.1",

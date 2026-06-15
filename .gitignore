@@ -46,6 +46,7 @@ redis-data/
 elasticsearch-data/
 flowwatch_npm_project_details.md
 PROJECT_HANDOFF.md
+docs/
 
 # Runtime temp files
 tmp/
