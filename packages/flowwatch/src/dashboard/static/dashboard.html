@@ -2237,6 +2237,7 @@
             color: var(--text);
             padding: 12px;
             resize: none;
+            scrollbar-width: none;
             outline: none;
             font-size: 13px;
             line-height: 1.5;
@@ -2278,27 +2279,6 @@
             line-height: 1.6;
         }
 
-        .ai-diagnosis-tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-top: 14px;
-        }
-
-        .ai-tag {
-            border: 1px solid var(--line);
-            border-radius: 5px;
-            background: rgba(9, 13, 19, 0.78);
-            padding: 6px 9px;
-            color: var(--muted);
-            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 10px;
-        }
-
-        .ai-tag strong {
-            color: var(--text);
-        }
-
         .ai-suspect-panel {
             border: 1px solid rgba(239, 68, 68, 0.32);
             border-radius: 8px;
@@ -2308,13 +2288,6 @@
             padding: 14px;
             display: grid;
             gap: 12px;
-        }
-
-        .ai-suspect-label {
-            color: #fecaca;
-            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 10px;
-            text-transform: uppercase;
         }
 
         .ai-suspect-title {
@@ -2733,6 +2706,7 @@
             border: 0;
             outline: 0;
             resize: none;
+            scrollbar-width: none;
             background: transparent;
             color: var(--text);
             padding: 2px;
@@ -2958,6 +2932,7 @@
             border: 0;
             outline: 0;
             resize: none;
+            scrollbar-width: none;
             background: transparent;
             color: var(--text);
             padding: 3px;
@@ -3186,10 +3161,18 @@
             color: #eef5ff;
             font-size: 15px;
             resize: none;
+            overflow: hidden;
+            scrollbar-width: none;
         }
 
         #page-ask-ai .ask-ai-input::placeholder {
             color: #8da2c4;
+        }
+
+        .ai-query::-webkit-scrollbar,
+        .ai-chat-input::-webkit-scrollbar,
+        .ask-ai-input::-webkit-scrollbar {
+            display: none;
         }
 
         .ask-ai-send-button {
@@ -3973,20 +3956,14 @@
                         <div class="ai-lock-blur">
                             <div class="ai-diagnosis-hero">
                                 <div>
-                                    <div id="ai-insight-kicker" class="ai-kicker">AI insight</div>
                                     <h2 id="ai-insight-summary" class="ai-diagnosis-title">Open AI Insights to generate
                                         analysis from your Flowwatch tables.</h2>
                                     <p id="ai-insight-cause" class="ai-diagnosis-copy">The dashboard will call the
                                         mounted <span class="mono">/api/ai-insights</span> endpoint, send structured
                                         context to Groq on the server, and render the model response here.</p>
-                                    <div id="ai-insight-tags" class="ai-diagnosis-tags">
-                                        <span class="ai-tag">source: <strong>table context</strong></span>
-                                        <span class="ai-tag">status: <strong>waiting</strong></span>
-                                    </div>
                                 </div>
                                 <div class="ai-suspect-panel">
                                     <div>
-                                        <div class="ai-suspect-label">Impact</div>
                                         <div id="ai-insight-impact" class="ai-suspect-title">No model response loaded
                                             yet.</div>
                                     </div>
@@ -4005,12 +3982,6 @@
 
                             <div class="ai-insight-grid">
                                 <div class="ai-insight-card">
-                                    <div class="ai-insight-label">Context source</div>
-                                    <div id="ai-context-source" class="ai-insight-value">Server endpoint</div>
-                                    <div class="ai-insight-desc">The browser calls the mounted dashboard route, and Groq
-                                        is called only from the backend.</div>
-                                </div>
-                                <div class="ai-insight-card">
                                     <div class="ai-insight-label">Evidence</div>
                                     <div id="ai-evidence-count" class="ai-insight-value">0 items</div>
                                     <div id="ai-evidence-preview" class="ai-insight-desc">No evidence returned yet.
@@ -4020,12 +3991,6 @@
                                     <div class="ai-insight-label">Recommended actions</div>
                                     <div id="ai-action-count" class="ai-insight-value">0 actions</div>
                                     <div id="ai-action-preview" class="ai-insight-desc">No action returned yet.</div>
-                                </div>
-                                <div class="ai-insight-card">
-                                    <div class="ai-insight-label">Current state</div>
-                                    <div id="ai-model-state" class="ai-insight-value">Waiting</div>
-                                    <div id="ai-model-state-copy" class="ai-insight-desc">The endpoint has not been
-                                        called yet.</div>
                                 </div>
                             </div>
 
@@ -5331,31 +5296,20 @@
 
             if (state.aiInsightLoading) {
                 document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn is-live"><span class="dot"></span>generating</span>`;
-                document.getElementById("ai-insight-kicker").textContent = "Generating insight";
                 document.getElementById("ai-insight-summary").textContent = "Sending current Flowwatch table context to Groq.";
                 document.getElementById("ai-insight-cause").textContent = "The server is gathering workflows, executions, traces, errors, flags, and health checks before calling the model.";
-                document.getElementById("ai-model-state").textContent = "Loading";
-                document.getElementById("ai-model-state-copy").textContent = "Waiting for /api/ai-insights.";
                 return;
             }
 
             if (state.aiKeyMissing) {
                 document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>API key required</span>`;
-                document.getElementById("ai-insight-kicker").textContent = "Groq API key required";
                 document.getElementById("ai-insight-summary").textContent = "Insert the API key in the settings page.";
                 document.getElementById("ai-insight-cause").textContent = "AI Insights is locked until GROQ_API_KEY is configured on the backend.";
                 document.getElementById("ai-insight-impact").textContent = "AI generation is disabled until the server has a Groq API key.";
-                document.getElementById("ai-model-state").textContent = "Locked";
-                document.getElementById("ai-model-state-copy").textContent = "Set GROQ_API_KEY before generating analysis.";
-                document.getElementById("ai-context-source").textContent = "Locked";
                 document.getElementById("ai-evidence-count").textContent = "0 items";
                 document.getElementById("ai-action-count").textContent = "0 actions";
                 document.getElementById("ai-evidence-preview").textContent = "Add GROQ_API_KEY in settings.";
                 document.getElementById("ai-action-preview").textContent = "Open settings to configure the AI provider.";
-                document.getElementById("ai-insight-tags").innerHTML = `
-                <span class="ai-tag">source: <strong>locked</strong></span>
-                <span class="ai-tag">status: <strong>API key required</strong></span>
-            `;
                 document.getElementById("ai-evidence-list").innerHTML = "";
                 document.getElementById("ai-action-list").innerHTML = "";
                 return;
@@ -5363,11 +5317,8 @@
 
             if (state.aiInsightError) {
                 document.getElementById("ai-insight-status").outerHTML = `<span id="ai-insight-status" class="badge bad"><span class="dot"></span>error</span>`;
-                document.getElementById("ai-insight-kicker").textContent = "AI insight failed";
                 document.getElementById("ai-insight-summary").textContent = "Could not generate AI insight.";
                 document.getElementById("ai-insight-cause").textContent = state.aiInsightError;
-                document.getElementById("ai-model-state").textContent = "Error";
-                document.getElementById("ai-model-state-copy").textContent = "Check the backend logs and Groq configuration.";
                 return;
             }
 
@@ -5381,24 +5332,13 @@
             document.getElementById("ai-insight-status").outerHTML = state.aiModelConfigured
                 ? `<span id="ai-insight-status" class="meta-label">Generated</span>`
                 : `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>not configured</span>`;
-            document.getElementById("ai-insight-kicker").textContent = state.aiModelConfigured ? "Groq insight" : "AI insight";
             document.getElementById("ai-insight-summary").textContent = insight.summary;
             document.getElementById("ai-insight-cause").textContent = insight.likelyCause;
             document.getElementById("ai-insight-impact").textContent = insight.impact;
-            document.getElementById("ai-context-source").textContent = state.aiModelConfigured ? "Groq" : "Server";
             document.getElementById("ai-evidence-count").textContent = `${evidence.length} item${evidence.length === 1 ? "" : "s"}`;
             document.getElementById("ai-action-count").textContent = `${actions.length} action${actions.length === 1 ? "" : "s"}`;
             document.getElementById("ai-evidence-preview").textContent = evidence[0] || "No evidence returned.";
             document.getElementById("ai-action-preview").textContent = actions[0] || "No action returned.";
-            document.getElementById("ai-model-state").textContent = state.aiModelConfigured ? "Model configured" : "Groq key missing";
-            document.getElementById("ai-model-state-copy").textContent = state.aiModelConfigured
-                ? "Response came from the Groq API."
-                : "Set GROQ_API_KEY to enable model-generated analysis.";
-            document.getElementById("ai-insight-tags").innerHTML = `
-                <span class="ai-tag">source: <strong>${state.aiModelConfigured ? "Groq" : "not configured"}</strong></span>
-                <span class="ai-tag">context: <strong>${insight.sourceCounts.executions} executions</strong></span>
-                <span class="ai-tag">errors: <strong>${insight.sourceCounts.errors}</strong></span>
-            `;
             document.getElementById("ai-evidence-list").innerHTML = evidence.length ? evidence.map((item, index) => `
                 <div class="ai-action">
                     <div class="ai-action-index">${index + 1}</div>
