@@ -1,5 +1,7 @@
 # FlowWatch
 
+[![npm version](https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch) [![npm downloads](https://img.shields.io/npm/dm/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch) [![npm license](https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch)
+
 **The world's first npm package that gives you durable workflows, feature flags, request tracing, and error reporting — all in one, completely free, and running entirely inside your own Express app.**
 
 No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your data.
