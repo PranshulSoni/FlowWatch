@@ -1,6 +1,6 @@
 {
   "name": "@pranshulsoni/flowwatch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Embedded operations dashboard, workflow runner, feature flags, tracing, error capture, health checks, and AI diagnostics for Express backends.",
   "type": "module",
   "main": "./dist/index.js",
