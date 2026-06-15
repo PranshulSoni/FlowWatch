@@ -39,13 +39,13 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PranshulSoni/Flowwatch.git",
+    "url": "git+https://github.com/PranshulSoni/FlowWatch.git",
     "directory": "packages/flowwatch"
   },
   "bugs": {
-    "url": "https://github.com/PranshulSoni/Flowwatch/issues"
+    "url": "https://github.com/PranshulSoni/FlowWatch/issues"
   },
-  "homepage": "https://github.com/PranshulSoni/Flowwatch#readme",
+  "homepage": "https://github.com/PranshulSoni/FlowWatch#readme",
   "engines": {
     "node": ">=20.6.0"
   },
