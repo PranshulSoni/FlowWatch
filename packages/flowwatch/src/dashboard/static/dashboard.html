@@ -145,10 +145,16 @@
             display: flex;
             align-items: center;
             gap: 12px;
-            justify-content: flex-start;
-            padding: 0 19px;
+            justify-content: center;
+            padding: 0;
             border-bottom: 1px solid var(--line-soft);
             position: relative;
+        }
+
+        .sidebar:hover .brand,
+        .sidebar:focus-within .brand {
+            justify-content: flex-start;
+            padding: 0 19px;
         }
 
         .brand-copy,
@@ -176,9 +182,9 @@
         }
 
         .brand-mark {
-            width: 24px;
+            width: 32px;
             height: 24px;
-            flex: 0 0 24px;
+            flex: 0 0 32px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -187,7 +193,7 @@
         }
 
         .brand-mark img {
-            width: 24px;
+            width: 32px;
             height: 24px;
             object-fit: contain;
         }
@@ -3220,9 +3226,9 @@
         }
 
         .brand-mark {
-            width: 24px;
+            width: 32px;
             height: 24px;
-            flex: 0 0 24px;
+            flex: 0 0 32px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -3231,7 +3237,7 @@
         }
 
         .brand-mark img {
-            width: 24px;
+            width: 32px;
             height: 24px;
             object-fit: contain;
         }
@@ -5210,7 +5216,7 @@
                     body: JSON.stringify(body),
                 });
 
-                // Update in-memory state Ã¢â‚¬â€ backend is the source of truth
+                // Update in-memory state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â backend is the source of truth
                 state.settings = state.settings || {};
                 state.settings.ai = state.settings.ai || {};
                 state.settings.ai.groqApiKeyConfigured = true;
@@ -5220,7 +5226,7 @@
                 statusEl.className = "setting-note status-ok";
                 input.value = "";
                 // Show masked indicator after save
-                input.placeholder = "Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢" + key.slice(-4);
+                input.placeholder = "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢" + key.slice(-4);
             }
             catch (error) {
                 statusEl.textContent = error.message || "failed";
@@ -5229,14 +5235,14 @@
         }
 
         function loadSavedGroqCredentials() {
-            // Key status comes from backend settings (state.settings.ai) Ã¢â‚¬â€ never from localStorage
+            // Key status comes from backend settings (state.settings.ai) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never from localStorage
             // Model preference also comes from backend settings
             const ai = state.settings?.ai || {};
             const keyInput = document.getElementById("setting-groq-api-key-input");
             const modelSelect = document.getElementById("setting-groq-model-select");
 
             if (ai.groqApiKeyConfigured && keyInput) {
-                keyInput.placeholder = "Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢Ã¢â‚¬Â¢ (configured)";
+                keyInput.placeholder = "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ (configured)";
             }
             if (ai.groqModel && modelSelect) {
                 modelSelect.value = ai.groqModel;
@@ -5603,7 +5609,7 @@
             const execHistoryRows = allExecs.length
                 ? allExecs.map((ex) => `
                     <tr data-execution="${escapeHtml(ex.id)}" style="cursor:pointer">
-                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}Ã¢â‚¬Â¦</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</td>
                         <td>${badgeForStatus(ex.status)}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.started || '-')}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.finished || '-')}</td>
