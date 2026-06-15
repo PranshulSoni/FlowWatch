@@ -339,13 +339,6 @@
             white-space: nowrap;
         }
 
-        .env-label {
-            color: var(--muted);
-            padding: 0;
-            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 11px;
-        }
-
         .search {
             width: min(360px, 36vw);
             height: 34px;
@@ -908,16 +901,6 @@
             text-transform: uppercase;
             letter-spacing: 0.03em;
             line-height: 1;
-        }
-
-        .meta-label {
-            color: var(--subtle);
-            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 10px;
-            font-weight: 650;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-            white-space: nowrap;
         }
 
         .dot {
@@ -3553,7 +3536,6 @@
             <header class="topbar">
                 <div class="topbar-left">
                     <div class="service-name" id="top-service">-</div>
-                    <span id="top-environment" class="env-label">-</span>
                 </div>
                 <div class="topbar-right">
                     <div class="global-search" id="global-search-shell">
@@ -3720,7 +3702,6 @@
                                 <div class="mono subtle" style="font-size: 10px; margin-top: 4px;">Pin up to 4 workflows
                                     from the table below</div>
                             </div>
-                            <span class="meta-label" id="pinned-count">0 / 4 pinned</span>
                         </div>
                         <div class="workflow-grid" id="workflow-chain-grid"></div>
                     </div>
@@ -3842,7 +3823,7 @@
                     </div>
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Captured errors</div><span class="meta-label">Elasticsearch search</span>
+                            <div class="panel-title">Captured errors</div>
                         </div>
                         <div class="table-wrap">
                             <table>
@@ -3876,14 +3857,12 @@
                         <div class="panel">
                             <div class="panel-header">
                                 <div class="panel-title">Trace graph</div>
-                                <span class="meta-label">Green completed / yellow running / red failed</span>
                             </div>
                             <div class="trace-board" id="trace-graph"></div>
                         </div>
                         <div class="panel">
                             <div class="panel-header">
                                 <div class="panel-title">Span inspector</div>
-                                <span class="meta-label">Selected trace</span>
                             </div>
                             <div class="trace-inspector">
                                 <div class="field-grid">
@@ -3911,7 +3890,7 @@
                     </div>
                     <div class="panel">
                         <div class="panel-header">
-                            <div class="panel-title">Request traces</div><span class="meta-label">Indexed spans</span>
+                            <div class="panel-title">Request traces</div>
                         </div>
                         <div class="table-wrap">
                             <table>
@@ -3998,14 +3977,12 @@
                                 <div class="ai-card">
                                     <div class="ai-card-head">
                                         <div class="ai-card-title">Evidence used</div>
-                                        <span class="meta-label">Model output</span>
                                     </div>
                                     <div id="ai-evidence-list" class="ai-action-list"></div>
                                 </div>
                                 <div class="ai-card">
                                     <div class="ai-card-head">
                                         <div class="ai-card-title">Recommended actions</div>
-                                        <span class="meta-label">Ordered</span>
                                     </div>
                                     <div id="ai-action-list" class="ai-action-list"></div>
                                 </div>
@@ -4613,7 +4590,6 @@
 
             document.getElementById("top-service").textContent = state.serviceName;
             document.getElementById("sidebar-service").textContent = state.serviceName;
-            document.getElementById("top-environment").textContent = state.environment;
             document.getElementById("summary-workflow-count").textContent = `${state.workflows.length}`;
             document.getElementById("summary-execution-count").textContent = `${state.executions.length}`;
             document.getElementById("summary-error-count").textContent = `${state.errors.length}`;
@@ -4642,7 +4618,6 @@
                 document.getElementById("summary-actions").innerHTML = `
                     <span class="badge bad"><span class="dot"></span>${failedExecutions.length} failed executions</span>
                     <span class="badge warn"><span class="dot"></span>${runningExecutions.length} running executions</span>
-                    <span class="meta-label">${state.errors.length} captured errors</span>
                 `;
             }
             else {
@@ -4652,8 +4627,6 @@
                     : "Run or trigger workflows in Flowwatch to populate dashboard tables.";
                 document.getElementById("summary-actions").innerHTML = `
                     <span class="badge ok"><span class="dot"></span>${state.workflows.length} workflows</span>
-                    <span class="meta-label">${state.traces.length} traces</span>
-                    <span class="meta-label">${state.flags.length} flags</span>
                 `;
             }
 
@@ -4698,7 +4671,6 @@
 
         function renderWorkflows() {
             const pinnedWorkflows = state.workflows.filter((workflow) => workflow.pinned).slice(0, 4);
-            document.getElementById("pinned-count").textContent = `${pinnedWorkflows.length} / 4 pinned`;
             document.getElementById("workflow-chain-grid").innerHTML = pinnedWorkflows.length ? pinnedWorkflows.map((workflow) => `
                 <div class="workflow-card" data-workflow="${escapeHtml(workflow.name)}">
                     <div class="workflow-card-head">
@@ -5330,7 +5302,7 @@
             }
 
             document.getElementById("ai-insight-status").outerHTML = state.aiModelConfigured
-                ? `<span id="ai-insight-status" class="meta-label">Generated</span>`
+                ? `<span id="ai-insight-status" hidden></span>`
                 : `<span id="ai-insight-status" class="badge warn"><span class="dot"></span>not configured</span>`;
             document.getElementById("ai-insight-summary").textContent = insight.summary;
             document.getElementById("ai-insight-cause").textContent = insight.likelyCause;
@@ -5625,7 +5597,6 @@
                 <div class="panel" style="box-shadow:none;margin-bottom:14px">
                     <div class="panel-header">
                         <div class="panel-title">Execution history</div>
-                        <span class="meta-label">${allExecs.length} execution${allExecs.length !== 1 ? 's' : ''}</span>
                     </div>
                     <div class="table-wrap" style="max-height:200px;overflow-y:auto">
                         <table>
@@ -5639,7 +5610,6 @@
                 <div class="panel" style="box-shadow: none;">
                     <div class="panel-header">
                         <div class="panel-title">Latest execution steps</div>
-                        <span class="meta-label">${steps.length} steps</span>
                     </div>
                     <div class="timeline">
                         ${steps.map((step) => `
@@ -5740,7 +5710,7 @@
                             </div>
                             <div class="timeline-content">
                                 <div class="timeline-title"><span>${escapeHtml(span.name)}</span><span class="mono muted">${escapeHtml(span.duration)}ms</span></div>
-                                <div class="timeline-desc"><span class="meta-label">${escapeHtml(span.type)}</span> ${badgeForStatus(span.status)}</div>
+                                <div class="timeline-desc">${badgeForStatus(span.status)}</div>
                             </div>
                         </div>
                     `).join("")}
