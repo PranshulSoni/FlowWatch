@@ -179,11 +179,16 @@
             pointer-events: auto;
             transition-delay: 90ms, 90ms, 0s;
         }
+
+        .brand-copy {
+            position: absolute;
+            left: 63px;
+            top: 14px;
         }
 
         .brand-mark {
             width: 32px;
-            height: 24px;
+            height: 32px;
             flex: 0 0 32px;
             display: flex;
             align-items: center;
@@ -194,7 +199,7 @@
 
         .brand-mark img {
             width: 32px;
-            height: 24px;
+            height: 32px;
             object-fit: contain;
         }
 
@@ -3225,37 +3230,6 @@
             font-size: 12px;
         }
 
-        .brand-mark {
-            width: 32px;
-            height: 24px;
-            flex: 0 0 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            align-self: center;
-            margin-top: 1px;
-        }
-
-        .brand-mark img {
-            width: 32px;
-            height: 24px;
-            object-fit: contain;
-        }
-
-        .brand-title {
-            font-size: 15px;
-            font-weight: 750;
-            line-height: 1;
-        }
-
-        .brand-subtitle {
-            margin-top: 4px;
-            color: var(--subtle);
-            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
-            font-size: 11px;
-            white-space: nowrap;
-        }
-
         .ask-bubble.ai-response pre code {
             border: 0;
             background: transparent;
@@ -5216,7 +5190,7 @@
                     body: JSON.stringify(body),
                 });
 
-                // Update in-memory state ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â backend is the source of truth
+                // Update in-memory state ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â backend is the source of truth
                 state.settings = state.settings || {};
                 state.settings.ai = state.settings.ai || {};
                 state.settings.ai.groqApiKeyConfigured = true;
@@ -5226,7 +5200,7 @@
                 statusEl.className = "setting-note status-ok";
                 input.value = "";
                 // Show masked indicator after save
-                input.placeholder = "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢" + key.slice(-4);
+                input.placeholder = "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢" + key.slice(-4);
             }
             catch (error) {
                 statusEl.textContent = error.message || "failed";
@@ -5235,14 +5209,14 @@
         }
 
         function loadSavedGroqCredentials() {
-            // Key status comes from backend settings (state.settings.ai) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never from localStorage
+            // Key status comes from backend settings (state.settings.ai) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â never from localStorage
             // Model preference also comes from backend settings
             const ai = state.settings?.ai || {};
             const keyInput = document.getElementById("setting-groq-api-key-input");
             const modelSelect = document.getElementById("setting-groq-model-select");
 
             if (ai.groqApiKeyConfigured && keyInput) {
-                keyInput.placeholder = "ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ (configured)";
+                keyInput.placeholder = "ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¢ (configured)";
             }
             if (ai.groqModel && modelSelect) {
                 modelSelect.value = ai.groqModel;
@@ -5609,7 +5583,7 @@
             const execHistoryRows = allExecs.length
                 ? allExecs.map((ex) => `
                     <tr data-execution="${escapeHtml(ex.id)}" style="cursor:pointer">
-                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦</td>
                         <td>${badgeForStatus(ex.status)}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.started || '-')}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.finished || '-')}</td>
