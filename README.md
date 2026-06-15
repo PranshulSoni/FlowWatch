@@ -1,4 +1,4 @@
-# Flowwatch
+# FlowWatch
 
 **The world's first npm package that gives you durable workflows, feature flags, request tracing, and error reporting — all in one, completely free, and running entirely inside your own Express app.**
 
@@ -40,7 +40,7 @@ The fourth problem was errors. Something would crash in production, pm2 would re
 
 Every senior dev I talked to said the same thing: "Use Sentry for errors, LaunchDarkly for flags, Temporal for workflows, Datadog for traces." Great advice. That's also $300/month minimum, four separate dashboards, four separate SDKs, and none of them know what the others are doing.
 
-I built Flowwatch because I couldn't find a single package that solved all four of these problems together, for free, without shipping my data to someone else's cloud. As far as I can tell, nothing like this exists. So I built it.
+I built FlowWatch because I couldn't find a single package that solved all four of these problems together, for free, without shipping my data to someone else's cloud. As far as I can tell, nothing like this exists. So I built it.
 
 ---
 
@@ -132,7 +132,7 @@ Now you have inconsistent data and no visibility into what happened.
 
 The "fix" most people reach for is adding a status column to the database and a cron job that checks for stuck orders every minute. That works until you have five different workflows, each with different step logic, different retry rules, and different failure scenarios. You end up with a handwritten state machine that's fragile and impossible to debug because you can't see what's happening in real time.
 
-### Without Flowwatch
+### Without FlowWatch
 
 ```ts
 app.post("/checkout", async (req, res) => {
@@ -151,7 +151,7 @@ app.post("/checkout", async (req, res) => {
 
 If the server crashes on step 2, you have no idea which steps completed. You need to write recovery logic, track step state manually, and hope your cron job catches it before the user notices.
 
-### With Flowwatch
+### With FlowWatch
 
 ```ts
 fw.workflow("checkout", [
@@ -181,7 +181,7 @@ You want to test a new feature with 10% of your users before rolling it out to e
 
 So you move it to the database. Now you're hitting the database on every single request just to read a flag that almost never changes. You add Redis caching. Now you have to manage cache invalidation whenever someone updates the flag. A user reports they see two different UIs on page refresh because the cache expired mid-session.
 
-### Without Flowwatch
+### Without FlowWatch
 
 ```ts
 // Option A: env variable — requires redeploy for any change
@@ -203,7 +203,7 @@ if (!cached) await redis.setex("flag:new-search", 60, JSON.stringify(enabled));
 
 Every option has a tradeoff and none of them give you a UI to manage flags without writing code.
 
-### With Flowwatch
+### With FlowWatch
 
 ```ts
 app.get("/search", async (req, res) => {
@@ -248,7 +248,7 @@ Which of those database queries belongs to the slow `/api/dashboard` request? Wa
 
 The standard advice is to pass a `requestId` through every function call so you can filter logs by it. That means every function in your entire codebase needs an extra parameter. Every database helper, every service function, every utility — all of them need to accept and forward this ID. It pollutes your entire codebase to solve a visibility problem.
 
-### Without Flowwatch
+### Without FlowWatch
 
 ```ts
 // You end up with this everywhere
@@ -267,7 +267,7 @@ async function getDashboard(req, res) {
 }
 ```
 
-### With Flowwatch
+### With FlowWatch
 
 ```ts
 // Mount once
@@ -291,7 +291,7 @@ app.get("/api/dashboard", async (req, res) => {
 });
 ```
 
-Flowwatch uses `AsyncLocalStorage` to carry the trace context automatically through every async operation. You never pass an ID anywhere. The context just follows the request.
+FlowWatch uses `AsyncLocalStorage` to carry the trace context automatically through every async operation. You never pass an ID anywhere. The context just follows the request.
 
 In the dashboard you get an interactive trace graph showing every span as a node, with parent-child relationships drawn as edges. You can see:
 
@@ -316,7 +316,7 @@ You add a global error handler and log to a file. Now a database connection time
 
 Even when you do have the error, you have no context. What route was it? What user triggered it? What was the request body? What database query ran right before it? A raw stack trace alone doesn't tell you any of that.
 
-### Without Flowwatch
+### Without FlowWatch
 
 ```ts
 app.use((err, req, res, next) => {
@@ -332,7 +332,7 @@ try {
 }
 ```
 
-### With Flowwatch
+### With FlowWatch
 
 ```ts
 // Catch everything automatically — register this last
@@ -350,7 +350,7 @@ try {
 }
 ```
 
-Flowwatch fingerprints each error using a SHA-256 hash of the error type, message, and stack location. Identical errors are grouped together and you see a frequency count rather than thousands of duplicate entries. Each captured error is linked to the request trace it happened in, so you can click an error and immediately see the full request context — what route it was, what spans ran before it, how long each part took, and what the status codes were.
+FlowWatch fingerprints each error using a SHA-256 hash of the error type, message, and stack location. Identical errors are grouped together and you see a frequency count rather than thousands of duplicate entries. Each captured error is linked to the request trace it happened in, so you can click an error and immediately see the full request context — what route it was, what spans ran before it, how long each part took, and what the status codes were.
 
 Errors are stored in Postgres and indexed to Elasticsearch, so you can search and filter by category, level, source, time range, or free text.
 
@@ -364,7 +364,7 @@ You have four tools running (hypothetically). An error spikes at 2am. You open S
 
 Even if each tool is good at what it does, none of them have any context from the others.
 
-### With Flowwatch
+### With FlowWatch
 
 Because all four pillars of observability are stored in the same Postgres database, the AI has access to everything at once. Add a Groq API key in the Settings page and you get two features:
 
@@ -386,7 +386,7 @@ Both features are completely optional. If you don't add a Groq key, everything e
 
 ```
 Your Express App
-└── Flowwatch
+└── FlowWatch
     ├── Workflow Engine  →  Postgres (state) + Redis/BullMQ (queues)
     ├── Flag Engine      →  Redis (cache) + Postgres (source of truth)
     ├── Trace Engine     →  Postgres + Elasticsearch
@@ -404,13 +404,13 @@ Your Express App
 | Elasticsearch | No | Search falls back to Postgres queries |
 | Groq API key | No | AI Insights and Ask AI are locked |
 
-Flowwatch is designed to degrade gracefully. A Redis outage doesn't crash your app. An Elasticsearch cluster going down doesn't break error capture. Each service failing just reduces capability, it doesn't take everything else down with it.
+FlowWatch is designed to degrade gracefully. A Redis outage doesn't crash your app. An Elasticsearch cluster going down doesn't break error capture. Each service failing just reduces capability, it doesn't take everything else down with it.
 
 ---
 
 ## Connecting to Infrastructure
 
-Flowwatch just needs connection strings — it doesn't care how or where those services are running. Before you connect, here are the minimum version requirements:
+FlowWatch just needs connection strings — it doesn't care how or where those services are running. Before you connect, here are the minimum version requirements:
 
 | Service | Minimum Version | Notes |
 | :--- | :--- | :--- |
@@ -438,7 +438,7 @@ const fw = await createFlowwatch({
 });
 ```
 
-That's all. Flowwatch connects and everything works.
+That's all. FlowWatch connects and everything works.
 
 ### Option 2 — Spin up locally with Docker Compose
 
@@ -527,7 +527,7 @@ getCurrentClientIp();
 
 ## Database Schema
 
-When you set `migrations: { autoRun: true }`, Flowwatch creates these tables in your Postgres database automatically on startup. All table names are prefixed with `flowwatch_` so they never conflict with your own tables.
+When you set `migrations: { autoRun: true }`, FlowWatch creates these tables in your Postgres database automatically on startup. All table names are prefixed with `flowwatch_` so they never conflict with your own tables.
 
 ### Workflows
 
@@ -653,14 +653,14 @@ flowwatch_errors
 
 ### Elasticsearch Indices
 
-If Elasticsearch is connected, Flowwatch also creates two indices:
+If Elasticsearch is connected, FlowWatch also creates two indices:
 
 | Index | Contents |
 | :--- | :--- |
 | `flowwatch_errors` | All captured errors, mirrored from Postgres for full-text search |
 | `flowwatch_trace_spans` | All trace spans, mirrored from Postgres for fast filtering and search |
 
-Postgres is always the source of truth. Elasticsearch is the search layer. If ES goes down, Flowwatch falls back to Postgres queries automatically.
+Postgres is always the source of truth. Elasticsearch is the search layer. If ES goes down, FlowWatch falls back to Postgres queries automatically.
 
 ---
 
