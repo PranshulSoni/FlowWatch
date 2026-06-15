@@ -176,16 +176,16 @@
         }
 
         .brand-mark {
-            width: 38px;
-            height: 38px;
-            flex: 0 0 38px;
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
             display: grid;
             place-items: center;
         }
 
         .brand-mark img {
-            width: 38px;
-            height: 38px;
+            width: 28px;
+            height: 28px;
             object-fit: contain;
         }
 
@@ -3217,16 +3217,16 @@
         }
 
         .brand-mark {
-            width: 38px;
-            height: 38px;
-            flex: 0 0 38px;
+            width: 28px;
+            height: 28px;
+            flex: 0 0 28px;
             display: grid;
             place-items: center;
         }
 
         .brand-mark img {
-            width: 38px;
-            height: 38px;
+            width: 28px;
+            height: 28px;
             object-fit: contain;
         }
 
@@ -5204,7 +5204,7 @@
                     body: JSON.stringify(body),
                 });
 
-                // Update in-memory state — backend is the source of truth
+                // Update in-memory state â€” backend is the source of truth
                 state.settings = state.settings || {};
                 state.settings.ai = state.settings.ai || {};
                 state.settings.ai.groqApiKeyConfigured = true;
@@ -5214,7 +5214,7 @@
                 statusEl.className = "setting-note status-ok";
                 input.value = "";
                 // Show masked indicator after save
-                input.placeholder = "••••••••••••" + key.slice(-4);
+                input.placeholder = "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" + key.slice(-4);
             }
             catch (error) {
                 statusEl.textContent = error.message || "failed";
@@ -5223,14 +5223,14 @@
         }
 
         function loadSavedGroqCredentials() {
-            // Key status comes from backend settings (state.settings.ai) — never from localStorage
+            // Key status comes from backend settings (state.settings.ai) â€” never from localStorage
             // Model preference also comes from backend settings
             const ai = state.settings?.ai || {};
             const keyInput = document.getElementById("setting-groq-api-key-input");
             const modelSelect = document.getElementById("setting-groq-model-select");
 
             if (ai.groqApiKeyConfigured && keyInput) {
-                keyInput.placeholder = "•••••••••••• (configured)";
+                keyInput.placeholder = "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢ (configured)";
             }
             if (ai.groqModel && modelSelect) {
                 modelSelect.value = ai.groqModel;
@@ -5597,7 +5597,7 @@
             const execHistoryRows = allExecs.length
                 ? allExecs.map((ex) => `
                     <tr data-execution="${escapeHtml(ex.id)}" style="cursor:pointer">
-                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}…</td>
+                        <td class="mono" style="font-size:11px">${escapeHtml(ex.id.slice(0, 8))}â€¦</td>
                         <td>${badgeForStatus(ex.status)}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.started || '-')}</td>
                         <td class="mono" style="font-size:11px">${escapeHtml(ex.finished || '-')}</td>
