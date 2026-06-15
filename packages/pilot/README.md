@@ -72,12 +72,12 @@ Pilot uses infrastructure owned by the consuming application:
 
 ## AI Configuration
 
-AI features use Groq. Set `GROQ_API_KEY` or `PILOT_GROQ_API_KEY` in the runtime environment before starting the app, or enter the key from the dashboard settings page for the current process.
+AI features use Groq. Set `GROQ_API_KEY` or `PILOT_GROQ_API_KEY` in the runtime environment before starting the app, or enter the key from the dashboard settings page.
 
-Pilot does not write API keys to disk. Non-secret model preference may be stored in `.pilot.env` in the consuming app's working directory.
+Dashboard-managed Groq settings are stored in the consuming app's `.env` file as `PILOT_GROQ_API_KEY` and `PILOT_GROQ_MODEL`.
 
 ## Notes
 
 - Do not expose the Pilot dashboard publicly without your own authentication layer.
-- Add `.pilot.env` to `.gitignore` if you use dashboard-managed AI model preferences.
+- Add `.env` to `.gitignore` if you use dashboard-managed AI settings.
 - Run migrations before using workflow, flag, trace, and error persistence tables.

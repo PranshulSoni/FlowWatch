@@ -16,16 +16,18 @@ function importFresh(filePath, query) {
     return import(url.href)
 }
 
-test("Ask Pilot markup has a matching custom model picker and no stale native select reference", async () => {
+test("Ask Pilot markup has a plain textbox and send button without a model picker", async () => {
     const html = await readFile(dashboardHtmlPath, "utf8")
 
-    assert.match(html, /id="ask-ai-model-trigger"/)
-    assert.match(html, /id="ask-ai-model-menu"/)
+    assert.match(html, /id="ask-ai-input"/)
+    assert.match(html, /id="ask-ai-submit-btn"/)
+    assert.doesNotMatch(html, /id="ask-ai-model-trigger"/)
+    assert.doesNotMatch(html, /id="ask-ai-model-menu"/)
     assert.doesNotMatch(html, /id="ask-ai-model-select"/)
     assert.doesNotMatch(html, /getElementById\("ask-ai-model-select"\)/)
 })
 
-test("Pilot env store keeps Groq API key out of persisted files", async () => {
+test("Pilot env store persists Groq settings to the application .env file", async () => {
     const originalCwd = process.cwd()
     const tmp = await mkdtemp(join(tmpdir(), "pilot-env-"))
 
@@ -45,9 +47,8 @@ test("Pilot env store keeps Groq API key out of persisted files", async () => {
 
         assert.equal(envStore.getGroqApiKey(), "test-key")
 
-        const persisted = await readFile(join(tmp, ".pilot.env"), "utf8")
-        assert.doesNotMatch(persisted, /PILOT_GROQ_API_KEY/)
-        assert.doesNotMatch(persisted, /test-key/)
+        const persisted = await readFile(join(tmp, ".env"), "utf8")
+        assert.match(persisted, /PILOT_GROQ_API_KEY=test-key/)
         assert.match(persisted, /PILOT_GROQ_MODEL=llama-3\.3-70b-versatile/)
     }
     finally {

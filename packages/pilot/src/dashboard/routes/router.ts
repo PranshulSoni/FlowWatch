@@ -44,6 +44,7 @@ import {
 } from "./dashboardResponse.js"
 import { generateGroqInsight, listGroqModels, askGroqAssistant, type PilotAiInsightContext } from "../../ai/groqInsightService.js"
 import { savePilotEnv, isGroqApiKeyConfigured } from "../../utils/pilotEnvStore.js"
+import { captureError } from "../../engine/errors/errorEngine.js"
 import { z } from "zod"
 
 interface DashboardRouterOptions {
@@ -51,6 +52,42 @@ interface DashboardRouterOptions {
     postgresPool: Pool
     redisClient: Redis
     elasticsearchClient: Client
+}
+
+/** Capture an AI error into the Pilot error store and surface a meaningful response */
+async function handleAiError(engineOptions: { pool: Pool; elasticsearchClient: Client }, res: any, error: unknown, route: string): Promise<void> {
+    const err = error instanceof Error ? error : new Error(String(error))
+    const msg = err.message
+
+    // Store it so it shows up in the dashboard Errors tab
+    try {
+        await captureError(
+            engineOptions,
+            err,
+            { source: "dashboard_api", category: "server", level: "error", statusCode: 502,
+              metadata: { route } }
+        )
+    } catch { /* never block the response */ }
+
+    console.error(`[Pilot] AI route error (${route}):`, msg)
+
+    if (msg.includes("not configured") || msg.includes("GROQ_API_KEY")) {
+        res.status(428).json({ error: { code: "groq_api_key_missing",
+            message: "Groq API key not configured. Add it in Settings → AI Configuration." } })
+        return
+    }
+    if (msg.includes("401") || msg.includes("403") || msg.toLowerCase().includes("invalid api key")) {
+        res.status(502).json({ error: { code: "groq_auth_error",
+            message: `Groq rejected the API key: ${msg.slice(0, 300)}` } })
+        return
+    }
+    if (msg.includes("413") || msg.toLowerCase().includes("too large") || msg.toLowerCase().includes("rate limit")) {
+        res.status(502).json({ error: { code: "groq_rate_limit",
+            message: "Groq rate limit or token limit exceeded. Try again shortly." } })
+        return
+    }
+    res.status(502).json({ error: { code: "groq_request_failed",
+        message: `AI request failed: ${msg.slice(0, 300)}` } })
 }
 
 async function invalidateFlagCache(redisClient: Redis, flagKey: string): Promise<void> {
@@ -107,7 +144,7 @@ function validateQuery(schema: z.ZodSchema) {
             })
             return
         }
-        req.query = result.data
+        req.validatedQuery = result.data   // req.query is read-only in Express 5
         next()
     }
 }
@@ -122,11 +159,61 @@ function asyncRoute(fn: (req: any, res: any) => Promise<void>) {
     }
 }
 
-async function dashboardError(res: any): Promise<void> {
+async function dashboardError(res: any, error?: unknown): Promise<void> {
+    if (error) console.error("[Pilot dashboard] API error", error)
     res.status(500).json({
         error: {
             code: "dashboard_api_error",
             message: "An internal error occurred",
+        },
+    })
+}
+
+/**
+ * Surfaces a meaningful error when an AI provider call fails.
+ * Distinguishes between: API key not configured, token limit exceeded, bad key, other.
+ */
+async function aiProviderError(res: any, error: unknown): Promise<void> {
+    const msg = error instanceof Error ? error.message : String(error)
+    console.error("[Pilot dashboard] AI provider error:", msg)
+
+    // Key not loaded into store yet
+    if (msg.includes("not configured")) {
+        res.status(428).json({
+            error: {
+                code: "groq_api_key_missing",
+                message: "Groq API key not configured. Add it in Settings → AI Configuration.",
+            },
+        })
+        return
+    }
+
+    // Token limit exceeded
+    if (msg.includes("413") || msg.toLowerCase().includes("token") || msg.toLowerCase().includes("too large")) {
+        res.status(502).json({
+            error: {
+                code: "groq_token_limit",
+                message: "AI request exceeded the model's token limit. Try selecting a model with a higher context limit.",
+            },
+        })
+        return
+    }
+
+    // Bad API key / auth failure
+    if (msg.includes("401") || msg.includes("403")) {
+        res.status(502).json({
+            error: {
+                code: "groq_auth_error",
+                message: "Groq rejected the API key. Re-enter your key in Settings → AI Configuration.",
+            },
+        })
+        return
+    }
+
+    res.status(502).json({
+        error: {
+            code: "groq_request_failed",
+            message: `Groq request failed: ${msg.slice(0, 200)}`,
         },
     })
 }
@@ -143,57 +230,70 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<P
         traces,
         errors,
     ] = await Promise.all([
-        checkPostgresHealth(postgresPool),
-        checkRedisHealth(redisClient),
-        checkElasticsearchHealth(elasticsearchClient),
-        listFlagsWithRuleCounts(postgresPool),
-        listWorkflowDefinitions(postgresPool),
-        listWorkflowExecutions(postgresPool, 25),
-        listRequestTraces(postgresPool, 25),
-        listErrors(postgresPool, 25),
+        checkPostgresHealth(postgresPool).catch(() => ({ status: "error", latencyMs: -1 })),
+        checkRedisHealth(redisClient).catch(() => ({ status: "error", latencyMs: -1 })),
+        checkElasticsearchHealth(elasticsearchClient).catch(() => ({ status: "error", latencyMs: -1 })),
+        listFlagsWithRuleCounts(postgresPool).catch((): any[] => []),
+        listWorkflowDefinitions(postgresPool).catch((): any[] => []),
+        listWorkflowExecutions(postgresPool, 10).catch((): any[] => []),
+        listRequestTraces(postgresPool, 8).catch((): any[] => []),
+        listErrors(postgresPool, 10).catch((): any[] => []),
     ])
-    const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
-    const traceSpans = new Map<string, any[]>()
-
-    await Promise.all(traces.slice(0, 10).map(async (trace) => {
-        traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
-    }))
+    const executionSteps = await listWorkflowStepExecutionsByExecutionIds(
+        postgresPool,
+        (executions as any[]).map((e) => e.id)
+    ).catch(() => new Map<string, any[]>())
 
     return {
         serviceName: config.runtime.serviceName,
         environment: config.runtime.environment,
         generatedAt: new Date().toISOString(),
-        workflows: workflows.slice(0, 25).map((workflow) => ({
-            id: workflow.id,
-            name: workflow.name,
-            version: workflow.version,
+        // Workflows — name + version only (no IDs)
+        workflows: workflows.slice(0, 6).map((w) => ({
+            name: w.name,
+            version: w.version,
         })),
-        executions: executions.map((execution) => ({
-            ...serializeExecution(execution, executionSteps.get(execution.id) || []),
-            input: undefined,
-            output: undefined,
-        })),
-        errors: errors.map((error) => ({
-            id: error.id,
+        // Executions — status + step summary only (no input/output/IDs)
+        executions: executions.slice(0, 8).map((execution) => {
+            const steps = (executionSteps.get(execution.id) || []).slice(0, 5)
+            return {
+                workflow: execution.workflow_name,
+                status: execution.status,
+                failedStep: steps.find((s: any) => s.status === "failed")?.step_name ?? null,
+                steps: steps.map((s: any) => ({ name: s.step_name, status: s.status })),
+            }
+        }),
+        // Errors — no stack traces, message capped at 120 chars
+        errors: errors.slice(0, 8).map((error) => ({
             name: error.name,
-            message: error.message,
+            message: String(error.message || "").slice(0, 120),
             category: error.category,
             level: error.level,
             source: error.source,
-            status: (error as any).status,
-            traceId: error.trace_id,
-            occurredAt: error.occurred_at,
         })),
-        traces: traces.slice(0, 10).map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
-        flags: flags.slice(0, 10).map((flag) => serializeFlag(flag, flag.rule_count)),
+        // Traces — summary only, no spans, path capped at 80 chars
+        traces: traces.slice(0, 5).map((trace) => ({
+            method: trace.method,
+            path: String(trace.path || "").slice(0, 80),
+            status: trace.status_code,
+            durationMs: trace.duration_ms,
+        })),
+        // Flags — key + state + rollout only
+        flags: flags.slice(0, 6).map((flag) => ({
+            key: flag.key,
+            enabled: flag.enabled,
+            rollout: flag.rollout_percentage,
+        })),
+        // Health — status + latency only
         health: [
             { name: "Postgres", status: postgres.status, latency: postgres.latencyMs },
             { name: "Redis", status: redis.status, latency: redis.latencyMs },
             { name: "Elasticsearch", status: elasticsearch.status, latency: elasticsearch.latencyMs },
-            { name: "BullMQ Worker", status: config.worker.enabled ? "ok" : "degraded", latency: 0 },
+            { name: "Worker", status: config.worker.enabled ? "ok" : "degraded" },
         ],
     }
 }
+
 
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
@@ -338,26 +438,19 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         try {
             if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
-                    error: {
-                        code: "groq_api_key_missing",
-                        message: "Add GROQ_API_KEY in settings to enable AI Insights.",
-                    },
+                    error: { code: "groq_api_key_missing",
+                             message: "Add your Groq API key in Settings → AI Configuration." },
                     modelConfigured: false,
                 })
                 return
             }
-
             const context = await buildAiInsightContext(options)
-            const model = typeof req.query.model === "string" ? req.query.model : undefined
+            const model = typeof (req as any).validatedQuery?.model === "string" ? (req as any).validatedQuery.model : undefined
             const insight = await generateGroqInsight(context, model)
-
-            res.json({
-                insight,
-                modelConfigured: true,
-            })
+            res.json({ insight, modelConfigured: true })
         }
         catch (error) {
-            await dashboardError(res)
+            await handleAiError({ pool: postgresPool, elasticsearchClient }, res, error, "GET /api/ai-insights")
         }
     })
 
@@ -596,7 +689,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/executions", validateQuery(optionalWorkflowQuerySchema), async (req, res) => {
         try {
-            const workflowName = typeof req.query.workflow === "string" ? req.query.workflow : undefined
+            const workflowName = typeof (req as any).validatedQuery?.workflow === "string" ? (req as any).validatedQuery.workflow : undefined
             const executions = workflowName
                 ? await listWorkflowExecutionsByWorkflowName(postgresPool, workflowName, 50)
                 : await listWorkflowExecutions(postgresPool, 50)
@@ -668,7 +761,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/errors", validateQuery(optionalTraceQuerySchema), async (req, res) => {
         try {
-            const traceId = typeof req.query.traceId === "string" ? req.query.traceId : undefined
+            const traceId = typeof (req as any).validatedQuery?.traceId === "string" ? (req as any).validatedQuery.traceId : undefined
             const errors = traceId ? await getErrorsByTrace(postgresPool, traceId) : await listErrors(postgresPool, 50)
             res.json({ errors: errors.map(serializeError) })
         }
@@ -745,8 +838,6 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             if (workerConcurrency !== undefined) config.worker.workflowConcurrency = Number(workerConcurrency)
             if (queuePrefix !== undefined) config.worker.queuePrefix = queuePrefix
             if (autoRunMigrations !== undefined) config.migrations.autoRun = autoRunMigrations
-
-            // Model preference is persisted to .pilot.env (not process.env)
             if (groqModel !== undefined) {
                 await savePilotEnv({ groqModel })
             }
@@ -772,7 +863,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 res.status(428).json({
                     error: {
                         code: "groq_api_key_missing",
-                        message: "Add GROQ_API_KEY in settings to enable the AI assistant.",
+                        message: "Add your Groq API key in Settings → AI Configuration.",
                     },
                 })
                 return
@@ -785,7 +876,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ response: responseText })
         }
         catch (error) {
-            await dashboardError(res)
+            await handleAiError({ pool: postgresPool, elasticsearchClient }, res, error, "POST /api/ai-chat")
         }
     })
 

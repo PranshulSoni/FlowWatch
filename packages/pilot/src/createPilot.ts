@@ -39,8 +39,30 @@ export async function createPilot(config: PilotConfig): Promise<Pilot> {
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
 
-    // Load persisted AI credentials from .pilot.env in the consumer's project root
-    await loadPilotEnv()
+    // ── One-time migration: move API key from legacy config.yaml → .pilot.env ──
+    // Previous package versions stored the Groq API key in config.yaml next to
+    // the compiled output.  Read it once on startup and persist to .pilot.env.
+    try {
+        const { readFile: rf } = await import("node:fs/promises")
+        const { join: pjoin } = await import("node:path")
+        const { load } = await import("js-yaml")
+        const legacyPath = pjoin(__dirname, "../config.yaml")
+        const raw = await rf(legacyPath, "utf-8")
+        const yaml = load(raw) as Record<string, any>
+        if (yaml?.groq?.apiKey) {
+            await loadPilotEnv() // load first so we don't overwrite other stored values
+            const { savePilotEnv } = await import("./utils/pilotEnvStore.js")
+            await savePilotEnv({ groqApiKey: yaml.groq.apiKey, groqModel: yaml.groq?.model })
+            console.log("[Pilot] ✅ Migrated Groq API key from legacy config.yaml to .pilot.env")
+            // We've already called loadPilotEnv, skip the call below
+        } else {
+            await loadPilotEnv()
+        }
+    } catch {
+        // config.yaml absent or unreadable — normal path, just load .pilot.env
+        await loadPilotEnv()
+    }
+
 
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)

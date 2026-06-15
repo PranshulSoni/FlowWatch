@@ -42,6 +42,9 @@ export function createErrorHandler(options: ErrorEngineOptions): ErrorRequestHan
         const normalizedError = normalizeError(error)
         const statusCode = getStatusCode(error, res.statusCode)
 
+        // Log every uncaught error with route info so we can trace the primary cause
+        console.error(`[Pilot] Unhandled error on ${req.method} ${req.originalUrl || req.path}:`, normalizedError.message)
+
         await captureError(options, error, {
             source: "http",
             category: getErrorCategory(statusCode),

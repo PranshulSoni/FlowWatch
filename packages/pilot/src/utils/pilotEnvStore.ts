@@ -1,87 +1,163 @@
 /**
- * Pilot environment store — owns runtime AI settings without mutating the
- * consumer's process.env. Secret API keys are process-only; only non-secret
- * preferences are persisted to `.pilot.env` in the consumer's working
- * directory (process.cwd()), not inside node_modules.
+ * Pilot environment store — persists AI credentials to `.pilot.env` in the
+ * consumer's working directory (process.cwd()), i.e. their project root.
+ *
+ * Priority order on startup:
+ *   1. PILOT_GROQ_API_KEY / PILOT_GROQ_MODEL   already in process.env (e.g. from their .env file)
+ *   2. .pilot.env at process.cwd()              written by this module
+ *   → whichever is found first wins; the result is persisted to .pilot.env
  */
 import { readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
-const ENV_FILE_NAME = ".pilot.env"
+const PILOT_ENV_FILE = ".pilot.env"
 
 interface PilotEnv {
     groqApiKey?: string
     groqModel?: string
 }
 
-// Module-level store — single source of truth for this process
+/** Single in-memory store for the lifetime of this process. */
 const store: PilotEnv = {}
 
-function getEnvFilePath(): string {
-    return join(process.cwd(), ENV_FILE_NAME)
+// ─── Path ────────────────────────────────────────────────────────────────────
+
+function getPilotEnvPath(): string {
+    return join(process.cwd(), PILOT_ENV_FILE)
 }
 
-/** Parse a simple KEY=VALUE .env file (no external dependency). */
+// ─── File helpers ─────────────────────────────────────────────────────────────
+
 function parseEnvFile(content: string): PilotEnv {
     const result: PilotEnv = {}
-    for (const line of content.split("\n")) {
-        const trimmed = line.trim()
-        if (!trimmed || trimmed.startsWith("#")) continue
-        const eq = trimmed.indexOf("=")
+    for (const raw of content.split(/\r?\n/)) {
+        const line = raw.trim()
+        if (!line || line.startsWith("#")) continue
+        const eq = line.indexOf("=")
         if (eq === -1) continue
-        const key = trimmed.slice(0, eq).trim()
-        const value = trimmed.slice(eq + 1).trim()
-        if (key === "PILOT_GROQ_MODEL") result.groqModel = value
+        const key   = line.slice(0, eq).trim()
+        const value = line.slice(eq + 1).trim()
+        if (key === "PILOT_GROQ_API_KEY") result.groqApiKey = value
+        if (key === "PILOT_GROQ_MODEL")   result.groqModel  = value
     }
     return result
 }
 
-function safeEnvValue(value: string): string {
-    return value.replace(/[\r\n=]/g, "").trim()
+function buildEnvFile(existing: string, updated: PilotEnv): string {
+    const kept = existing
+        .split(/\r?\n/)
+        .filter((l) => {
+            const t = l.trim()
+            return !t.startsWith("PILOT_GROQ_API_KEY=") && !t.startsWith("PILOT_GROQ_MODEL=")
+        })
+
+    while (kept.length && !kept[kept.length - 1].trim()) kept.pop()
+    if (!kept.length) {
+        kept.push("# Pilot AI configuration — auto-generated, do not commit to version control")
+    }
+
+    if (updated.groqApiKey) kept.push(`PILOT_GROQ_API_KEY=${updated.groqApiKey}`)
+    if (updated.groqModel)  kept.push(`PILOT_GROQ_MODEL=${updated.groqModel}`)
+    kept.push("")
+    return kept.join("\n")
 }
 
-/** Serialize non-secret settings to .env file format. */
-function serializeEnvFile(env: PilotEnv): string {
-    const lines = [
-        "# Pilot AI preferences - auto-generated.",
-        "# Secret API keys are never written here.",
-        "",
-    ]
-    if (env.groqModel) lines.push(`PILOT_GROQ_MODEL=${safeEnvValue(env.groqModel)}`)
-    lines.push("")
-    return lines.join("\n")
-}
-
-/** Load non-secret preferences from .pilot.env into the in-memory store on startup. */
-export async function loadPilotEnv(): Promise<void> {
+async function readEnvFile(): Promise<string> {
     try {
-        const content = await readFile(getEnvFilePath(), "utf-8")
-        const parsed = parseEnvFile(content)
-        if (parsed.groqModel) store.groqModel = parsed.groqModel
+        return await readFile(getPilotEnvPath(), "utf-8")
     } catch {
-        // File doesn't exist yet — that's fine
+        return ""
     }
 }
 
-/** Save runtime settings. API keys stay in memory only; model preference persists. */
+// ─── Public API ───────────────────────────────────────────────────────────────
+
+/**
+ * Load AI credentials into the in-memory store on startup.
+ *
+ * Resolution order (both are checked; process.env fills gaps not in the file):
+ *   1. .pilot.env at process.cwd()   — written by dashboard Settings
+ *   2. process.env.PILOT_GROQ_API_KEY / GROQ_API_KEY   — set by consumer
+ *
+ * If the key is found only in process.env it is immediately persisted to
+ * .pilot.env so the next restart doesn't need process.env anymore.
+ */
+export async function loadPilotEnv(): Promise<void> {
+    const filePath = getPilotEnvPath()
+
+    // Step 1 — read whatever the file has (may be partial or missing)
+    const raw    = await readEnvFile()
+    const parsed = parseEnvFile(raw)
+    if (parsed.groqApiKey) store.groqApiKey = parsed.groqApiKey
+    if (parsed.groqModel)  store.groqModel  = parsed.groqModel
+
+    // Step 2 — fill any gaps from process.env (ALWAYS checked, even if file exists)
+    const envKey   = process.env.PILOT_GROQ_API_KEY || process.env.GROQ_API_KEY
+    const envModel = process.env.PILOT_GROQ_MODEL   || process.env.GROQ_MODEL
+
+    let needsSave = false
+    if (!store.groqApiKey && envKey) {
+        store.groqApiKey = envKey
+        needsSave = true
+    }
+    if (!store.groqModel && envModel) {
+        store.groqModel = envModel
+        needsSave = true
+    }
+
+    if (store.groqApiKey) {
+        console.log(`[Pilot] ✅  Groq API key loaded (config: ${filePath})`)
+        // Persist back so future restarts find the key in the file
+        if (needsSave) {
+            try {
+                await writeFile(filePath, buildEnvFile(raw, store), "utf-8")
+                console.log(`[Pilot] ✅  API key saved to ${filePath}`)
+            } catch (err: any) {
+                console.warn(`[Pilot] ⚠️  Could not write ${filePath}: ${err?.message}`)
+            }
+        }
+    } else {
+        console.log(
+            `[Pilot] ⚠️  No Groq API key found.\n` +
+            `         • Enter it in the dashboard → Settings → AI Configuration\n` +
+            `         • OR set PILOT_GROQ_API_KEY in your environment\n` +
+            `         • Config will be saved to: ${filePath}`
+        )
+    }
+}
+
+/**
+ * Persist settings to .pilot.env and update the in-memory store.
+ * Called from the dashboard Settings API when the user saves their key.
+ */
 export async function savePilotEnv(updates: Partial<PilotEnv>): Promise<void> {
     if (updates.groqApiKey !== undefined) store.groqApiKey = updates.groqApiKey || undefined
-    if (updates.groqModel !== undefined) store.groqModel = updates.groqModel || undefined
+    if (updates.groqModel  !== undefined) store.groqModel  = updates.groqModel  || undefined
 
-    await writeFile(getEnvFilePath(), serializeEnvFile(store), "utf-8")
+    const existing = await readEnvFile()
+    await writeFile(getPilotEnvPath(), buildEnvFile(existing, store), "utf-8")
 }
 
-/** Read the current Groq API key (never exposed to client). */
+/** API key from store or process.env. Never log or send this to the client. */
 export function getGroqApiKey(): string | undefined {
-    return store.groqApiKey || process.env.GROQ_API_KEY || process.env.PILOT_GROQ_API_KEY
+    return (
+        store.groqApiKey ||
+        process.env.PILOT_GROQ_API_KEY ||
+        process.env.GROQ_API_KEY
+    )
 }
 
-/** Read the current Groq model preference. */
+/** Model from store or process.env. */
 export function getGroqModel(): string | undefined {
-    return store.groqModel
+    return (
+        store.groqModel ||
+        process.env.PILOT_GROQ_MODEL ||
+        process.env.GROQ_MODEL ||
+        undefined
+    )
 }
 
-/** Check if the API key is configured (safe to send to client). */
+/** True if any API key source is available. Safe to send to the client. */
 export function isGroqApiKeyConfigured(): boolean {
     return Boolean(getGroqApiKey())
 }
