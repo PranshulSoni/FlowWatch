@@ -47,7 +47,7 @@ I built FlowWatch because I couldn't find a single package that solved all four 
 ## What you get with one install
 
 ```bash
-npm install @pranshulsoni/flowwatch
+npm i @pranshulsoni/flowwatch
 ```
 
 - **Durable Workflows** — define multi-step processes that survive server crashes and retry failed steps automatically
