@@ -138,7 +138,7 @@ export async function generateGroqInsight(context: FlowwatchAiInsightContext, mo
                 {
                     role: "system",
                     content: [
-                        "You are Flowwatch's backend reliability assistant.",
+                        "You are Flowwatch's backend reliability AI.",
                         "Use only the provided JSON context.",
                         "Do not invent workflow names, trace IDs, errors, metrics, services, or incidents.",
                         "Return valid JSON with these exact keys: summary, likelyCause, impact, evidence, recommendedActions, confidence.",
@@ -168,7 +168,7 @@ export async function generateGroqInsight(context: FlowwatchAiInsightContext, mo
     return normalizeInsight(parseInsightJson(content), context)
 }
 
-export async function askGroqAssistant(
+export async function askGroqAi(
     context: FlowwatchAiInsightContext,
     message: string,
     history: Array<{ role: string; content: string }>,
@@ -186,7 +186,7 @@ export async function askGroqAssistant(
         {
             role: "system",
             content: [
-                "You are Flowwatch's backend reliability assistant.",
+                "You are Flowwatch's backend reliability AI.",
                 "You help developers diagnose errors, traces, feature flags, workflows, and health checks.",
                 "Use the provided JSON context of the system which contains recent workflows, executions, errors, traces, feature flags, and health check statuses.",
                 "Answer the user's question accurately. Focus on diagnostics, suggestions, and resolving issues.",

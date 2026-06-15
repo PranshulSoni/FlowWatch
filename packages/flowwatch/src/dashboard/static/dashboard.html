@@ -2143,46 +2143,6 @@
             box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
         }
 
-        .ai-assistant-option {
-            border: 1px solid var(--line-soft);
-            border-radius: 8px;
-            background: #0d1219;
-            overflow: hidden;
-        }
-
-        .ai-assistant-option summary {
-            list-style: none;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 12px 14px;
-            cursor: pointer;
-        }
-
-        .ai-assistant-option summary::-webkit-details-marker {
-            display: none;
-        }
-
-        .ai-assistant-title {
-            font-size: 13px;
-            font-weight: 780;
-        }
-
-        .ai-assistant-copy {
-            margin-top: 3px;
-            color: var(--subtle);
-            font-size: 11px;
-            line-height: 1.45;
-        }
-
-        .ai-assistant-body {
-            border-top: 1px solid var(--line-soft);
-            padding: 12px;
-            display: grid;
-            gap: 10px;
-        }
-
         .ai-diagnosis-hero {
             border: 1px solid var(--line-soft);
             border-radius: 8px;
@@ -3000,8 +2960,8 @@
 
         #page-ask-ai .ask-ai-main {
             height: 100%;
-            border: 1px solid var(--line-soft);
-            border-radius: 8px;
+            border: 0;
+            border-radius: 0;
             overflow: hidden;
             background:
                 radial-gradient(circle at 50% 36%, rgba(79, 140, 255, 0.09), transparent 32%),
@@ -3066,19 +3026,19 @@
         }
 
         #page-ask-ai .ask-ai-composer-wrap {
-            padding: 16px 18px;
+            padding: 18px;
             border-top: 1px solid rgba(79, 140, 255, 0.16);
             background: linear-gradient(180deg, rgba(9, 13, 19, 0.5), #090d13 44%);
         }
 
         #page-ask-ai .ask-ai-composer {
-            max-width: 980px;
+            max-width: 1040px;
             border: 1px solid rgba(79, 140, 255, 0.32);
-            border-radius: 999px;
+            border-radius: 24px;
             background:
                 linear-gradient(180deg, rgba(79, 140, 255, 0.11), rgba(79, 140, 255, 0.035)),
                 #0d1420;
-            padding: 10px 12px;
+            padding: 12px;
             grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
             box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
@@ -3109,6 +3069,66 @@
             place-items: center;
             padding: 0 16px;
             cursor: pointer;
+        }
+
+        .ask-bubble.ai-response {
+            background:
+                linear-gradient(180deg, rgba(34, 211, 238, 0.035), transparent 22%),
+                rgba(9, 13, 19, 0.86);
+        }
+
+        .ask-bubble.ai-response h3,
+        .ask-bubble.ai-response h4 {
+            margin: 2px 0 10px;
+            color: #eef5ff;
+            line-height: 1.3;
+        }
+
+        .ask-bubble.ai-response h3 {
+            font-size: 17px;
+        }
+
+        .ask-bubble.ai-response h4 {
+            font-size: 14px;
+        }
+
+        .ask-bubble.ai-response p {
+            margin: 0 0 12px;
+        }
+
+        .ask-bubble.ai-response ul,
+        .ask-bubble.ai-response ol {
+            margin: 0 0 12px 19px;
+            padding: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .ask-bubble.ai-response pre {
+            margin: 12px 0;
+            border: 1px solid var(--line-soft);
+            border-radius: 8px;
+            background: #070a0e;
+            padding: 12px;
+            overflow-x: auto;
+        }
+
+        .ask-bubble.ai-response code {
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 5px;
+            background: rgba(148, 163, 184, 0.08);
+            color: #dbeafe;
+            padding: 1px 5px;
+            font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+            font-size: 12px;
+        }
+
+        .ask-bubble.ai-response pre code {
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: var(--text);
+            white-space: pre;
         }
 
         @media (max-width: 1060px) {
@@ -3886,7 +3906,7 @@
                     <div class="ask-ai-main">
                         <div class="ask-ai-context">
                             <div>
-                                <div class="ask-ai-context-title">Ask Flowwatch Assistant</div>
+                                <div class="ask-ai-context-title">Ask Flowwatch AI</div>
                                 <div class="ask-ai-context-copy">Diagnose errors, traces, workflows, and system health.</div>
                             </div>
                             <button id="ask-ai-clear-btn" class="button" type="button">Clear chat</button>
@@ -4866,7 +4886,7 @@
                     <div class="search-result" data-go="ask-ai">
                         <span class="result-type">Shortcut</span>
                         <span class="result-title">Ask Flowwatch AI</span>
-                        <span class="mono subtle">Assistant</span>
+                        <span class="mono subtle">AI</span>
                     </div>
                     <div class="search-result" data-go="executions">
                         <span class="result-type">Shortcut</span>
@@ -4909,7 +4929,7 @@
                     action: "ai-insights"
                 },
                 {
-                    type: "assistant",
+                    type: "ai",
                     title: "Ask Flowwatch AI about traces errors workflows and health",
                     meta: "Ask Flowwatch AI",
                     action: "ask-ai"
@@ -5311,7 +5331,7 @@
             messagesEl.innerHTML = messages.map(msg => `
                 <div class="ask-message ${msg.role === 'user' ? 'user' : ''}">
                     ${msg.role !== 'user' ? `<div class="ask-avatar">AI</div>` : ''}
-                    <div class="ask-bubble">
+                    <div class="ask-bubble ${msg.role === 'user' ? '' : 'ai-response'}">
                         ${msg.role === 'user' ? escapeHtml(msg.content).replace(/\n/g, '<br>') : formatMessageMarkdown(msg.content)}
                     </div>
                     ${msg.role === 'user' ? `<div class="ask-avatar">ME</div>` : ''}
@@ -5328,26 +5348,92 @@
         }
 
         function formatMessageMarkdown(content) {
-            let html = escapeHtml(content);
-            
-            // Format code blocks
-            html = html.replace(/```(javascript|typescript|json|html|css|python|bash)?([\s\S]*?)```/g, (match, lang, code) => {
-                return `<pre class="code-box" style="margin: 10px 0; background: #070a0e; border: 1px solid var(--line-soft); padding: 12px; border-radius: 6px; overflow-x: auto;"><code class="mono" style="font-size: 12px; color: var(--text);">${escapeHtml(code.trim())}</code></pre>`;
+            const source = String(content || "").trim();
+            if (source === "...") {
+                return `<p>Thinking...</p>`;
+            }
+
+            const blocks = [];
+            const codeBlocks = [];
+            const withoutCode = source.replace(/```(?:[a-zA-Z0-9_-]+)?\n?([\s\S]*?)```/g, (_match, code) => {
+                const token = `@@CODE_BLOCK_${codeBlocks.length}@@`;
+                codeBlocks.push(`<pre><code>${escapeHtml(String(code).trim())}</code></pre>`);
+                return `\n${token}\n`;
             });
 
-            // Format inline code
-            html = html.replace(/`([^`]+)`/g, '<code class="mono" style="background: rgba(255,255,255,0.06); padding: 2px 4px; border-radius: 4px; font-size: 11px;">$1</code>');
+            const lines = withoutCode.split(/\r?\n/);
+            let paragraph = [];
+            let listItems = [];
+            let listType = null;
 
-            // Format bold text
-            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            const inlineFormat = (value) => escapeHtml(value)
+                .replace(/`([^`]+)`/g, "<code>$1</code>")
+                .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 
-            // Format bullet lists
-            html = html.replace(/^\s*-\s+(.+)$/gm, '<li style="margin-left: 16px; margin-bottom: 4px;">$1</li>');
+            const flushParagraph = () => {
+                if (!paragraph.length) return;
+                blocks.push(`<p>${inlineFormat(paragraph.join(" "))}</p>`);
+                paragraph = [];
+            };
 
-            // Format line breaks
-            html = html.replace(/\n/g, '<br>');
+            const flushList = () => {
+                if (!listItems.length) return;
+                const tag = listType === "ol" ? "ol" : "ul";
+                blocks.push(`<${tag}>${listItems.map(item => `<li>${inlineFormat(item)}</li>`).join("")}</${tag}>`);
+                listItems = [];
+                listType = null;
+            };
 
-            return html;
+            for (const rawLine of lines) {
+                const line = rawLine.trim();
+                if (!line) {
+                    flushParagraph();
+                    flushList();
+                    continue;
+                }
+
+                const codeMatch = line.match(/^@@CODE_BLOCK_(\d+)@@$/);
+                if (codeMatch) {
+                    flushParagraph();
+                    flushList();
+                    blocks.push(codeBlocks[Number(codeMatch[1])] || "");
+                    continue;
+                }
+
+                const headingMatch = line.match(/^(#{2,4})\s+(.+)$/);
+                if (headingMatch) {
+                    flushParagraph();
+                    flushList();
+                    const level = headingMatch[1].length <= 3 ? "h3" : "h4";
+                    blocks.push(`<${level}>${inlineFormat(headingMatch[2])}</${level}>`);
+                    continue;
+                }
+
+                const bulletMatch = line.match(/^[-*]\s+(.+)$/);
+                if (bulletMatch) {
+                    flushParagraph();
+                    if (listType && listType !== "ul") flushList();
+                    listType = "ul";
+                    listItems.push(bulletMatch[1]);
+                    continue;
+                }
+
+                const numberedMatch = line.match(/^\d+[.)]\s+(.+)$/);
+                if (numberedMatch) {
+                    flushParagraph();
+                    if (listType && listType !== "ol") flushList();
+                    listType = "ol";
+                    listItems.push(numberedMatch[1]);
+                    continue;
+                }
+
+                paragraph.push(line);
+            }
+
+            flushParagraph();
+            flushList();
+
+            return blocks.join("") || `<p>${inlineFormat(source)}</p>`;
         }
 
         async function sendMessage() {
@@ -5365,12 +5451,17 @@
             renderMessages();
 
             // Push Typing Indicator
-            state.aiMessages.push({ role: "assistant", content: "..." });
+            state.aiMessages.push({ role: "ai", content: "..." });
             renderMessages();
 
             try {
                 // Prepare context/history (excluding the typing indicator)
-                const history = state.aiMessages.slice(0, state.aiMessages.length - 2);
+                const history = state.aiMessages
+                    .slice(0, state.aiMessages.length - 2)
+                    .map(message => ({
+                        role: message.role === "user" ? "user" : "assistant",
+                        content: message.content
+                    }));
 
                 const response = await fetch(apiPath("ai-chat"), {
                     method: "POST",
@@ -5386,15 +5477,15 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    state.aiMessages.push({ role: "assistant", content: data.response || "No response returned." });
+                    state.aiMessages.push({ role: "ai", content: data.response || "No response returned." });
                 } else {
                     const err = await response.json();
-                    state.aiMessages.push({ role: "assistant", content: `Error: ${err?.error?.message || "Failed to communicate with Groq API"}` });
+                    state.aiMessages.push({ role: "ai", content: `Error: ${err?.error?.message || "Failed to communicate with Groq API"}` });
                 }
             } catch (err) {
                 // Remove typing indicator
                 state.aiMessages.pop();
-                state.aiMessages.push({ role: "assistant", content: `Error: ${err.message || "Failed to send message."}` });
+                state.aiMessages.push({ role: "ai", content: `Error: ${err.message || "Failed to send message."}` });
             } finally {
                 saveMessages();
                 renderMessages();

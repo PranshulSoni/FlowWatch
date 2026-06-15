@@ -42,7 +42,7 @@ import {
     serializeTrace,
     serializeWorkflowSummary,
 } from "./dashboardResponse.js"
-import { generateGroqInsight, listGroqModels, askGroqAssistant, type FlowwatchAiInsightContext } from "../../ai/groqInsightService.js"
+import { generateGroqInsight, listGroqModels, askGroqAi, type FlowwatchAiInsightContext } from "../../ai/groqInsightService.js"
 import { saveFlowwatchEnv, isGroqApiKeyConfigured } from "../../utils/flowwatchEnvStore.js"
 import { captureError } from "../../engine/errors/errorEngine.js"
 import { z } from "zod"
@@ -871,7 +871,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
             const sanitizedHistory = req.body.history.filter((m: any) => m.role !== "system")
             const context = await buildAiInsightContext(options)
-            const responseText = await askGroqAssistant(context, req.body.message, sanitizedHistory, req.body.model)
+            const responseText = await askGroqAi(context, req.body.message, sanitizedHistory, req.body.model)
 
             res.json({ response: responseText })
         }
