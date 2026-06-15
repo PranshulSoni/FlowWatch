@@ -1,7 +1,7 @@
 {
-  "name": "pilot-monorepo",
+  "name": "flowwatch-monorepo",
   "version": "0.0.0",
-  "description": "Monorepo for the Pilot npm package and dashboard.",
+  "description": "Monorepo for the Flowwatch npm package and dashboard.",
   "private": true,
   "workspaces": [
     "packages/*",
@@ -12,21 +12,21 @@
     "test": "tests"
   },
   "scripts": {
-    "build": "npm run build --workspace pilot",
-    "test": "npm run build --workspace pilot && node --test tests/*.test.mjs"
+    "build": "npm run build --workspace flowwatch",
+    "test": "npm run build --workspace flowwatch && node --test tests/*.test.mjs"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PranshulSoni/Pilot.git"
+    "url": "git+https://github.com/PranshulSoni/Flowwatch.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
   "bugs": {
-    "url": "https://github.com/PranshulSoni/Pilot/issues"
+    "url": "https://github.com/PranshulSoni/Flowwatch/issues"
   },
-  "homepage": "https://github.com/PranshulSoni/Pilot#readme",
+  "homepage": "https://github.com/PranshulSoni/Flowwatch#readme",
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/node": "^25.9.2",

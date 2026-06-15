@@ -31,8 +31,7 @@ pnpm-debug.log*
 .env.*
 !.env.example
 !.env*.example
-config.yaml
-.pilot.env
+.fw.env
 
 # Test app (internal development only)
 apps/test-app/
@@ -45,7 +44,7 @@ docker-data/
 postgres-data/
 redis-data/
 elasticsearch-data/
-pilot_npm_project_details.md
+flowwatch_npm_project_details.md
 PROJECT_HANDOFF.md
 
 # Runtime temp files

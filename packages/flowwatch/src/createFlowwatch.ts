@@ -1,0 +1,110 @@
+import { loadFlowwatchEnv } from "./utils/flowwatchEnvStore.js"
+import { createDashboardRouter } from "./dashboard/routes/router.js"
+import type { FlowwatchConfig } from "./types/index.js"
+import { validateConfig } from "./runtime/config/validationConfig.js"
+import { normalizeConfig } from "./runtime/config/normalizeConfig.js"
+import { createPostgresPool } from "./persistence/db/postgres.js"
+import { createElasticsearchClient } from "./search/elasticsearch/client.js"
+import { runMigrations } from "./persistence/migrations/migrationRunner.js"
+import { migrations } from "./persistence/migrations/migrations.js"
+import { createWorkflowEngine } from "./engine/workflows/workflowEngine.js"
+import type { RegisterWorkflow, TriggerWorkflow } from "./engine/workflows/types.js"
+import { createWorkflowQueue } from "./engine/background/queues/workflowQueue.js"
+import { createWorkflowWorker } from "./engine/background/workers/workflowWorker.js"
+import { createFlagEngine } from "./engine/flags/flagEngine.js"
+import type { EvaluateFlag } from "./engine/flags/types.js"
+import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
+import { createTraceEngine, type TraceFunction } from "./engine/trace/traceEngine.js"
+import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
+import type { ErrorRequestHandler, RequestHandler, Router } from "express"
+import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
+import { createRedisClient } from "./persistence/cache/redisClient.js"
+
+export interface Flowwatch {
+    dashboard: Router
+    workflow: RegisterWorkflow
+    trigger: TriggerWorkflow
+    flag: EvaluateFlag
+    requestTracer: RequestHandler
+    trace: TraceFunction
+    errorHandler: ErrorRequestHandler
+    captureError: CaptureErrorFunction
+}
+
+export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
+    await loadFlowwatchEnv()
+
+    const validConfig = validateConfig(config)
+    const normalizedConfig = await normalizeConfig(validConfig)
+    const postgresPool = createPostgresPool(normalizedConfig.db)
+    if (normalizedConfig.migrations.autoRun) {
+        await runMigrations(postgresPool, migrations);
+    }
+    const redisClient = createRedisClient(normalizedConfig.redis.url)
+    const elasticsearchClient = createElasticsearchClient(normalizedConfig.elasticsearch.node)
+
+    // BullMQ requires Redis ≥ 5. Gracefully degrade on older versions.
+    let workflowQueue: ReturnType<typeof createWorkflowQueue> | null = null
+    try {
+        workflowQueue = createWorkflowQueue(normalizedConfig.redis.url)
+        // Probe the connection — BullMQ throws synchronously on version check
+        await workflowQueue.waitUntilReady()
+    } catch (err: any) {
+        const reason = err?.message ?? String(err)
+        console.warn(`[Flowwatch] ⚠️  Workflow queue unavailable (${reason}). Workflows will be registered but cannot be executed until Redis ≥ 5 is available.`)
+        workflowQueue = null
+    }
+
+    const traceEngine = createTraceEngine({
+        pool: postgresPool,
+        elasticsearchClient,
+    })
+    const workflowEngine = createWorkflowEngine({
+        pool: postgresPool,
+        workflowQueue,
+        traceEngine,
+    })
+    const requestTracer = createRequestTracingMiddleware(postgresPool)
+    const errorEngineOptions = {
+        pool: postgresPool,
+        elasticsearchClient,
+    }
+    const errorHandler = createErrorHandler(errorEngineOptions)
+    const captureFlowwatchError: CaptureErrorFunction = (error, options) => {
+        return captureError(errorEngineOptions, error, options)
+    }
+    const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
+    await createMissingMappings(elasticsearchClient)
+
+    if (normalizedConfig.worker.enabled && workflowQueue !== null) {
+        try {
+            createWorkflowWorker({
+                redisUrl: normalizedConfig.redis.url,
+                pool: postgresPool,
+                getWorkflow: workflowEngine.getWorkflow,
+                traceEngine,
+                captureError: captureFlowwatchError,
+            })
+        } catch (err: any) {
+            console.warn(`[Flowwatch] ⚠️  Workflow worker could not start: ${err?.message}`)
+        }
+    }
+
+    const dashboard = createDashboardRouter({
+        config: normalizedConfig,
+        postgresPool,
+        redisClient,
+        elasticsearchClient,
+    })
+
+    return {
+        dashboard,
+        workflow: workflowEngine.workflow,
+        trigger: workflowEngine.trigger,
+        flag: flagEngine.flag,
+        requestTracer,
+        trace: traceEngine.trace,
+        errorHandler,
+        captureError: captureFlowwatchError,
+    }
+}

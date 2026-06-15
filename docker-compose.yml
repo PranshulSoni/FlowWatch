@@ -3,16 +3,16 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: pilot-postgres
+    container_name: flowwatch-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: pilot_test
+      POSTGRES_DB: flowwatch_test
     ports:
       - "5432:5432"
     volumes:
-      - pilot_postgres_data:/var/lib/postgresql/data
+      - flowwatch_postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -21,7 +21,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: pilot-redis
+    container_name: flowwatch-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -33,7 +33,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:8.13.0
-    container_name: pilot-elasticsearch
+    container_name: flowwatch-elasticsearch
     restart: unless-stopped
     environment:
       - discovery.type=single-node
@@ -42,7 +42,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - pilot_es_data:/usr/share/elasticsearch/data
+      - flowwatch_es_data:/usr/share/elasticsearch/data
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
@@ -50,5 +50,5 @@ services:
       retries: 20
 
 volumes:
-  pilot_postgres_data:
-  pilot_es_data:
+  flowwatch_postgres_data:
+  flowwatch_es_data:
