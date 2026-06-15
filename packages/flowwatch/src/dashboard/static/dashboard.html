@@ -2740,23 +2740,41 @@
         }
 
         .ask-ai-context {
-            padding: 13px 16px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--line-soft);
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            background: rgba(9, 13, 19, 0.72);
         }
 
         .ask-ai-context-title {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 780;
         }
 
         .ask-ai-context-copy {
             margin-top: 3px;
             color: var(--subtle);
+            font-size: 12px;
+        }
+
+        .ask-ai-context-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .ask-ai-scope {
+            border: 1px solid rgba(34, 211, 238, 0.22);
+            border-radius: 999px;
+            background: rgba(34, 211, 238, 0.08);
+            color: #a5f3fc;
+            padding: 6px 10px;
             font-size: 11px;
+            font-weight: 760;
+            white-space: nowrap;
         }
 
         .ask-ai-messages {
@@ -2981,7 +2999,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 42px 24px;
+            padding: 44px 24px;
         }
 
         #page-ask-ai .ask-ai-center {
@@ -2990,9 +3008,18 @@
         }
 
         #page-ask-ai .ask-ai-home-title {
-            font-size: 34px;
+            font-size: 36px;
             line-height: 1.16;
-            font-weight: 650;
+            font-weight: 720;
+        }
+
+        #page-ask-ai .ask-ai-home-copy {
+            display: block;
+            max-width: 680px;
+            margin: -8px auto 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
         }
 
         #page-ask-ai .ask-ai-prompt-grid {
@@ -3005,15 +3032,18 @@
         }
 
         #page-ask-ai .ask-ai-prompt-card {
-            min-height: 0;
+            min-height: 74px;
             border: 1px solid rgba(79, 140, 255, 0.24);
-            border-radius: 999px;
-            background: rgba(79, 140, 255, 0.055);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.035), transparent),
+                rgba(79, 140, 255, 0.055);
             color: #dbeafe;
-            padding: 10px 15px;
-            display: inline-flex;
-            align-items: center;
-            text-align: center;
+            padding: 12px 14px;
+            display: grid;
+            align-content: center;
+            gap: 5px;
+            text-align: left;
         }
 
         #page-ask-ai .ask-ai-prompt-card:hover {
@@ -3022,7 +3052,8 @@
         }
 
         #page-ask-ai .ask-ai-prompt-copy {
-            display: none;
+            display: block;
+            color: #8da2c4;
         }
 
         #page-ask-ai .ask-ai-composer-wrap {
@@ -3042,6 +3073,18 @@
             grid-template-columns: minmax(0, 1fr) auto;
             align-items: center;
             box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+        }
+
+        .ask-ai-composer-field {
+            min-width: 0;
+            display: grid;
+            gap: 6px;
+        }
+
+        .ask-ai-composer-hint {
+            color: #73829a;
+            font-size: 11px;
+            padding: 0 10px 2px;
         }
 
         #page-ask-ai .ask-ai-input {
@@ -3129,6 +3172,13 @@
             padding: 0;
             color: var(--text);
             white-space: pre;
+        }
+
+        .ask-ai-empty-note {
+            max-width: 680px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.55;
         }
 
         @media (max-width: 1060px) {
@@ -3907,15 +3957,19 @@
                         <div class="ask-ai-context">
                             <div>
                                 <div class="ask-ai-context-title">Ask Flowwatch AI</div>
-                                <div class="ask-ai-context-copy">Diagnose errors, traces, workflows, and system health.</div>
+                                <div class="ask-ai-context-copy">Diagnose this server's errors, traces, workflows, flags, latency, and health.</div>
                             </div>
-                            <button id="ask-ai-clear-btn" class="button" type="button">Clear chat</button>
+                            <div class="ask-ai-context-actions">
+                                <span class="ask-ai-scope">Server context only</span>
+                                <button id="ask-ai-clear-btn" class="button" type="button">Clear chat</button>
+                            </div>
                         </div>
 
                         <div id="ask-ai-content" class="ask-ai-content">
                             <div id="ask-ai-welcome" class="ask-ai-home">
                                 <div class="ask-ai-center">
                                     <h1 class="ask-ai-home-title">What should we inspect first?</h1>
+                                    <div class="ask-ai-empty-note">Flowwatch AI is scoped to this backend. Ask about workflow failures, trace latency, captured errors, feature flag rollout impact, queues, Redis, Postgres, or health checks.</div>
                                     <div class="ask-ai-prompt-grid" aria-label="Suggested Flowwatch AI prompts">
                                         <button class="ask-ai-prompt-card" data-ask-prompt="Explain the latest failed workflow execution using the loaded execution steps and linked errors.">
                                             <span class="ask-ai-prompt-title">Explain a failed execution</span>
@@ -3942,7 +3996,10 @@
 
                         <div class="ask-ai-composer-wrap">
                             <div class="ask-ai-composer">
-                                <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask Flowwatch about traces, workflows, errors, flags, or health..."></textarea>
+                                <div class="ask-ai-composer-field">
+                                    <textarea id="ask-ai-input" class="ask-ai-input" rows="2" placeholder="Ask about this server's traces, workflows, errors, flags, latency, queues, or health..."></textarea>
+                                    <div class="ask-ai-composer-hint">Flowwatch AI only answers questions grounded in this server's observability data.</div>
+                                </div>
                                 <button id="ask-ai-submit-btn" class="ask-ai-send-button" type="button" title="Send" aria-label="Send">Send</button>
                             </div>
                         </div>

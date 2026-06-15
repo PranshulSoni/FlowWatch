@@ -34,6 +34,55 @@ const GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile"
 const ALLOWED_CHAT_ROLES = new Set(["user", "assistant"])
 const MODEL_ID_PATTERN = /^[a-zA-Z0-9._:/-]{1,128}$/
+const OUT_OF_SCOPE_RESPONSE = [
+    "### Server context only",
+    "",
+    "Ask Flowwatch AI can only help with this service's workflows, executions, traces, errors, feature flags, health checks, and backend runtime behavior.",
+    "",
+    "Try asking about:",
+    "- Recent failed workflow executions",
+    "- Slow traces or request latency",
+    "- Captured server errors",
+    "- Feature flag rollout impact",
+    "- Health check failures",
+].join("\n")
+
+const SERVER_QUESTION_TERMS = [
+    "api",
+    "backend",
+    "bullmq",
+    "cache",
+    "database",
+    "db",
+    "deployment",
+    "endpoint",
+    "error",
+    "exception",
+    "execution",
+    "express",
+    "failure",
+    "feature flag",
+    "flag",
+    "health",
+    "incident",
+    "latency",
+    "log",
+    "metric",
+    "migration",
+    "postgres",
+    "queue",
+    "redis",
+    "request",
+    "retry",
+    "route",
+    "server",
+    "service",
+    "span",
+    "status",
+    "throughput",
+    "trace",
+    "workflow",
+]
 
 export interface GroqModelOption {
     id: string
@@ -85,6 +134,17 @@ function sanitizeChatHistory(history: Array<{ role: string; content: string }>):
             content: String(message.content || "").slice(0, 4096),
         }))
         .slice(-50)
+}
+
+export function isServerObservabilityQuestion(message: string): boolean {
+    const normalized = String(message || "").toLowerCase().replace(/\s+/g, " ").trim()
+    if (!normalized) return false
+
+    return SERVER_QUESTION_TERMS.some((term) => normalized.includes(term))
+}
+
+export function outOfScopeFlowwatchResponse(): string {
+    return OUT_OF_SCOPE_RESPONSE
 }
 
 export async function listGroqModels(): Promise<GroqModelOption[]> {
@@ -174,6 +234,10 @@ export async function askGroqAi(
     history: Array<{ role: string; content: string }>,
     model?: string
 ): Promise<string> {
+    if (!isServerObservabilityQuestion(message)) {
+        return outOfScopeFlowwatchResponse()
+    }
+
     const apiKey = getGroqApiKey()
 
     if (!apiKey) {
@@ -188,6 +252,8 @@ export async function askGroqAi(
             content: [
                 "You are Flowwatch's backend reliability AI.",
                 "You help developers diagnose errors, traces, feature flags, workflows, and health checks.",
+                "Only answer questions about the current server, backend application, Flowwatch data, reliability, observability, or operational debugging.",
+                "If the user asks for unrelated general knowledge, personal advice, creative writing, jokes, math homework, trivia, or anything outside this server context, refuse briefly and redirect them to ask about server health, errors, traces, workflows, feature flags, or latency.",
                 "Use the provided JSON context of the system which contains recent workflows, executions, errors, traces, feature flags, and health check statuses.",
                 "Answer the user's question accurately. Focus on diagnostics, suggestions, and resolving issues.",
                 "Keep answers developer-friendly, clear, and actionable. Use markdown formatting for lists, codes, and code snippets.",
