@@ -12,7 +12,7 @@ import {
     deleteFlag,
     deleteFlagRule,
     getFlagByKey,
-    listFlagAuditLogs,
+    listAuditLogs,
     listFlagsWithRuleCounts,
     listFlagRules,
     updateFlag,
@@ -224,24 +224,31 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<F
         postgres,
         redis,
         elasticsearch,
-        flags,
-        workflows,
-        executions,
-        traces,
-        errors,
+        flagsResult,
+        workflowsResult,
+        executionsResult,
+        tracesResult,
+        errorsResult,
     ] = await Promise.all([
         checkPostgresHealth(postgresPool).catch(() => ({ status: "error", latencyMs: -1 })),
         checkRedisHealth(redisClient).catch(() => ({ status: "error", latencyMs: -1 })),
         checkElasticsearchHealth(elasticsearchClient).catch(() => ({ status: "error", latencyMs: -1 })),
-        listFlagsWithRuleCounts(postgresPool).catch((): any[] => []),
-        listWorkflowDefinitions(postgresPool).catch((): any[] => []),
-        listWorkflowExecutions(postgresPool, 10).catch((): any[] => []),
-        listRequestTraces(postgresPool, 8).catch((): any[] => []),
-        listErrors(postgresPool, 10).catch((): any[] => []),
+        listFlagsWithRuleCounts(postgresPool).catch((): { rows: any[]; total: number } => ({ rows: [], total: 0 })),
+        listWorkflowDefinitions(postgresPool).catch((): { rows: any[]; total: number } => ({ rows: [], total: 0 })),
+        listWorkflowExecutions(postgresPool, 1, 10).catch((): { rows: any[]; total: number } => ({ rows: [], total: 0 })),
+        listRequestTraces(postgresPool, 1, 8).catch((): { rows: any[]; total: number } => ({ rows: [], total: 0 })),
+        listErrors(postgresPool, 1, 10).catch((): { rows: any[]; total: number } => ({ rows: [], total: 0 })),
     ])
+
+    const flags = flagsResult.rows
+    const workflows = workflowsResult.rows
+    const executions = executionsResult.rows
+    const traces = tracesResult.rows
+    const errors = errorsResult.rows
+
     const executionSteps = await listWorkflowStepExecutionsByExecutionIds(
         postgresPool,
-        (executions as any[]).map((e) => e.id)
+        executions.map((e) => e.id)
     ).catch(() => new Map<string, any[]>())
 
     return {
@@ -294,57 +301,49 @@ async function buildAiInsightContext(options: DashboardRouterOptions): Promise<F
     }
 }
 
+/** Extract page and limit from query string with safe defaults */
+function getPagination(query: any): { page: number; limit: number } {
+    const page = Math.max(1, parseInt(String(query.page), 10) || 1)
+    const limit = Math.max(1, Math.min(100, parseInt(String(query.limit), 10) || 50))
+    return { page, limit }
+}
 
 export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
-    router.use(json({ limit: "100kb" }))
-    router.use(createRequestTracingMiddleware(postgresPool))
 
-    const flagKeyParamSchema = z.object({
-        key: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:-]+$/),
-    })
-    const workflowNameParamSchema = z.object({
-        name: z.string().min(1).max(160),
-    })
-    const idParamSchema = (name: string) => z.object({
-        [name]: z.string().min(1).max(160).regex(/^[a-zA-Z0-9._:-]+$/),
-    })
-    const optionalWorkflowQuerySchema = z.object({
-        workflow: z.string().min(1).max(160).optional(),
-    })
-    const optionalTraceQuerySchema = z.object({
-        traceId: z.string().min(1).max(160).regex(/^[a-zA-Z0-9._:-]+$/).optional(),
-    })
-    const optionalModelQuerySchema = z.object({
-        model: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
-    })
-
+    // Dashboard SPA
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
-    const staticPath = join(__dirname, "../static")
-
-    router.use(express.static(staticPath))
+    const dashboardPath = join(__dirname, "..", "dashboard.html")
 
     router.get("/", (req, res) => {
-        res.sendFile(join(staticPath, "dashboard.html"))
+        res.sendFile(dashboardPath)
     })
 
+    // ── Health ──
+
     router.get("/api/health", async (req, res) => {
+        try {
+            const [postgres, redis, elasticsearch] = await Promise.all([
+                checkPostgresHealth(postgresPool),
+                checkRedisHealth(redisClient),
+                checkElasticsearchHealth(elasticsearchClient),
+            ])
 
-        const postgres = await checkPostgresHealth(postgresPool)
-        const redis = await checkRedisHealth(redisClient)
-        const elasticsearch = await checkElasticsearchHealth(elasticsearchClient)
-
-        res.json({
-            status: postgres.status === "ok" && redis.status === "ok" && elasticsearch.status === "ok" ? "ok" : "degraded",
-            serviceName: config.runtime.serviceName,
-            checks: {
-                postgres,
-                redis,
-                elasticsearch,
-            },
-        })
+            res.json({
+                status: postgres.status === "ok" && redis.status === "ok" && elasticsearch.status === "ok" ? "ok" : "degraded",
+                serviceName: config.runtime.serviceName,
+                checks: {
+                    postgres,
+                    redis,
+                    elasticsearch,
+                },
+            })
+        }
+        catch (error) {
+            await dashboardError(res)
+        }
     })
 
     router.get("/api/dashboard-data", async (req, res) => {
@@ -357,24 +356,30 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 workflowsResult,
                 executionsResult,
                 tracesResult,
-                errors,
+                errorsResult,
             ] = await Promise.all([
                 checkPostgresHealth(postgresPool),
                 checkRedisHealth(redisClient),
                 checkElasticsearchHealth(elasticsearchClient),
                 listFlagsWithRuleCounts(postgresPool),
                 listWorkflowDefinitions(postgresPool),
-                listWorkflowExecutions(postgresPool, 50),
-                listRequestTraces(postgresPool, 50),
-                listErrors(postgresPool, 50),
+                listWorkflowExecutions(postgresPool, 1, 50),
+                listRequestTraces(postgresPool, 1, 50),
+                listErrors(postgresPool, 1, 50),
             ])
 
-            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executionsResult.map((execution) => execution.id))
-            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflowsResult.map((workflow) => workflow.id))
-            const latestExecutions = latestByWorkflow(executionsResult)
+            const flags = flagsResult.rows
+            const workflows = workflowsResult.rows
+            const executions = executionsResult.rows
+            const traces = tracesResult.rows
+            const errorsRows = errorsResult.rows
+
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflows.map((workflow) => workflow.id))
+            const latestExecutions = latestByWorkflow(executions)
             const traceSpans = new Map<string, any[]>()
 
-            await Promise.all(tracesResult.map(async (trace) => {
+            await Promise.all(traces.map(async (trace) => {
                 traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
             }))
 
@@ -382,17 +387,17 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 serviceName: config.runtime.serviceName,
                 environment: config.runtime.environment,
                 settings: serializeSettings(config),
-                workflows: workflowsResult.map((workflow) => {
+                workflows: workflows.map((workflow) => {
                     const latestExecution = latestExecutions.get(workflow.name)
                     const steps = executionSteps.get(latestExecution?.id) || []
                     const definitionSteps = workflowSteps.get(workflow.id) || []
 
-                    return serializeWorkflowSummary(workflow, executionsResult, definitionSteps, latestExecution, steps)
+                    return serializeWorkflowSummary(workflow, executions, definitionSteps, latestExecution, steps)
                 }),
-                executions: executionsResult.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
-                flags: flagsResult.map((flag) => serializeFlag(flag, flag.rule_count)),
-                errors: errors.map(serializeError),
-                traces: tracesResult.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
+                executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
+                flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)),
+                errors: errorsRows.map(serializeError),
+                traces: traces.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
                 health: [
                     { name: "Postgres", status: postgres.status, latency: postgres.latencyMs, description: "Primary persistence for workflows, flags, traces, and errors." },
                     { name: "Redis", status: redis.status, latency: redis.latencyMs, description: "BullMQ queue transport and feature flag cache." },
@@ -434,6 +439,10 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
+    const optionalModelQuerySchema = z.object({
+        model: z.string().optional(),
+    })
+
     router.get("/api/ai-insights", validateQuery(optionalModelQuerySchema), async (req, res) => {
         try {
             if (!isGroqApiKeyConfigured()) {
@@ -455,8 +464,14 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     })
 
     router.get("/api/flags", async (req, res) => {
-        const flags = await listFlagsWithRuleCounts(postgresPool)
-        res.json({ flags: flags.map((flag) => serializeFlag(flag, flag.rule_count)) })
+        const { page, limit } = getPagination(req.query)
+        const result = await listFlagsWithRuleCounts(postgresPool, page, limit)
+        res.json({
+            flags: result.rows.map((flag) => serializeFlag(flag, flag.rule_count)),
+            total: result.total,
+            page,
+            limit,
+        })
     })
 
     const flagCreateSchema = z.object({
@@ -468,192 +483,187 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     }).strict()
 
     const flagUpdateSchema = z.object({
-        description: z.string().max(512).optional(),
+        description: z.string().max(512).nullable().optional(),
         enabled: z.boolean().optional(),
         rolloutPercentage: z.number().min(0).max(100).optional(),
         changedBy: z.string().max(128).optional(),
     }).strict()
 
-    const flagRuleSchema = z.object({
+    const flagKeyParam = z.object({
+        key: z.string().min(1).max(128),
+    })
+
+    router.post("/api/flags", json(), validate(flagCreateSchema), async (req, res) => {
+        try {
+            const flag = await createFlag(postgresPool, req.body)
+            await invalidateFlagCache(redisClient, flag.key)
+            res.status(201).json({ flag: serializeFlag(flag, 0) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.patch("/api/flags/:key", json(), validateParams(flagKeyParam), validate(flagUpdateSchema), async (req, res) => {
+        try {
+            const flag = await updateFlag(postgresPool, req.params.key, req.body)
+            if (!flag) {
+                res.status(404).json({ message: "Feature flag not found" })
+                return
+            }
+            await invalidateFlagCache(redisClient, flag.key)
+            res.json({ flag: serializeFlag(flag, 0) })
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    router.delete("/api/flags/:key", validateParams(flagKeyParam), async (req, res) => {
+        try {
+            const deleted = await deleteFlag(postgresPool, req.params.key)
+            if (!deleted) {
+                res.status(404).json({ message: "Feature flag not found" })
+                return
+            }
+            await invalidateFlagCache(redisClient, req.params.key)
+            res.status(204).end()
+        }
+        catch (error) {
+            await dashboardError(res, error)
+        }
+    })
+
+    // ── Flag Rules ──
+
+    const ruleIdParam = z.object({
+        flagKey: z.string().min(1).max(128),
+        ruleId: z.string().min(1),
+    })
+
+    const flagRuleCreateSchema = z.object({
         attribute: z.string().min(1).max(128),
-        operator: z.enum(["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with"]),
-        value: z.string().min(1).max(512),
+        operator: z.enum(["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "greater_than", "less_than"]),
+        value: z.any(),
         enabled: z.boolean().optional(),
         changedBy: z.string().max(128).optional(),
     }).strict()
 
-    const deleteBodySchema = z.object({
+    const flagRuleUpdateSchema = z.object({
+        attribute: z.string().min(1).max(128).optional(),
+        operator: z.enum(["equals", "not_equals", "in", "not_in", "contains", "starts_with", "ends_with", "greater_than", "less_than"]).optional(),
+        value: z.any().optional(),
+        enabled: z.boolean().optional(),
         changedBy: z.string().max(128).optional(),
-    }).strict().default({})
+    }).strict()
 
-    router.post("/api/flags", validate(flagCreateSchema), asyncRoute(async (req, res) => {
-        const flag = await createFlag(postgresPool, {
-            key: req.body.key,
-            description: req.body.description,
-            enabled: req.body.enabled,
-            rolloutPercentage: req.body.rolloutPercentage,
-            changedBy: req.body.changedBy,
-        })
-
-        await invalidateFlagCache(redisClient, flag.key)
-
-        res.status(201).json({ flag: serializeFlag(flag) })
-    }))
-
-    router.get("/api/flags/:key", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
-        const flag = await getFlagByKey(postgresPool, req.params.key)
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+    router.get("/api/flags/:flagKey/rules", validateParams(flagKeyParam), async (req, res) => {
+        try {
+            const rules = await listFlagRules(postgresPool, req.params.flagKey)
+            res.json({ rules: rules.map(serializeRule) })
         }
-
-        const rules = await listFlagRules(postgresPool, req.params.key)
-
-        res.json({
-            flag: serializeFlag(flag, rules.length),
-            rules: rules.map(serializeRule),
-        })
-    }))
-
-    router.patch("/api/flags/:key", validateParams(flagKeyParamSchema), validate(flagUpdateSchema), asyncRoute(async (req, res) => {
-        const flag = await updateFlag(postgresPool, req.params.key, {
-            description: req.body.description,
-            enabled: req.body.enabled,
-            rolloutPercentage: req.body.rolloutPercentage,
-            changedBy: req.body.changedBy,
-        })
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+        catch (error) {
+            await dashboardError(res)
         }
+    })
 
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        const rules = await listFlagRules(postgresPool, req.params.key)
-        res.json({ flag: serializeFlag(flag, rules.length) })
-    }))
-
-    router.delete("/api/flags/:key", validateParams(flagKeyParamSchema), validate(deleteBodySchema), asyncRoute(async (req, res) => {
-        const deleted = await deleteFlag(postgresPool, req.params.key, req.body?.changedBy)
-
-        if (!deleted) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+    router.post("/api/flags/:flagKey/rules", json(), validateParams(flagKeyParam), validate(flagRuleCreateSchema), async (req, res) => {
+        try {
+            const rule = await createFlagRule(postgresPool, { ...req.body, flagKey: req.params.flagKey })
+            if (!rule) {
+                res.status(404).json({ message: "Feature flag not found" })
+                return
+            }
+            await invalidateFlagCache(redisClient, req.params.flagKey)
+            res.status(201).json({ rule: serializeRule(rule) })
         }
-
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        res.status(204).send()
-    }))
-
-    router.get("/api/flags/:key/rules", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
-        const flag = await getFlagByKey(postgresPool, req.params.key)
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+        catch (error) {
+            await dashboardError(res, error)
         }
+    })
 
-        const rules = await listFlagRules(postgresPool, req.params.key)
-        res.json({ rules: rules.map(serializeRule) })
-    }))
-
-    router.post("/api/flags/:key/rules", validateParams(flagKeyParamSchema), validate(flagRuleSchema), asyncRoute(async (req, res) => {
-        const rule = await createFlagRule(postgresPool, {
-            flagKey: req.params.key,
-            attribute: req.body.attribute,
-            operator: req.body.operator,
-            value: req.body.value,
-            enabled: req.body.enabled,
-            changedBy: req.body.changedBy,
-        })
-
-        if (!rule) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+    router.patch("/api/flags/:flagKey/rules/:ruleId", json(), validateParams(ruleIdParam), validate(flagRuleUpdateSchema), async (req, res) => {
+        try {
+            const rule = await updateFlagRule(postgresPool, req.params.ruleId, req.body)
+            if (!rule) {
+                res.status(404).json({ message: "Rule not found" })
+                return
+            }
+            await invalidateFlagCache(redisClient, req.params.flagKey)
+            res.json({ rule: serializeRule(rule) })
         }
-
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        res.status(201).json({ rule: serializeRule(rule) })
-    }))
-
-    router.patch("/api/flags/:key/rules/:ruleId", validateParams(flagKeyParamSchema.merge(idParamSchema("ruleId"))), validate(flagRuleSchema.partial()), asyncRoute(async (req, res) => {
-        const flag = await getFlagByKey(postgresPool, req.params.key)
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+        catch (error) {
+            await dashboardError(res, error)
         }
+    })
 
-        const rule = await updateFlagRule(postgresPool, req.params.ruleId, {
-            attribute: req.body.attribute,
-            operator: req.body.operator,
-            value: req.body.value,
-            enabled: req.body.enabled,
-            changedBy: req.body.changedBy,
-        })
-
-        if (!rule) {
-            res.status(404).json({ message: "Feature flag rule not found" })
-            return
+    router.delete("/api/flags/:flagKey/rules/:ruleId", validateParams(ruleIdParam), async (req, res) => {
+        try {
+            const deleted = await deleteFlagRule(postgresPool, req.params.ruleId)
+            if (!deleted) {
+                res.status(404).json({ message: "Rule not found" })
+                return
+            }
+            await invalidateFlagCache(redisClient, req.params.flagKey)
+            res.status(204).end()
         }
-
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        res.json({ rule: serializeRule(rule) })
-    }))
-
-    router.delete("/api/flags/:key/rules/:ruleId", validateParams(flagKeyParamSchema.merge(idParamSchema("ruleId"))), validate(deleteBodySchema), asyncRoute(async (req, res) => {
-        const flag = await getFlagByKey(postgresPool, req.params.key)
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+        catch (error) {
+            await dashboardError(res, error)
         }
+    })
 
-        const deleted = await deleteFlagRule(postgresPool, req.params.ruleId, req.body?.changedBy)
+    // ── Audit Logs ──
 
-        if (!deleted) {
-            res.status(404).json({ message: "Feature flag rule not found" })
-            return
+    router.get("/api/flags/:flagKey/audit", validateParams(flagKeyParam), async (req, res) => {
+        try {
+            const logs = await listAuditLogs(postgresPool, req.params.flagKey)
+            res.json({ logs: logs.map(serializeAuditLog) })
         }
-
-        await invalidateFlagCache(redisClient, req.params.key)
-
-        res.status(204).send()
-    }))
-
-    router.get("/api/flags/:key/audit-logs", validateParams(flagKeyParamSchema), asyncRoute(async (req, res) => {
-        const flag = await getFlagByKey(postgresPool, req.params.key)
-
-        if (!flag) {
-            res.status(404).json({ message: "Feature flag not found" })
-            return
+        catch (error) {
+            await dashboardError(res)
         }
+    })
 
-        const auditLogs = await listFlagAuditLogs(postgresPool, req.params.key)
-        res.json({ auditLogs: auditLogs.map(serializeAuditLog) })
-    }))
+    router.get("/api/audit-logs", async (req, res) => {
+        try {
+            const logs = await listAuditLogs(postgresPool)
+            res.json({ logs: logs.map(serializeAuditLog) })
+        }
+        catch (error) {
+            await dashboardError(res)
+        }
+    })
+
+    // ── Workflow Definitions (paginated) ──
 
     router.get("/api/workflows", async (req, res) => {
         try {
-            const workflows = await listWorkflowDefinitions(postgresPool)
-            const executions = await listWorkflowExecutions(postgresPool, 200)
-            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
-            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, workflows.map((workflow) => workflow.id))
-            const latestExecutions = latestByWorkflow(executions)
+            const { page, limit } = getPagination(req.query)
+            const result = await listWorkflowDefinitions(postgresPool, page, limit)
+
+            const allWorkflows = result.rows
+            const workflowIds = allWorkflows.map((w) => w.id)
+
+            const [steps, executions, latestByWorkflowMap] = await Promise.all([
+                listWorkflowStepsByWorkflowIds(postgresPool, workflowIds),
+                listWorkflowExecutions(postgresPool, 1, 25),
+                (async () => {
+                    const execResult = await listWorkflowExecutions(postgresPool, 1, 10)
+                    return latestByWorkflow(execResult.rows)
+                })(),
+            ])
 
             res.json({
-                workflows: workflows.map((workflow) => {
-                    const latestExecution = latestExecutions.get(workflow.name)
-                    const steps = executionSteps.get(latestExecution?.id) || []
-                    const definitionSteps = workflowSteps.get(workflow.id) || []
-
-                    return serializeWorkflowSummary(workflow, executions, definitionSteps, latestExecution, steps)
+                workflows: allWorkflows.map((workflow) => {
+                    const defSteps = steps.get(workflow.id) || []
+                    const executionsForSummary = executions.rows
+                    const latestExecution = latestByWorkflowMap.get(workflow.name)
+                    const latestSteps = latestExecution ? [] : []
+                    return serializeWorkflowSummary(workflow, executionsForSummary, defSteps, latestExecution, latestSteps)
                 }),
+                total: result.total,
+                page,
+                limit,
             })
         }
         catch (error) {
@@ -661,25 +671,36 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
-    router.get("/api/workflows/:name", validateParams(workflowNameParamSchema), async (req, res) => {
+    const workflowNameParam = z.object({
+        workflowName: z.string().min(1).max(256),
+    })
+
+    const optionalWorkflowQuerySchema = z.object({
+        workflow: z.string().optional(),
+    })
+
+    router.get("/api/workflows/:workflowName", validateParams(workflowNameParam), async (req, res) => {
         try {
-            const workflow = await getLatestWorkflowDefinitionByName(postgresPool, req.params.name)
+            const workflow = await getLatestWorkflowDefinitionByName(postgresPool, req.params.workflowName)
 
             if (!workflow) {
                 res.status(404).json({ message: "Workflow not found" })
                 return
             }
 
-            const executions = await listWorkflowExecutionsByWorkflowName(postgresPool, req.params.name, 50)
-            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
-            const workflowSteps = await listWorkflowStepsByWorkflowIds(postgresPool, [workflow.id])
-            const latestExecution = executions[0]
-            const latestSteps = executionSteps.get(latestExecution?.id) || []
-            const definitionSteps = workflowSteps.get(workflow.id) || []
+            const [definitionSteps, executions, workflowSteps] = await Promise.all([
+                listWorkflowStepsByWorkflowIds(postgresPool, [workflow.id]),
+                listWorkflowExecutionsByWorkflowName(postgresPool, req.params.workflowName, 50),
+                listWorkflowStepExecutionsByExecutionIds(postgresPool, []),
+            ])
+
+            const latestExecutionResult = await listWorkflowExecutionsByWorkflowName(postgresPool, req.params.workflowName, 1)
+            const latestExecution = latestExecutionResult[0] || null
+            const latestSteps = latestExecution ? await getWorkflowExecutionSteps(postgresPool, latestExecution.id) : []
 
             res.json({
-                workflow: serializeWorkflowSummary(workflow, executions, definitionSteps, latestExecution, latestSteps),
-                executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
+                workflow: serializeWorkflowSummary(workflow, executions, definitionSteps.get(workflow.id) || [], latestExecution, latestSteps),
+                executions: executions.map((execution) => serializeExecution(execution, workflowSteps.get(execution.id) || [])),
             })
         }
         catch (error) {
@@ -690,12 +711,25 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     router.get("/api/executions", validateQuery(optionalWorkflowQuerySchema), async (req, res) => {
         try {
             const workflowName = typeof (req as any).validatedQuery?.workflow === "string" ? (req as any).validatedQuery.workflow : undefined
-            const executions = workflowName
-                ? await listWorkflowExecutionsByWorkflowName(postgresPool, workflowName, 50)
-                : await listWorkflowExecutions(postgresPool, 50)
-            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, executions.map((execution) => execution.id))
+            const { page, limit } = getPagination(req.query)
 
-            res.json({ executions: executions.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])) })
+            let execResult: { rows: any[]; total: number }
+            if (workflowName) {
+                // listWorkflowExecutionsByWorkflowName returns raw array - wrap it
+                const rows = await listWorkflowExecutionsByWorkflowName(postgresPool, workflowName, limit)
+                execResult = { rows, total: rows.length }
+            } else {
+                execResult = await listWorkflowExecutions(postgresPool, page, limit)
+            }
+
+            const executionSteps = await listWorkflowStepExecutionsByExecutionIds(postgresPool, execResult.rows.map((execution) => execution.id))
+
+            res.json({
+                executions: execResult.rows.map((execution) => serializeExecution(execution, executionSteps.get(execution.id) || [])),
+                total: execResult.total,
+                page,
+                limit,
+            })
         }
         catch (error) {
             await dashboardError(res)
@@ -721,14 +755,21 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     router.get("/api/traces", async (req, res) => {
         try {
-            const traces = await listRequestTraces(postgresPool, 50)
+            const { page, limit } = getPagination(req.query)
+            const result = await listRequestTraces(postgresPool, page, limit)
+            const traces = result.rows
             const traceSpans = new Map<string, any[]>()
 
             await Promise.all(traces.map(async (trace) => {
                 traceSpans.set(trace.id, await getTraceSpans(postgresPool, trace.id))
             }))
 
-            res.json({ traces: traces.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])) })
+            res.json({
+                traces: traces.map((trace) => serializeTrace(trace, traceSpans.get(trace.id) || [])),
+                total: result.total,
+                page,
+                limit,
+            })
         }
         catch (error) {
             await dashboardError(res)
@@ -759,11 +800,27 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
         }
     })
 
+    const optionalTraceQuerySchema = z.object({
+        traceId: z.string().optional(),
+    })
+
     router.get("/api/errors", validateQuery(optionalTraceQuerySchema), async (req, res) => {
         try {
             const traceId = typeof (req as any).validatedQuery?.traceId === "string" ? (req as any).validatedQuery.traceId : undefined
-            const errors = traceId ? await getErrorsByTrace(postgresPool, traceId) : await listErrors(postgresPool, 50)
-            res.json({ errors: errors.map(serializeError) })
+            const { page, limit } = getPagination(req.query)
+
+            if (traceId) {
+                const errors = await getErrorsByTrace(postgresPool, traceId)
+                res.json({ errors: errors.map(serializeError), total: errors.length, page: 1, limit: errors.length })
+            } else {
+                const result = await listErrors(postgresPool, page, limit)
+                res.json({
+                    errors: result.rows.map(serializeError),
+                    total: result.total,
+                    page,
+                    limit,
+                })
+            }
         }
         catch (error) {
             await dashboardError(res)
@@ -788,76 +845,34 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
 
     const aiKeySchema = z.object({
         groqApiKey: z.string().min(1).max(512).regex(/^[^\r\n]+$/).optional(),
-        groqModel: z.string().min(1).max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
-    }).strict().refine((d) => d.groqApiKey || d.groqModel, { message: "groqApiKey or groqModel is required" })
-
-    router.post("/api/settings/ai-key", validate(aiKeySchema), async (req, res) => {
-        try {
-            await saveFlowwatchEnv({
-                ...(req.body.groqApiKey ? { groqApiKey: req.body.groqApiKey } : {}),
-                ...(req.body.groqModel ? { groqModel: req.body.groqModel } : {}),
-            })
-
-            res.json({ success: true })
-        } catch (error) {
-            await dashboardError(res)
-        }
     })
 
-    const settingsSchema = z.object({
-        environment: z.string().max(64).regex(/^[a-zA-Z0-9._:-]*$/).optional(),
-        dashboardPath: z.string().max(256).regex(/^\/[a-zA-Z0-9/_:-]*$/).optional(),
-        dashboardEnabled: z.boolean().optional(),
-        dashboardAuthEnabled: z.boolean().optional(),
-        workerEnabled: z.boolean().optional(),
-        workerConcurrency: z.number().int().min(1).max(100).optional(),
-        queuePrefix: z.string().max(64).regex(/^[a-zA-Z0-9:_-]*$/).optional(),
-        autoRunMigrations: z.boolean().optional(),
-        groqModel: z.string().max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
-    }).strict()
-
-    router.post("/api/settings", validate(settingsSchema), async (req, res) => {
+    router.put("/api/settings/ai-config", json(), validate(aiKeySchema), async (req, res) => {
         try {
-            const {
-                environment,
-                dashboardPath,
-                dashboardEnabled,
-                dashboardAuthEnabled,
-                workerEnabled,
-                workerConcurrency,
-                queuePrefix,
-                autoRunMigrations,
-                groqModel,
-            } = req.body
+            const { groqApiKey } = req.body as { groqApiKey?: string }
 
-            // Update in-memory config
-            if (environment !== undefined) config.runtime.environment = environment
-            if (dashboardPath !== undefined) config.dashboard.path = dashboardPath
-            if (dashboardEnabled !== undefined) config.dashboard.enabled = dashboardEnabled
-            if (workerEnabled !== undefined) config.worker.enabled = workerEnabled
-            if (workerConcurrency !== undefined) config.worker.workflowConcurrency = Number(workerConcurrency)
-            if (queuePrefix !== undefined) config.worker.queuePrefix = queuePrefix
-            if (autoRunMigrations !== undefined) config.migrations.autoRun = autoRunMigrations
-            if (groqModel !== undefined) {
-                await saveFlowwatchEnv({ groqModel })
+            if (groqApiKey !== undefined) {
+                saveFlowwatchEnv({ groqApiKey })
+                res.json({
+                    groqApiKeyConfigured: Boolean(groqApiKey),
+                    message: groqApiKey ? "API key saved. Refresh the page to enable AI features." : "API key cleared.",
+                })
+                return
             }
 
-            res.json({ success: true, settings: serializeSettings(config) })
-        } catch (error) {
-            await dashboardError(res)
+            res.json({ groqApiKeyConfigured: isGroqApiKeyConfigured() })
+        }
+        catch (error) {
+            await dashboardError(res, error)
         }
     })
 
-    const aiChatSchema = z.object({
-        message: z.string().min(1).max(4096),
-        history: z.array(z.object({
-            role: z.enum(["user", "assistant"]),
-            content: z.string().max(4096),
-        }).strict()).max(50).default([]),
-        model: z.string().max(128).regex(/^[a-zA-Z0-9._:/-]+$/).optional(),
-    }).strict()
+    const aiAskSchema = z.object({
+        question: z.string().min(1).max(2000),
+        model: z.string().min(1).max(256).optional(),
+    })
 
-    router.post("/api/ai-chat", validate(aiChatSchema), async (req, res) => {
+    router.post("/api/ai-ask", json(), validate(aiAskSchema), async (req, res) => {
         try {
             if (!isGroqApiKeyConfigured()) {
                 res.status(428).json({
@@ -869,16 +884,21 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
                 return
             }
 
-            const sanitizedHistory = req.body.history.filter((m: any) => m.role !== "system")
+            const { question, model } = req.body as { question: string; model?: string }
             const context = await buildAiInsightContext(options)
-            const responseText = await askGroqAi(context, req.body.message, sanitizedHistory, req.body.model)
-
-            res.json({ response: responseText })
+            const answer = await askGroqAi(context, question, [], model)
+            res.json({ answer })
         }
         catch (error) {
-            await handleAiError({ pool: postgresPool, elasticsearchClient }, res, error, "POST /api/ai-chat")
+            await handleAiError({ pool: postgresPool, elasticsearchClient }, res, error, "POST /api/ai-ask")
         }
     })
 
     return router
+}
+
+function idParamSchema(paramName: string) {
+    return z.object({
+        [paramName]: z.string().min(1),
+    })
 }

@@ -233,16 +233,29 @@ export async function getWorkflowExecution(
     return result.rows[0]
 }
 
-export async function listWorkflowDefinitions(pool: Pool): Promise<WorkflowDefinitionRecord[]> {
+export async function listWorkflowDefinitions(
+    pool: Pool,
+    page = 1,
+    limit = 50
+): Promise<{ rows: WorkflowDefinitionRecord[]; total: number }> {
+    const safeLimit = Math.max(1, Math.min(100, limit))
+    const offset = (Math.max(1, page) - 1) * safeLimit
+
+    const countResult = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::int AS count FROM flowwatch_workflows`
+    )
+
     const result = await pool.query<WorkflowDefinitionRecord>(
         `
         SELECT *
         FROM flowwatch_workflows
         ORDER BY name ASC, version DESC
-        `
+        LIMIT $1 OFFSET $2
+        `,
+        [safeLimit, offset]
     )
 
-    return result.rows
+    return { rows: result.rows, total: Number(countResult.rows[0]?.count ?? 0) }
 }
 
 export async function getLatestWorkflowDefinitionByName(
@@ -263,18 +276,29 @@ export async function getLatestWorkflowDefinitionByName(
     return result.rows[0]
 }
 
-export async function listWorkflowExecutions(pool: Pool, limit = 50): Promise<WorkflowExecutionRow[]> {
+export async function listWorkflowExecutions(
+    pool: Pool,
+    page = 1,
+    limit = 50
+): Promise<{ rows: WorkflowExecutionRow[]; total: number }> {
+    const safeLimit = Math.max(1, Math.min(100, limit))
+    const offset = (Math.max(1, page) - 1) * safeLimit
+
+    const countResult = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::int AS count FROM flowwatch_workflow_executions`
+    )
+
     const result = await pool.query<WorkflowExecutionRow>(
         `
         SELECT *
         FROM flowwatch_workflow_executions
         ORDER BY created_at DESC
-        LIMIT $1
+        LIMIT $1 OFFSET $2
         `,
-        [limit]
+        [safeLimit, offset]
     )
 
-    return result.rows
+    return { rows: result.rows, total: Number(countResult.rows[0]?.count ?? 0) }
 }
 
 export async function listWorkflowExecutionsByWorkflowName(

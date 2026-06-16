@@ -132,7 +132,18 @@ export async function listFlags(pool: Pool): Promise<FeatureFlagRow[]> {
     return result.rows
 }
 
-export async function listFlagsWithRuleCounts(pool: Pool): Promise<FeatureFlagWithRuleCountRow[]> {
+export async function listFlagsWithRuleCounts(
+    pool: Pool,
+    page = 1,
+    limit = 50
+): Promise<{ rows: FeatureFlagWithRuleCountRow[]; total: number }> {
+    const safeLimit = Math.max(1, Math.min(100, limit))
+    const offset = (Math.max(1, page) - 1) * safeLimit
+
+    const countResult = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::int AS count FROM flowwatch_feature_flags`
+    )
+
     const result = await pool.query<FeatureFlagWithRuleCountRow>(
         `
         SELECT flags.*, COUNT(rules.id)::int AS rule_count
@@ -140,10 +151,12 @@ export async function listFlagsWithRuleCounts(pool: Pool): Promise<FeatureFlagWi
         LEFT JOIN flowwatch_feature_flag_rules rules ON rules.flag_id = flags.id
         GROUP BY flags.id
         ORDER BY flags.key ASC
-        `
+        LIMIT $1 OFFSET $2
+        `,
+        [safeLimit, offset]
     )
 
-    return result.rows
+    return { rows: result.rows, total: Number(countResult.rows[0]?.count ?? 0) }
 }
 
 export async function getFlagByKey(pool: Pool, key: string): Promise<FeatureFlagRow | undefined> {
@@ -323,7 +336,7 @@ export async function updateFlagRule(
             `
             UPDATE flowwatch_feature_flag_rules
             SET attribute = COALESCE($2, attribute),
-                operator = COALESCE($3, operator),
+                operator = COALESCE($3::flag_rule_operator, operator),
                 value = COALESCE($4::jsonb, value),
                 enabled = COALESCE($5, enabled),
                 updated_at = now()
@@ -342,7 +355,7 @@ export async function updateFlagRule(
         const after = result.rows[0]
 
         await insertAuditLog(client, {
-            flagId: after.flag_id,
+            flagId: before.flag_id,
             action: "rule_updated",
             before,
             after,
@@ -353,7 +366,11 @@ export async function updateFlagRule(
     })
 }
 
-export async function deleteFlagRule(pool: Pool, ruleId: string, changedBy?: string): Promise<boolean> {
+export async function deleteFlagRule(
+    pool: Pool,
+    ruleId: string,
+    changedBy?: string
+): Promise<boolean> {
     return withTransaction(pool, async (client) => {
         const beforeResult = await client.query<FeatureFlagRuleRow>(
             `SELECT * FROM flowwatch_feature_flag_rules WHERE id = $1`,
@@ -363,7 +380,6 @@ export async function deleteFlagRule(pool: Pool, ruleId: string, changedBy?: str
 
         if (!before) return false
 
-        // Write audit log BEFORE delete so the FK to flowwatch_feature_flag_rules is still valid
         await insertAuditLog(client, {
             flagId: before.flag_id,
             action: "rule_deleted",
@@ -381,43 +397,47 @@ export async function deleteFlagRule(pool: Pool, ruleId: string, changedBy?: str
     })
 }
 
-// ─── Audit logs ───────────────────────────────────────────────────────────────
+// ─── Audit Log ────────────────────────────────────────────────────────────────
 
-export async function listFlagAuditLogs(pool: Pool, flagKey: string): Promise<FeatureFlagAuditLogRow[]> {
-    const flag = await getFlagByKey(pool, flagKey)
+export async function listAuditLogs(
+    pool: Pool,
+    flagKey?: string
+): Promise<FeatureFlagAuditLogRow[]> {
+    let query = `
+        SELECT *
+        FROM flowwatch_feature_flag_audit_log
+    `
+    const params: unknown[] = []
 
-    if (!flag) {
-        return []
+    if (flagKey) {
+        const flag = await getFlagByKey(pool, flagKey)
+        if (!flag) return []
+
+        query += ` WHERE flag_id = $1`
+        params.push(flag.id)
     }
 
-    const result = await pool.query<FeatureFlagAuditLogRow>(
-        `
-        SELECT *
-        FROM flowwatch_feature_flag_audit_logs
-        WHERE flag_id = $1
-        ORDER BY created_at DESC
-        `,
-        [flag.id]
-    )
+    query += ` ORDER BY created_at DESC`
 
+    const result = await pool.query<FeatureFlagAuditLogRow>(query, params)
     return result.rows
 }
 
-// ─── Internal helpers ─────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface AuditLogInput {
-    flagId: string
-    action: string
-    before: unknown
-    after: unknown
-    changedBy?: string
-}
-
-// Accepts a PoolClient so audit logs share the same transaction as the main op
-async function insertAuditLog(client: PoolClient, input: AuditLogInput): Promise<void> {
+async function insertAuditLog(
+    client: PoolClient,
+    input: {
+        flagId: string | null
+        action: string
+        before: unknown
+        after: unknown
+        changedBy?: string
+    }
+): Promise<void> {
     await client.query(
         `
-        INSERT INTO flowwatch_feature_flag_audit_logs (
+        INSERT INTO flowwatch_feature_flag_audit_log (
             id,
             flag_id,
             action,
@@ -431,8 +451,8 @@ async function insertAuditLog(client: PoolClient, input: AuditLogInput): Promise
             randomUUID(),
             input.flagId,
             input.action,
-            JSON.stringify(input.before),
-            JSON.stringify(input.after),
+            JSON.stringify(input.before ?? null),
+            JSON.stringify(input.after ?? null),
             input.changedBy ?? null,
         ]
     )

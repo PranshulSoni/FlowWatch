@@ -133,17 +133,25 @@ export async function getErrorById(
 
 export async function listErrors(
     pool: Pool,
+    page = 1,
     limit = 50
-): Promise<ErrorRow[]> {
+): Promise<{ rows: ErrorRow[]; total: number }> {
+    const safeLimit = Math.max(1, Math.min(100, limit))
+    const offset = (Math.max(1, page) - 1) * safeLimit
+
+    const countResult = await pool.query<{ count: string }>(
+        `SELECT COUNT(*)::int AS count FROM flowwatch_errors`
+    )
+
     const result = await pool.query<ErrorRow>(
         `
         SELECT *
         FROM flowwatch_errors
         ORDER BY occurred_at DESC
-        LIMIT $1
+        LIMIT $1 OFFSET $2
         `,
-        [limit]
+        [safeLimit, offset]
     )
 
-    return result.rows
+    return { rows: result.rows, total: Number(countResult.rows[0]?.count ?? 0) }
 }
