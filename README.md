@@ -15,6 +15,7 @@ No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your 
 - [Getting started](#getting-started)
   - [Minimum setup](#minimum-setup)
   - [Full setup with Redis and Elasticsearch](#full-setup-with-redis-and-elasticsearch)
+- [Multi-Language Support (Sidecar Server)](#multi-language-support-sidecar-server)
 - [Durable Workflows](#durable-workflows)
 - [Feature Flags](#feature-flags)
 - [Request Tracing](#request-tracing)
@@ -120,6 +121,116 @@ const fw = await createFlowwatch({
     environment: "production"
   }
 });
+```
+
+---
+
+## Multi-Language Support (Sidecar Server)
+
+**FlowWatch is no longer locked into Node.js!** You can now run the FlowWatch dashboard, engines, database, and background queues inside a Node.js process, and connect **any other programming language backend** (Python, Go, Rust, Ruby, PHP, C#) to it using our lightweight REST Sidecar Server.
+
+### How It Works
+
+1. Start the FlowWatch Sidecar server in a small Node.js background process (or next to your main backend).
+2. Your non-JS apps make simple, standard HTTP `POST` requests to communicate with the FlowWatch engine.
+3. The dashboard aggregates telemetry, workflows, feature flags, and errors from all services in one unified UI!
+
+### 1. Starting the Sidecar Server (Node.js)
+
+To run the sidecar, import and call `startSidecar` from the package:
+
+```ts
+import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
+
+const fw = await createFlowwatch({
+  db: { connectionString: process.env.DATABASE_URL },
+  redis: { url: process.env.REDIS_URL },
+  elasticsearch: { node: process.env.ELASTICSEARCH_URL },
+  migrations: { autoRun: true }
+});
+
+// Start the sidecar server on port 9400
+startSidecar(fw, 9400);
+// This hosts the Sidecar REST API at: http://localhost:9400/api/*
+// And mounts the admin Dashboard at: http://localhost:9400/ops
+```
+
+### 2. Communicating from Other Languages (e.g., Python)
+
+Once the sidecar is running on port `9400`, your external service can communicate with it via standard JSON endpoints:
+
+#### Feature Flag Evaluation (`POST /api/flag`)
+Send a flag key and user context. The Node.js engine evaluates rules and percentage rollouts, and returns `true` or `false`.
+
+```python
+import requests
+
+response = requests.post("http://localhost:9400/api/flag", json={
+    "key": "new-billing-flow",
+    "context": {
+        "userId": "user_987",
+        "email": "customer@company.com",
+        "plan": "premium"
+    }
+})
+is_enabled = response.json().get("enabled", False)
+```
+
+#### Ingesting Errors (`POST /api/capture-error`)
+Report server exceptions directly to the FlowWatch error repository with stack trace detail.
+
+```python
+try:
+    # Some buggy python logic
+    raise ValueError("Database connection failed")
+except Exception as e:
+    requests.post("http://localhost:9400/api/capture-error", json={
+        "error": {
+            "message": str(e),
+            "name": type(e).__name__,
+            "stack": "Traceback:\n  File 'app.py', line 12..."
+        },
+        "options": {
+            "source": "python-payment-microservice",
+            "category": "database",
+            "level": "fatal"
+        }
+    })
+```
+
+#### Logging Trace Spans (`POST /api/trace-span`)
+Log performance metrics and execution duration of functions or database queries.
+
+```python
+import time
+
+start_time = time.time()
+# Run database query or external API call
+time.sleep(0.35)
+duration_ms = (time.time() - start_time) * 1000
+
+requests.post("http://localhost:9400/api/trace-span", json={
+    "name": "python-db-query",
+    "type": "database",
+    "durationMs": duration_ms,
+    "status": "ok",
+    "metadata": {
+        "query": "SELECT * FROM orders WHERE id = 1"
+    }
+})
+```
+
+#### Triggering Durable Workflows (`POST /api/trigger`)
+Trigger background workflow executions defined and hosted in the Node.js process.
+
+```python
+requests.post("http://localhost:9400/api/trigger", json={
+    "name": "checkout-workflow",
+    "input": {
+        "cart_id": "cart_1234",
+        "user_email": "user@example.com"
+    }
+})
 ```
 
 ---
