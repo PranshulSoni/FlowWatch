@@ -1,6 +1,6 @@
 [project]
 name = "flowwatch-client"
-version = "2.1.0"
+version = "2.1.1"
 description = "Python client SDK for FlowWatch — feature flags, durable workflows, tracing, and error capture"
 readme = "README.md"
 requires-python = ">=3.8"

@@ -1,6 +1,16 @@
-# flowwatch-client (Rust)
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png" alt="Flowwatch Logo" width="450" />
+</h1>
 
-Rust async client SDK for [FlowWatch](https://github.com/PranshulSoni/flowwatch) — feature flags, durable workflows, request tracing, and error capture.
+<p align="center">
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/v/flowwatch-client.svg" alt="Crates.io version" /></a>
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client.svg" alt="Crates.io downloads" /></a>
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/l/flowwatch-client.svg" alt="Crates.io license" /></a>
+</p>
+
+<p align="center">
+  <strong>Rust client SDK for FlowWatch — durable workflows, feature flags, request tracing, and error capture.</strong>
+</p>
 
 ---
 

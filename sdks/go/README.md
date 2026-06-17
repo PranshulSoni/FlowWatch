@@ -1,8 +1,18 @@
-# flowwatch-go
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png" alt="Flowwatch Logo" width="450" />
+</h1>
 
-Go client SDK for [FlowWatch](https://github.com/PranshulSoni/flowwatch) — feature flags, durable workflows, request tracing, and error capture.
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/PranshulSoni/flowwatch-go/flowwatch"><img src="https://pkg.go.dev/badge/github.com/PranshulSoni/flowwatch-go/flowwatch.svg" alt="Go Reference" /></a>
+</p>
 
-Zero non-stdlib dependencies. Uses only `net/http` and `encoding/json`.
+<p align="center">
+  <strong>Go client SDK for FlowWatch — durable workflows, feature flags, request tracing, and error capture.</strong>
+</p>
+
+<p align="center">
+  Zero non-stdlib dependencies. Uses only <code>net/http</code> and <code>encoding/json</code>.
+</p>
 
 ---
 

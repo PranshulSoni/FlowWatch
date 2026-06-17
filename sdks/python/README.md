@@ -1,6 +1,16 @@
-# flowwatch-client (Python)
+<h1 align="center">
+  <img src="https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png" alt="Flowwatch Logo" width="450" />
+</h1>
 
-Python client SDK for [FlowWatch](https://github.com/PranshulSoni/flowwatch) — feature flags, durable workflows, request tracing, and error capture.
+<p align="center">
+  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://img.shields.io/pypi/v/flowwatch-client.svg" alt="PyPI version" /></a>
+  <a href="https://pypistats.org/packages/flowwatch-client"><img src="https://img.shields.io/pypi/dm/flowwatch-client.svg" alt="PyPI downloads" /></a>
+  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://img.shields.io/pypi/l/flowwatch-client.svg" alt="PyPI license" /></a>
+</p>
+
+<p align="center">
+  <strong>Python client SDK for FlowWatch — durable workflows, feature flags, request tracing, and error capture.</strong>
+</p>
 
 ---
 
