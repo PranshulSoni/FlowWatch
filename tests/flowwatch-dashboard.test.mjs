@@ -7,6 +7,8 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const repoRoot = resolve(fileURLToPath(new URL("..", import.meta.url)))
 const dashboardHtmlPath = join(repoRoot, "packages/flowwatch/src/dashboard/static/dashboard.html")
+const dashboardCssPath = join(repoRoot, "packages/flowwatch/src/dashboard/static/dashboard.css")
+const dashboardJsPath = join(repoRoot, "packages/flowwatch/src/dashboard/static/dashboard.js")
 const distAiServicePath = join(repoRoot, "packages/flowwatch/dist/ai/groqInsightService.js")
 const distEnvStorePath = join(repoRoot, "packages/flowwatch/dist/utils/flowwatchEnvStore.js")
 
@@ -18,6 +20,7 @@ function importFresh(filePath, query) {
 
 test("Ask Flowwatch markup has a plain textbox and send button without a model picker", async () => {
     const html = await readFile(dashboardHtmlPath, "utf8")
+    const js = await readFile(dashboardJsPath, "utf8")
 
     assert.match(html, /Ask Flowwatch AI/)
     assert.doesNotMatch(html, /Ask Flowwatch Assistant/)
@@ -28,35 +31,37 @@ test("Ask Flowwatch markup has a plain textbox and send button without a model p
     assert.doesNotMatch(html, /id="ask-ai-model-trigger"/)
     assert.doesNotMatch(html, /id="ask-ai-model-menu"/)
     assert.doesNotMatch(html, /id="ask-ai-model-select"/)
-    assert.doesNotMatch(html, /getElementById\("ask-ai-model-select"\)/)
+    assert.doesNotMatch(js, /getElementById\("ask-ai-model-select"\)/)
 })
 
 test("Ask Flowwatch AI uses full-page layout and formatted AI responses", async () => {
     const html = await readFile(dashboardHtmlPath, "utf8")
+    const css = await readFile(dashboardCssPath, "utf8")
+    const js = await readFile(dashboardJsPath, "utf8")
 
-    assert.match(html, /#page-ask-ai \.ask-ai-main\s*{[^}]*border: 0;/s)
-    assert.match(html, /#page-ask-ai \.ask-ai-prompt-grid\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s)
-    assert.match(html, /#page-ask-ai \.ask-ai-input\s*{[^}]*resize: none;/s)
-    assert.match(html, /ai-response/)
+    assert.match(css, /#page-ask-ai \.ask-ai-main\s*{[^}]*border: 0;/s)
+    assert.match(css, /#page-ask-ai \.ask-ai-prompt-grid\s*{[^}]*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/s)
+    assert.match(css, /#page-ask-ai \.ask-ai-input\s*{[^}]*resize: none;/s)
+    assert.match(js, /ai-response/)
     assert.doesNotMatch(html, /class="meta-label"/)
     assert.doesNotMatch(html, /Selected trace/)
-    assert.doesNotMatch(html, /Indexed spans/)
-    assert.doesNotMatch(html, /Elasticsearch search/)
-    assert.doesNotMatch(html, /Model output/)
-    assert.doesNotMatch(html, /Ordered/)
+    assert.doesNotMatch(js, /Indexed spans/)
+    assert.doesNotMatch(js, /Elasticsearch search/)
+    assert.doesNotMatch(js, /Model output/)
+    assert.doesNotMatch(js, /Ordered/)
     assert.doesNotMatch(html, /class="badge info">selected trace/i)
     assert.match(html, /badge warn is-live/)
-    assert.match(html, /@keyframes softPulse/)
-    assert.match(html, /scrollbar-width: none/)
+    assert.match(css, /@keyframes softPulse/)
+    assert.match(css, /scrollbar-width: none/)
     assert.doesNotMatch(html, /id="ai-context-source"/)
     assert.doesNotMatch(html, /id="ai-model-state"/)
     assert.doesNotMatch(html, /id="ai-insight-tags"/)
-    assert.doesNotMatch(html, /class="ai-suspect-label"/)
-    assert.doesNotMatch(html, /source: <strong>/)
-    assert.match(html, /function formatMessageMarkdown\(content\)/)
-    assert.match(html, /\.ask-bubble\.ai-response h3/)
-    assert.match(html, /listType = "ol"/)
-    assert.match(html, /<pre><code>/)
+    assert.doesNotMatch(js, /class="ai-suspect-label"/)
+    assert.doesNotMatch(js, /source: <strong>/)
+    assert.match(js, /function formatMessageMarkdown\(content\)/)
+    assert.match(css, /\.ask-bubble\.ai-response h3/)
+    assert.match(js, /listType = "ol"/)
+    assert.match(js, /<pre><code>/)
 })
 
 test("Flowwatch env store persists Groq settings to the application .fw.env file", async () => {
@@ -90,11 +95,11 @@ test("Flowwatch env store persists Groq settings to the application .fw.env file
 })
 
 test("Dashboard does not persist Ask Flowwatch messages or API keys to localStorage", async () => {
-    const html = await readFile(dashboardHtmlPath, "utf8")
+    const js = await readFile(dashboardJsPath, "utf8")
 
-    assert.doesNotMatch(html, /flowwatch:ai-messages/)
-    assert.doesNotMatch(html, /localStorage\.setItem\([^)]*groq/i)
-    assert.doesNotMatch(html, /localStorage\.setItem\([^)]*api[-_]?key/i)
+    assert.doesNotMatch(js, /flowwatch:ai-messages/)
+    assert.doesNotMatch(js, /localStorage\.setItem\([^)]*groq/i)
+    assert.doesNotMatch(js, /localStorage\.setItem\([^)]*api[-_]?key/i)
 })
 
 test("AI service filters unsafe chat history roles before calling Groq", async () => {

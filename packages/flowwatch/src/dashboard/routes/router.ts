@@ -312,13 +312,47 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
 
-    // Dashboard SPA
+    // Warn in production when no auth is configured
+    if (!config.dashboard.token && !config.dashboard.auth && config.runtime.environment === "production") {
+        console.warn("[Flowwatch] ⚠️  Dashboard is mounted without authentication in production. Set config.dashboard.token or config.dashboard.auth to restrict access.")
+    }
+
+    // Enforce authentication when token or auth callback is configured
+    if (config.dashboard.token || config.dashboard.auth) {
+        router.use(async (req: any, res: any, next: any) => {
+            if (config.dashboard.auth) {
+                try {
+                    const allowed = await config.dashboard.auth!(req)
+                    if (allowed) { next(); return }
+                } catch {
+                    // treat thrown errors as rejection
+                }
+                res.status(401).json({ error: { code: "unauthorized", message: "Unauthorized" } })
+                return
+            }
+
+            // Token auth: Accept Bearer header or ?token= query param
+            const authHeader = req.headers.authorization as string | undefined
+            const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined
+            const queryToken = typeof req.query.token === "string" ? req.query.token : undefined
+
+            if (bearerToken === config.dashboard.token || queryToken === config.dashboard.token) {
+                next()
+                return
+            }
+
+            res.status(401).json({ error: { code: "unauthorized", message: "Unauthorized" } })
+        })
+    }
+
+    // Serve dashboard static assets (CSS, JS, HTML)
     const __filename = fileURLToPath(import.meta.url)
     const __dirname = dirname(__filename)
-    const dashboardPath = join(__dirname, "..", "dashboard.html")
+    const staticPath = join(__dirname, "..", "static")
+    router.use(express.static(staticPath))
 
-    router.get("/", (req, res) => {
-        res.sendFile(dashboardPath)
+    router.get("/", (_req, res) => {
+        res.sendFile(join(staticPath, "dashboard.html"))
     })
 
     // ── Health ──

@@ -15,7 +15,9 @@ No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your 
 - [Getting started](#getting-started)
   - [Minimum setup](#minimum-setup)
   - [Full setup with Redis and Elasticsearch](#full-setup-with-redis-and-elasticsearch)
+- [Dashboard Security](#dashboard-security)
 - [Multi-Language Support (Sidecar Server)](#multi-language-support-sidecar-server)
+  - [Sidecar Security](#sidecar-security)
 - [Durable Workflows](#durable-workflows)
 - [Feature Flags](#feature-flags)
 - [Request Tracing](#request-tracing)
@@ -125,6 +127,57 @@ const fw = await createFlowwatch({
 
 ---
 
+## Dashboard Security
+
+The dashboard exposes stack traces, request bodies, workflow inputs/outputs, and feature flag contexts. Protect it before deploying to any environment reachable from the internet.
+
+### Token-based access
+
+Pass a `token` in the dashboard config. FlowWatch will then require every request to the dashboard path to include either an `Authorization: Bearer <token>` header or a `?token=<token>` query parameter.
+
+```ts
+const fw = await createFlowwatch({
+  db: { connectionString: process.env.DATABASE_URL },
+  dashboard: {
+    token: process.env.DASHBOARD_TOKEN  // generate with: openssl rand -hex 32
+  }
+});
+
+app.use("/ops", fw.dashboard);
+```
+
+Set `DASHBOARD_TOKEN` in your environment and share it only with your team.
+
+### Custom auth callback
+
+If you use sessions, JWTs, or any other auth system, pass an `auth` function instead. It receives the Express `Request` object and must return `true` to allow access or `false` to block it.
+
+```ts
+const fw = await createFlowwatch({
+  db: { connectionString: process.env.DATABASE_URL },
+  dashboard: {
+    auth: async (req) => {
+      const session = await verifySession(req.cookies.sessionId);
+      return session?.role === "admin";
+    }
+  }
+});
+```
+
+When `auth` is provided it takes priority over `token`. Any thrown error or `false` return sends a `401`.
+
+### No auth (development only)
+
+Without a `token` or `auth`, the dashboard is open to anyone who can reach the URL. FlowWatch will print a warning at startup in production environments:
+
+```
+[Flowwatch] ⚠️  Dashboard is mounted without authentication in production.
+```
+
+This is fine for local development but must not be used in any publicly reachable deployment.
+
+---
+
 ## Multi-Language Support (Sidecar Server)
 
 **FlowWatch is no longer locked into Node.js!** You can now run the FlowWatch dashboard, engines, database, and background queues inside a Node.js process, and connect **any other programming language backend** (Python, Go, Rust, Ruby, PHP, C#) to it using our lightweight REST Sidecar Server.
@@ -149,8 +202,8 @@ const fw = await createFlowwatch({
   migrations: { autoRun: true }
 });
 
-// Start the sidecar server on port 9400
-startSidecar(fw, 9400);
+// Recommended: pass a token to prevent unauthenticated access
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
 // This hosts the Sidecar REST API at: http://localhost:9400/api/*
 // And mounts the admin Dashboard at: http://localhost:9400/ops
 ```
@@ -232,6 +285,18 @@ requests.post("http://localhost:9400/api/trigger", json={
     }
 })
 ```
+
+### Sidecar Security
+
+The sidecar REST server is network-accessible and accepts workflow triggers, error captures, and trace spans from any caller. Protect it in any environment beyond localhost.
+
+Pass a `token` in the options object. Every incoming request must then include `Authorization: Bearer <token>`:
+
+```ts
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+```
+
+Without a token, the server logs a warning at startup and accepts all requests. The number-only form `startSidecar(fw, 9400)` still works for backward compatibility and local development — it behaves identically to `{ port: 9400 }` with no token.
 
 ---
 
@@ -505,7 +570,7 @@ Your Express App
     ├── Trace Engine     →  Postgres + Elasticsearch
     ├── Error Engine     →  Postgres + Elasticsearch
     ├── AI Engine        →  Groq API + all of the above
-    └── Dashboard        →  Express router serving a single HTML file
+    └── Dashboard        →  Express router serving static HTML + CSS + JS assets
 ```
 
 ### What's required vs optional
@@ -585,7 +650,7 @@ const fw = await createFlowwatch({
 
 ## The dashboard
 
-Once mounted, the dashboard is available at whatever path you chose (e.g. `/ops` or `/flowwatch`). It's a single HTML file served by your Express router — no React, no build step, no CDN dependency.
+Once mounted, the dashboard is available at whatever path you chose (e.g. `/ops` or `/flowwatch`). It's served as static HTML, CSS, and JavaScript files by your Express router — no React, no build step, no CDN dependency.
 
 10 pages:
 
@@ -614,8 +679,11 @@ const fw = await createFlowwatch(config);
 app.use(fw.requestTracer);   // mount first
 app.use(fw.errorHandler);    // mount last
 
-// Dashboard
+// Dashboard (add token or auth callback in production — see Dashboard Security)
 app.use("/ops", fw.dashboard);
+
+// Sidecar server for non-JS backends
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
 
 // Workflows
 fw.workflow(name, steps[]);

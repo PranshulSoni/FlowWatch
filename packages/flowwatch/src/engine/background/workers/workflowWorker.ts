@@ -4,6 +4,7 @@ import type { WorkflowJobData } from "../queues/workflowQueue.js"
 import type { RegisteredWorkflow } from "../../workflows/types.js"
 import type { TraceEngine } from "../../trace/traceEngine.js"
 import type { CaptureErrorFunction } from "../../errors/errorEngine.js"
+import { getWorkflowExecution, getWorkflowExecutionSteps, markWorkflowExecutionCompleted, markWorkflowExecutionFailed, markWorkflowExecutionRunning, markWorkflowStepCompleted, markWorkflowStepFailed, markWorkflowStepRunning, } from "../../../persistence/repositories/workflows/workflowRepository.js"
 
 export interface WorkflowWorkerOptions {
     redisUrl: string
@@ -12,7 +13,6 @@ export interface WorkflowWorkerOptions {
     traceEngine: TraceEngine
     captureError: CaptureErrorFunction
 }
-import { getWorkflowExecution, getWorkflowExecutionSteps, markWorkflowExecutionCompleted, markWorkflowExecutionFailed, markWorkflowExecutionRunning, markWorkflowStepCompleted, markWorkflowStepFailed, markWorkflowStepRunning, } from "../../../persistence/repositories/workflows/workflowRepository.js"
 
 export function createWorkflowWorker(options: WorkflowWorkerOptions): Worker<WorkflowJobData> {
     return new Worker<WorkflowJobData>(

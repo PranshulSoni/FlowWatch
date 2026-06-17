@@ -15,7 +15,7 @@ export type FlagRuleOperator =
 export interface FeatureFlagRow {
     id: string
     key: string
-    description: string | null
+    description: string | null  
     enabled: boolean
     rollout_percentage: number
     created_at: Date

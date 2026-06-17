@@ -123,14 +123,36 @@ export function createSidecarRouter(fw: Flowwatch): Router {
     return router
 }
 
+export interface SidecarOptions {
+    port?: number
+    token?: string
+}
+
 /**
  * Starts the FlowWatch sidecar on a dedicated port.
  * Python (or any language) apps call the REST API at http://localhost:<port>/api/*
  *
  * The dashboard is also available at http://localhost:<port>/ops
+ *
+ * Pass a token to require `Authorization: Bearer <token>` on all requests:
+ *   startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN })
  */
-export function startSidecar(fw: Flowwatch, port: number = 9400) {
+export function startSidecar(fw: Flowwatch, portOrOptions: number | SidecarOptions = 9400) {
+    const port = typeof portOrOptions === "number" ? portOrOptions : (portOrOptions.port ?? 9400)
+    const token = typeof portOrOptions === "object" ? portOrOptions.token : undefined
+
     const app = express()
+
+    if (!token) {
+        console.warn("[Flowwatch] ⚠️  Sidecar server is unauthenticated. Pass { token: process.env.SIDECAR_TOKEN } to restrict access to /api/* and /ops.")
+    } else {
+        app.use((_req: any, res: any, next: any) => {
+            const authHeader = _req.headers.authorization as string | undefined
+            const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined
+            if (bearerToken === token) { next(); return }
+            res.status(401).json({ error: { code: "unauthorized", message: "Unauthorized" } })
+        })
+    }
 
     app.use(createSidecarRouter(fw))
     app.use("/ops", fw.dashboard)
