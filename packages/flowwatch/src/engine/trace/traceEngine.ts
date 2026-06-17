@@ -4,6 +4,7 @@ import { createTraceSpan, finishTraceSpan, type TraceSpanType, type TraceStatus 
 import { getCurrentSpanId, getCurrentTraceId, runWithSpanContext } from "../../runtime/tracing/traceContext.js"
 import { indexTraceSpan } from "../../search/elasticsearch/indexer.js"
 import { captureError } from "../errors/errorEngine.js"
+import { logger } from "../../logger.js"
 
 export interface ActiveTraceSpan {
     id: string
@@ -110,7 +111,7 @@ export async function endSpan(pool: Pool, elasticsearchClient: Client, span: Act
         await indexTraceSpan(elasticsearchClient, finishedSpan)
     }
     catch (traceIndexingFailure) {
-        console.error("Failed to index trace span", traceIndexingFailure)
+        logger.warn({ err: traceIndexingFailure }, "Failed to index trace span")
     }
 }
 

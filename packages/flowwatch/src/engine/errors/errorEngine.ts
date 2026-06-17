@@ -11,6 +11,7 @@ import {
     type ErrorSource,
 } from "../../persistence/repositories/errors/errorRepository.js"
 import { indexError } from "../../search/elasticsearch/indexer.js"
+import { logger } from "../../logger.js"
 
 export interface NormalizedError {
     name: string
@@ -43,7 +44,7 @@ export function createErrorHandler(options: ErrorEngineOptions): ErrorRequestHan
         const statusCode = getStatusCode(error, res.statusCode)
 
         // Log every uncaught error with route info so we can trace the primary cause
-        console.error(`[Flowwatch] Unhandled error on ${req.method} ${req.originalUrl || req.path}:`, normalizedError.message)
+        logger.error({ method: req.method, path: req.originalUrl || req.path, err: normalizedError.message }, "Unhandled error")
 
         await captureError(options, error, {
             source: "http",
@@ -98,13 +99,13 @@ export async function captureError(engineOptions: ErrorEngineOptions,error: unkn
             await indexError(engineOptions.elasticsearchClient, storedError)
         }
         catch (errorIndexingFailure) {
-            console.error("Failed to index error", errorIndexingFailure)
+            logger.warn({ err: errorIndexingFailure }, "Failed to index error")
         }
 
         return storedError
     }
     catch (errorCaptureFailure) {
-        console.error("[Flowwatch] Failed to capture error", errorCaptureFailure)
+        logger.error({ err: errorCaptureFailure }, "Failed to capture error")
         return undefined
     }
 }

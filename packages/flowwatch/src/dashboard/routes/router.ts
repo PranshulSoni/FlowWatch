@@ -45,6 +45,7 @@ import {
 import { generateGroqInsight, listGroqModels, askGroqAi, type FlowwatchAiInsightContext } from "../../ai/groqInsightService.js"
 import { saveFlowwatchEnv, isGroqApiKeyConfigured } from "../../utils/flowwatchEnvStore.js"
 import { captureError } from "../../engine/errors/errorEngine.js"
+import { logger } from "../../logger.js"
 import { z } from "zod"
 
 interface DashboardRouterOptions {
@@ -69,7 +70,7 @@ async function handleAiError(engineOptions: { pool: Pool; elasticsearchClient: C
         )
     } catch { /* never block the response */ }
 
-    console.error(`[Flowwatch] AI route error (${route}):`, msg)
+    logger.error({ route, err: msg }, "AI route error")
 
     if (msg.includes("not configured") || msg.includes("GROQ_API_KEY")) {
         res.status(428).json({ error: { code: "groq_api_key_missing",
@@ -149,25 +150,6 @@ function validateQuery(schema: z.ZodSchema) {
     }
 }
 
-function asyncRoute(fn: (req: any, res: any) => Promise<void>) {
-    return async (req: any, res: any) => {
-        try {
-            await fn(req, res)
-        } catch (error) {
-            await dashboardError(res)
-        }
-    }
-}
-
-async function dashboardError(res: any, error?: unknown): Promise<void> {
-    if (error) console.error("[Flowwatch dashboard] API error", error)
-    res.status(500).json({
-        error: {
-            code: "dashboard_api_error",
-            message: "An internal error occurred",
-        },
-    })
-}
 
 /**
  * Surfaces a meaningful error when an AI provider call fails.
@@ -175,7 +157,7 @@ async function dashboardError(res: any, error?: unknown): Promise<void> {
  */
 async function aiProviderError(res: any, error: unknown): Promise<void> {
     const msg = error instanceof Error ? error.message : String(error)
-    console.error("[Flowwatch dashboard] AI provider error:", msg)
+    logger.error({ err: msg }, "AI provider error")
 
     // Key not loaded into store yet
     if (msg.includes("not configured")) {
@@ -312,9 +294,28 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
     const router = Router()
     const { config, postgresPool, redisClient, elasticsearchClient } = options
 
+    // Central dashboard error responder — logs, captures into the error store, and returns a generic 500
+    const dashboardError = async (res: any, error?: unknown): Promise<void> => {
+        if (error) {
+            logger.error({ err: error }, "Dashboard API error")
+            captureError({ pool: postgresPool, elasticsearchClient }, error, {
+                source: "dashboard_api",
+                category: "server",
+                level: "error",
+                statusCode: 500,
+            }).catch(() => {})
+        }
+        res.status(500).json({
+            error: {
+                code: "dashboard_api_error",
+                message: "An internal error occurred",
+            },
+        })
+    }
+
     // Warn in production when no auth is configured
     if (!config.dashboard.token && !config.dashboard.auth && config.runtime.environment === "production") {
-        console.warn("[Flowwatch] ⚠️  Dashboard is mounted without authentication in production. Set config.dashboard.token or config.dashboard.auth to restrict access.")
+        logger.warn("Dashboard mounted without authentication in production")
     }
 
     // Enforce authentication when token or auth callback is configured
@@ -376,7 +377,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -441,7 +442,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -469,7 +470,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -597,7 +598,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ rules: rules.map(serializeRule) })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -654,7 +655,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ logs: logs.map(serializeAuditLog) })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -664,7 +665,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ logs: logs.map(serializeAuditLog) })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -701,7 +702,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -738,7 +739,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -766,7 +767,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -783,7 +784,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ execution: serializeExecution(execution, steps) })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -806,7 +807,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -830,7 +831,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -857,7 +858,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             }
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 
@@ -873,7 +874,7 @@ export function createDashboardRouter(options: DashboardRouterOptions): Router {
             res.json({ error: serializeError(error) })
         }
         catch (error) {
-            await dashboardError(res)
+            await dashboardError(res, error)
         }
     })
 

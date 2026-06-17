@@ -3,6 +3,7 @@ import { insertWorkflow, insertWorkflowExecution } from "../../persistence/repos
 import { addWorkflowJobToQueue, type createWorkflowQueue } from "../background/queues/workflowQueue.js"
 import type { TraceEngine } from "../trace/traceEngine.js"
 import type { RegisterWorkflow, RegisteredWorkflow, TriggerWorkflow, WorkflowStep } from "./types.js"
+import { logger } from "../../logger.js"
 export interface WorkflowEngine {
     workflow: RegisterWorkflow
     trigger: TriggerWorkflow
@@ -93,7 +94,7 @@ export function createWorkflowEngine(options: WorkflowEngineOptions): WorkflowEn
             })
 
             if (workflowQueue === null) {
-                console.warn(`[Flowwatch] ⚠️  Workflow "${name}" execution recorded but NOT queued — Redis queue unavailable. Upgrade to Redis ≥ 5 to enable background execution.`)
+                logger.warn({ workflowName: name }, "Workflow execution recorded but queue unavailable")
                 return { executionId: execution.executionId }
             }
 

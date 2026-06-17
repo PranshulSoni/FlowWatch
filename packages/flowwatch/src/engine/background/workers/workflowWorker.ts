@@ -15,7 +15,7 @@ export interface WorkflowWorkerOptions {
 }
 
 export function createWorkflowWorker(options: WorkflowWorkerOptions): Worker<WorkflowJobData> {
-    return new Worker<WorkflowJobData>(
+    const worker = new Worker<WorkflowJobData>(
         "workflows",
         async (job) => {
             await executeWorkflow(job.data.executionId, options)
@@ -24,9 +24,28 @@ export function createWorkflowWorker(options: WorkflowWorkerOptions): Worker<Wor
             prefix: "{flowwatch}",
             connection: {
                 url: options.redisUrl,
+                skipVersionCheck: true,
             },
         }
     )
+
+    worker.on("failed", (job, err) => {
+        if (!job) return
+        options.captureError(err, {
+            source: "workflow",
+            category: "server",
+            level: "error",
+            statusCode: 500,
+            metadata: {
+                jobId: job.id,
+                executionId: job.data.executionId,
+                attemptsMade: job.attemptsMade,
+                dlq: true,
+            },
+        }).catch(() => {})
+    })
+
+    return worker
 }
 
 export async function executeWorkflow(executionId: string, worker: WorkflowWorkerOptions): Promise<void> {

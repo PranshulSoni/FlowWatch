@@ -3,6 +3,7 @@ import type { Flowwatch } from "../createFlowwatch.js"
 import type { TraceSpanType } from "../persistence/repositories/traces/traceRepository.js"
 import type { FlagContext } from "../engine/flags/types.js"
 import type { CaptureErrorOptions } from "../engine/errors/errorEngine.js"
+import { logger } from "../logger.js"
 
 export function createSidecarRouter(fw: Flowwatch): Router {
     const router = Router()
@@ -144,7 +145,7 @@ export function startSidecar(fw: Flowwatch, portOrOptions: number | SidecarOptio
     const app = express()
 
     if (!token) {
-        console.warn("[Flowwatch] ⚠️  Sidecar server is unauthenticated. Pass { token: process.env.SIDECAR_TOKEN } to restrict access to /api/* and /ops.")
+        logger.warn("Sidecar server is unauthenticated — pass { token } to restrict access to /api/* and /ops")
     } else {
         app.use((_req: any, res: any, next: any) => {
             const authHeader = _req.headers.authorization as string | undefined
@@ -158,9 +159,7 @@ export function startSidecar(fw: Flowwatch, portOrOptions: number | SidecarOptio
     app.use("/ops", fw.dashboard)
 
     app.listen(port, () => {
-        console.log(`[Flowwatch] Sidecar listening on http://localhost:${port}`)
-        console.log(`[Flowwatch] Dashboard → http://localhost:${port}/ops`)
-        console.log(`[Flowwatch] API → http://localhost:${port}/api/*`)
+        logger.info({ port, dashboard: `http://localhost:${port}/ops`, api: `http://localhost:${port}/api/*` }, "Sidecar listening")
     })
 
     return app

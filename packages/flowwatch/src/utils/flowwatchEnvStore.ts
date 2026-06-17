@@ -9,6 +9,7 @@
  */
 import { readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
+import { logger } from "../logger.js"
 
 const FLOWWATCH_ENV_FILE = ".fw.env"
 
@@ -106,23 +107,18 @@ export async function loadFlowwatchEnv(): Promise<void> {
     }
 
     if (store.groqApiKey) {
-        console.log(`[Flowwatch] ✅  Groq API key loaded (config: ${filePath})`)
+        logger.info({ config: filePath }, "Groq API key loaded")
         // Persist back so future restarts find the key in the file
         if (needsSave) {
             try {
                 await writeFile(filePath, buildEnvFile(raw, store), "utf-8")
-                console.log(`[Flowwatch] ✅  API key saved to ${filePath}`)
+                logger.info({ config: filePath }, "API key saved to config")
             } catch (err: any) {
-                console.warn(`[Flowwatch] ⚠️  Could not write ${filePath}: ${err?.message}`)
+                logger.warn({ config: filePath, err: err?.message }, "Could not write config")
             }
         }
     } else {
-        console.log(
-            `[Flowwatch] ⚠️  No Groq API key found.\n` +
-            `         • Enter it in the dashboard → Settings → AI Configuration\n` +
-            `         • OR set FLOWWATCH_GROQ_API_KEY in your environment\n` +
-            `         • Config will be saved to: ${filePath}`
-        )
+        logger.warn({ config: filePath }, "No Groq API key found — add it in dashboard Settings or set FLOWWATCH_GROQ_API_KEY")
     }
 }
 

@@ -19,6 +19,7 @@ import { captureError, createErrorHandler, type CaptureErrorFunction } from "./e
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
+import { logger } from "./logger.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -51,7 +52,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         await workflowQueue.waitUntilReady()
     } catch (err: any) {
         const reason = err?.message ?? String(err)
-        console.warn(`[Flowwatch] ⚠️  Workflow queue unavailable (${reason}). Workflows will be registered but cannot be executed until Redis ≥ 5 is available.`)
+        logger.warn({ err: reason }, "Workflow queue unavailable, background jobs disabled")
         workflowQueue = null
     }
 
@@ -86,7 +87,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
                 captureError: captureFlowwatchError,
             })
         } catch (err: any) {
-            console.warn(`[Flowwatch] ⚠️  Workflow worker could not start: ${err?.message}`)
+            logger.warn({ err: err?.message }, "Workflow worker could not start")
         }
     }
 
