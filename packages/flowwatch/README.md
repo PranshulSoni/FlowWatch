@@ -1,8 +1,6 @@
-<p align="center">
-  <img src="assets/logo.png" alt="Flowwatch Logo" width="250" />
-</p>
-
----
+<h1 align="center">
+  <img src="assets/logo.png" alt="Flowwatch Logo" width="450" />
+</h1>
 
 <p align="center">
   <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg" alt="npm version" /></a>
