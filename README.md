@@ -1,5 +1,5 @@
 <h1 align="center">
-  <img src="assets/logo.png?v=4" alt="Flowwatch Logo" width="450" />
+  <img src="assets/logo.png?v=5" alt="Flowwatch Logo" width="450" />
 </h1>
 
 <p align="center">
