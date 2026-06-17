@@ -139,6 +139,115 @@ const fw = await createFlowwatch({
 
 ---
 
+## 📦 Installation & Setup (by Language)
+
+Select your programming language below to see how to install the package/SDK and get started:
+
+<details>
+<summary><b>🟢 Node.js / JavaScript / TypeScript</b></summary>
+
+### Install:
+```bash
+npm install @pranshulsoni/flowwatch
+```
+
+### Quick Start:
+```typescript
+import express from "express";
+import { createFlowwatch } from "@pranshulsoni/flowwatch";
+
+const app = express();
+app.use(express.json());
+
+const fw = await createFlowwatch({
+  db: { connectionString: process.env.DATABASE_URL }
+});
+
+// Middleware (request tracing goes first, error handler last)
+app.use(fw.requestTracer);
+app.use("/ops", fw.dashboard);
+app.use(fw.errorHandler);
+
+app.listen(3000);
+```
+</details>
+
+<details>
+<summary><b>🐍 Python</b></summary>
+
+### Install:
+```bash
+pip install flowwatch-client
+```
+
+### Quick Start:
+*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
+```python
+from flowwatch import FlowwatchClient
+
+client = FlowwatchClient("http://localhost:9400", token="your-sidecar-token")
+
+# Evaluate a feature flag
+if client.evaluate_flag("new-checkout-flow", {"userId": "user_123"}):
+    print("New flow enabled!")
+```
+</details>
+
+<details>
+<summary><b>🦀 Rust</b></summary>
+
+### Install:
+Add to your `Cargo.toml`:
+```toml
+[dependencies]
+flowwatch-client = "2.1.0"
+```
+
+### Quick Start:
+*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
+```rust
+use flowwatch_client::FlowwatchClient;
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let client = FlowwatchClient::new("http://localhost:9400", Some("your-sidecar-token"));
+    let enabled = client.evaluate_flag("new-checkout-flow", HashMap::new()).await?;
+    println!("Flag status: {}", enabled);
+    Ok(())
+}
+```
+</details>
+
+<details>
+<summary><b>🔵 Go</b></summary>
+
+### Install:
+```bash
+go get github.com/PranshulSoni/flowwatch-go/flowwatch
+```
+
+### Quick Start:
+*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/PranshulSoni/flowwatch-go/flowwatch"
+)
+
+func main() {
+	client := flowwatch.NewClient("http://localhost:9400", "your-sidecar-token")
+	enabled, _ := client.EvaluateFlag(context.Background(), "new-checkout-flow", map[string]interface{}{})
+	fmt.Println("Flag status:", enabled)
+}
+```
+</details>
+
+---
+
 ## Dashboard Security
 
 The dashboard exposes stack traces, request bodies, workflow inputs/outputs, and feature flag contexts. Protect it before deploying to any environment reachable from the internet.
