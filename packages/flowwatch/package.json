@@ -34,7 +34,7 @@
   ],
   "author": "Pranshul Soni",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); if (fs.existsSync('../../README.md')) fs.copyFileSync('../../README.md', './README.md')\" && tsc -p tsconfig.json && node scripts/copy-dashboard-static.cjs"
+    "build": "node -e \"const fs = require('fs'); if (fs.existsSync('../../README.md')) { let content = fs.readFileSync('../../README.md', 'utf8'); content = content.replace('assets/logo.png', 'https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png?v=2'); fs.writeFileSync('./README.md', content); }\" && tsc -p tsconfig.json && node scripts/copy-dashboard-static.cjs"
   },
   "license": "ISC",
   "repository": {
