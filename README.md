@@ -1,10 +1,22 @@
-# FlowWatch
+<p align="center">
+  <img src="assets/logo.png" alt="Flowwatch Logo" width="350" />
+</p>
 
-[![npm version](https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch) [![npm downloads](https://img.shields.io/npm/dm/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch) [![npm license](https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg)](https://www.npmjs.com/package/@pranshulsoni/flowwatch)
+---
 
-**The world's first npm package that gives you durable workflows, feature flags, request tracing, and error reporting — all in one, completely free, and running entirely inside your own Express app.**
+<p align="center">
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dm/@pranshulsoni/flowwatch.svg" alt="npm downloads" /></a>
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg" alt="npm license" /></a>
+</p>
 
-No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your data.
+<p align="center">
+  <strong>The world's first npm package that gives you durable workflows, feature flags, request tracing, and error reporting — all in one, completely free, and running entirely inside your own Express app.</strong>
+</p>
+
+<p align="center">
+  No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your data.
+</p>
 
 ---
 
@@ -180,7 +192,32 @@ This is fine for local development but must not be used in any publicly reachabl
 
 ## Multi-Language Support (Sidecar Server)
 
-**FlowWatch is no longer locked into Node.js!** You can now run the FlowWatch dashboard, engines, database, and background queues inside a Node.js process, and connect **any other programming language backend** (Python, Go, Rust, Ruby, PHP, C#) to it using our lightweight REST Sidecar Server.
+**FlowWatch is no longer locked into Node.js.** Your Python, Go, Rust, Ruby, or PHP service can use FlowWatch features (feature flags, workflows, tracing, error capture) by talking to a lightweight REST sidecar that runs in a separate Node.js process.
+
+### Architecture
+
+```
+┌─────────────────────────────────┐     HTTP     ┌────────────────────────────┐
+│  Your Python / Go / Rust app    │ ──────────►  │  FlowWatch Sidecar (Node)  │
+│  pip install flowwatch-client   │ ◄──────────  │  port 9400                 │
+│  go get flowwatch-go            │              │                            │
+│  cargo add flowwatch-client     │              │  ┌──────────┐  ┌────────┐  │
+└─────────────────────────────────┘              │  │ Postgres │  │ Redis  │  │
+                                                  │  └──────────┘  └────────┘  │
+                                                  └────────────────────────────┘
+```
+
+**The Node.js sidecar is the engine.** It connects to Postgres and Redis, runs the workflow queue, evaluates feature flags, and stores traces and errors. The SDK packages are thin HTTP clients — they do not connect to any database directly and will not work without the sidecar running.
+
+### SDK Packages
+
+| Language | Package | Install |
+|----------|---------|---------|
+| Python | `flowwatch-client` on PyPI | `pip install flowwatch-client` |
+| Go | `github.com/PranshulSoni/flowwatch-go` | `go get github.com/PranshulSoni/flowwatch-go` |
+| Rust | `flowwatch-client` on crates.io | `cargo add flowwatch-client` |
+
+Each SDK wraps the five sidecar endpoints listed below. See each package's README for full usage.
 
 ### How It Works
 
