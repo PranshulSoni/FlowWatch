@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="Flowwatch Logo" width="350" />
+  <img src="assets/logo.png" alt="Flowwatch Logo" width="500" />
 </p>
 
 ---
@@ -139,12 +139,12 @@ const fw = await createFlowwatch({
 
 ---
 
-## 📦 Installation & Setup (by Language)
+## Installation & Setup (by Language)
 
 Select your programming language below to see how to install the package/SDK and get started:
 
 <details>
-<summary><b>🟢 Node.js / JavaScript / TypeScript</b></summary>
+<summary><b>Node.js / JavaScript / TypeScript</b></summary>
 
 ### Install:
 ```bash
@@ -173,7 +173,7 @@ app.listen(3000);
 </details>
 
 <details>
-<summary><b>🐍 Python</b></summary>
+<summary><b>Python</b></summary>
 
 ### Install:
 ```bash
@@ -194,7 +194,7 @@ if client.evaluate_flag("new-checkout-flow", {"userId": "user_123"}):
 </details>
 
 <details>
-<summary><b>🦀 Rust</b></summary>
+<summary><b>Rust</b></summary>
 
 ### Install:
 Add to your `Cargo.toml`:
@@ -220,7 +220,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 </details>
 
 <details>
-<summary><b>🔵 Go</b></summary>
+<summary><b>Go</b></summary>
 
 ### Install:
 ```bash
@@ -292,7 +292,7 @@ When `auth` is provided it takes priority over `token`. Any thrown error or `fal
 Without a `token` or `auth`, the dashboard is open to anyone who can reach the URL. FlowWatch will print a warning at startup in production environments:
 
 ```
-[Flowwatch] ⚠️  Dashboard is mounted without authentication in production.
+[Flowwatch] WARNING: Dashboard is mounted without authentication in production.
 ```
 
 This is fine for local development but must not be used in any publicly reachable deployment.
