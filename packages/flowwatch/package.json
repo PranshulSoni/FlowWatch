@@ -1,6 +1,6 @@
 {
   "name": "@pranshulsoni/flowwatch",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Embedded operations dashboard, workflow runner, feature flags, tracing, error capture, health checks, and AI diagnostics for Express backends.",
   "type": "module",
   "main": "./dist/index.js",
@@ -34,7 +34,7 @@
   ],
   "author": "Pranshul Soni",
   "scripts": {
-    "build": "node -e \"const fs = require('fs'); if (fs.existsSync('../../README.md')) { let content = fs.readFileSync('../../README.md', 'utf8'); content = content.replace('assets/logo.png?v=5', 'https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png?v=5'); fs.writeFileSync('./README.md', content); }\" && tsc -p tsconfig.json && node scripts/copy-dashboard-static.cjs"
+    "build": "node -e \"const fs = require('fs'); if (fs.existsSync('../../README.md')) { let content = fs.readFileSync('../../README.md', 'utf8'); content = content.replace('assets/logo.png?v=6', 'https://raw.githubusercontent.com/PranshulSoni/FlowWatch/main/assets/logo.png?v=6'); fs.writeFileSync('./README.md', content); }\" && tsc -p tsconfig.json && node scripts/copy-dashboard-static.cjs"
   },
   "license": "ISC",
   "repository": {
