@@ -18,6 +18,17 @@
 
 ---
 
+## Table of Contents
+
+- [Getting started](#getting-started)
+- [Features](#features)
+- [Quick Reference](#quick-reference)
+- [Multi-Language Sidecar](#multi-language-sidecar)
+- [AI Diagnostics](#ai-diagnostics)
+- [License](#license)
+
+---
+
 ```bash
 npm i @pranshulsoni/flowwatch
 ```
