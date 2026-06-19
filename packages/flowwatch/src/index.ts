@@ -15,3 +15,6 @@ export type { HttpCacheOptions } from "./runtime/httpCache.js"
 // Server-Sent Events
 export { createSseConnection } from "./server/sse.js"
 export type { SseConnection } from "./server/sse.js"
+
+// Response Cache
+export type { ResponseCacheOptions } from "./persistence/cache/responseCache.js"
