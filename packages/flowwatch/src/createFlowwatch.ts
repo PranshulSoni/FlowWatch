@@ -32,6 +32,7 @@ import { createWebSocketServer, type FlowwatchWebSocket } from "./runtime/websoc
 import { createLogStore, type LogStore } from "./runtime/logStore.js"
 import { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 import { createEventBus, type EventBus } from "./runtime/eventBus.js"
+import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -61,6 +62,8 @@ export interface Flowwatch {
     circuitBreaker: (options?: CircuitBreakerOptions) => CircuitBreaker
     // Internal event bus — emit and listen for application-level events
     events: EventBus
+    // Prometheus metrics — mount middleware and expose /metrics handler
+    metrics: MetricsEngine
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -71,6 +74,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const postgresPool = createPostgresPool(normalizedConfig.db)
     const logStore = createLogStore(postgresPool)
     const eventBus = createEventBus()
+    const metricsEngine = createMetricsEngine()
     if (normalizedConfig.migrations.autoRun) {
         await runMigrations(postgresPool, migrations);
     }
@@ -154,5 +158,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logs: { query: logStore.query },
         circuitBreaker: (opts?: CircuitBreakerOptions) => createCircuitBreaker(opts),
         events: eventBus,
+        metrics: metricsEngine,
     }
 }

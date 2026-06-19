@@ -53,3 +53,6 @@ export type { CircuitBreaker, CircuitBreakerOptions } from "./runtime/circuitBre
 
 // Event bus
 export type { EventBus } from "./runtime/eventBus.js"
+
+// Prometheus metrics
+export type { MetricsEngine } from "./runtime/metricsEngine.js"
