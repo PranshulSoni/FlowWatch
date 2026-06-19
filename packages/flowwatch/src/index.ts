@@ -18,3 +18,6 @@ export type { SseConnection } from "./server/sse.js"
 
 // Response Cache
 export type { ResponseCacheOptions } from "./persistence/cache/responseCache.js"
+
+// Query Cache
+export type { QueryCache, QueryCacheOptions } from "./persistence/cache/queryCache.js"

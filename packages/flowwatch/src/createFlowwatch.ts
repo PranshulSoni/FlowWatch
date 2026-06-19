@@ -22,6 +22,7 @@ import { createRedisClient } from "./persistence/cache/redisClient.js"
 import { logger } from "./logger.js"
 import { createHttpCacheMiddleware, type HttpCacheOptions } from "./runtime/httpCache.js"
 import { createResponseCacheMiddleware, type ResponseCacheOptions } from "./persistence/cache/responseCache.js"
+import { createQueryCache, type QueryCache } from "./persistence/cache/queryCache.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -35,6 +36,7 @@ export interface Flowwatch {
     rollbackMigration: () => Promise<void>
     httpCache: (options?: HttpCacheOptions) => RequestHandler
     responseCache: (options: ResponseCacheOptions) => RequestHandler
+    queryCache: QueryCache
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -115,5 +117,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         rollbackMigration: () => rollbackLastMigration(postgresPool, migrations),
         httpCache: (options?: HttpCacheOptions) => createHttpCacheMiddleware(options),
         responseCache: (options: ResponseCacheOptions) => createResponseCacheMiddleware(redisClient, options),
+        queryCache: createQueryCache(postgresPool, redisClient),
     }
 }
