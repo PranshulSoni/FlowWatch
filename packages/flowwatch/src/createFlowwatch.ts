@@ -35,6 +35,7 @@ import { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions }
 import { createEventBus, type EventBus } from "./runtime/eventBus.js"
 import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine.js"
 import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
+import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -71,6 +72,8 @@ export interface Flowwatch {
     fetch: TracedFetch
     // CRON scheduler — register recurring background jobs
     cron: RegisterCron
+    // Webhooks — register endpoints and deliver signed events with retries
+    webhook: WebhookEngine
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -147,6 +150,13 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger.warn({ err: err?.message }, "Cron engine unavailable, scheduled jobs disabled")
     }
 
+    let webhookEngine: WebhookEngine | null = null
+    try {
+        webhookEngine = createWebhookEngine(postgresPool, normalizedConfig.redis.url, captureFlowwatchError)
+    } catch (err: any) {
+        logger.warn({ err: err?.message }, "Webhook engine unavailable, webhook delivery disabled")
+    }
+
     const close = async () => {
         if (workflowWorkerInstance) {
             await workflowWorkerInstance.close()
@@ -156,6 +166,9 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         }
         if (cronEngine) {
             await cronEngine.close()
+        }
+        if (webhookEngine) {
+            await webhookEngine.close()
         }
         await redisClient.quit()
         await postgresPool.end()
@@ -198,6 +211,13 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         cron: cronEngine
             ? cronEngine.cron
             : (name: string) => { logger.warn({ cronJob: name }, "Cron unavailable — Redis not connected") },
+        webhook: webhookEngine ?? {
+            register: () => Promise.reject(new Error("Webhook engine unavailable")),
+            deliver: () => Promise.resolve(),
+            remove: () => Promise.reject(new Error("Webhook engine unavailable")),
+            list: () => Promise.resolve([]),
+            close: () => Promise.resolve()
+        },
         close,
     }
 }

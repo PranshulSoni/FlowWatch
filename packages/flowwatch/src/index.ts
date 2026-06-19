@@ -62,3 +62,7 @@ export type { TracedQuery, TracedFetch } from "./engine/trace/autoInstrumentatio
 
 // CRON scheduler
 export type { RegisterCron } from "./runtime/cronEngine.js"
+
+// Webhooks
+export type { WebhookEngine } from "./runtime/webhookEngine.js"
+export type { WebhookRow } from "./persistence/repositories/webhooks/webhookRepository.js"

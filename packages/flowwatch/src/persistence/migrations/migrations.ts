@@ -229,5 +229,37 @@ CREATE INDEX IF NOT EXISTS flowwatch_logs_level_idx ON flowwatch_logs (level);
 CREATE INDEX IF NOT EXISTS flowwatch_logs_logged_at_idx ON flowwatch_logs (logged_at DESC);
 CREATE INDEX IF NOT EXISTS flowwatch_logs_message_idx ON flowwatch_logs USING gin(to_tsvector('english', message));
 `
+  },
+  {
+    name: "005_create_webhook_tables",
+    down: `
+DROP TABLE IF EXISTS flowwatch_webhook_deliveries;
+DROP TABLE IF EXISTS flowwatch_webhooks;
+`,
+    up: `
+CREATE TABLE IF NOT EXISTS flowwatch_webhooks (
+  id UUID PRIMARY KEY,
+  url TEXT NOT NULL,
+  events TEXT[] NOT NULL,
+  secret TEXT NOT NULL,
+  enabled BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS flowwatch_webhook_deliveries (
+  id UUID PRIMARY KEY,
+  webhook_id UUID NOT NULL REFERENCES flowwatch_webhooks(id) ON DELETE CASCADE,
+  event TEXT NOT NULL,
+  payload JSONB NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending',
+  response_status INTEGER,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_attempted_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS flowwatch_webhook_deliveries_webhook_id_idx
+ON flowwatch_webhook_deliveries (webhook_id, created_at DESC);
+`
   }
 ];
