@@ -212,5 +212,22 @@ ON flowwatch_errors (occurred_at DESC);
 
 CREATE INDEX IF NOT EXISTS flowwatch_errors_fingerprint_idx
 ON flowwatch_errors (fingerprint);`
+  },
+  {
+    name: "004_create_log_store",
+    down: `DROP TABLE IF EXISTS flowwatch_logs;`,
+    up: `
+CREATE TABLE IF NOT EXISTS flowwatch_logs (
+  id BIGSERIAL PRIMARY KEY,
+  level TEXT NOT NULL,
+  message TEXT NOT NULL,
+  metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+  logged_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS flowwatch_logs_level_idx ON flowwatch_logs (level);
+CREATE INDEX IF NOT EXISTS flowwatch_logs_logged_at_idx ON flowwatch_logs (logged_at DESC);
+CREATE INDEX IF NOT EXISTS flowwatch_logs_message_idx ON flowwatch_logs USING gin(to_tsvector('english', message));
+`
   }
 ];

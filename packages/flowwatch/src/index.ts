@@ -44,3 +44,6 @@ export { createVersionRouter, createVersionMiddleware } from "./runtime/apiVersi
 // WebSocket
 export { createWebSocketServer } from "./runtime/websocket.js"
 export type { FlowwatchWebSocket } from "./runtime/websocket.js"
+
+// Log store
+export type { LogEntry, LogQueryOptions } from "./runtime/logStore.js"

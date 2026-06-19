@@ -29,6 +29,7 @@ import { createRateLimitMiddleware, type RateLimitOptions } from "./runtime/rate
 import { createIpFilterMiddleware, type IpFilterOptions } from "./runtime/ipFilter.js"
 import { createVersionRouter, createVersionMiddleware, type ApiVersionOptions } from "./runtime/apiVersion.js"
 import { createWebSocketServer, type FlowwatchWebSocket } from "./runtime/websocket.js"
+import { createLogStore, type LogStore } from "./runtime/logStore.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -52,6 +53,8 @@ export interface Flowwatch {
     versionMiddleware: (options?: ApiVersionOptions) => RequestHandler
     // WebSocket — attach a WebSocket server to your HTTP server
     websocket: (server: Server, path?: string) => FlowwatchWebSocket
+    // Structured log store — query logs persisted to Postgres
+    logs: Pick<LogStore, "query">
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -60,6 +63,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
+    const logStore = createLogStore(postgresPool)
     if (normalizedConfig.migrations.autoRun) {
         await runMigrations(postgresPool, migrations);
     }
@@ -140,5 +144,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         version: () => createVersionRouter(),
         versionMiddleware: (opts?: ApiVersionOptions) => createVersionMiddleware(opts),
         websocket: (server: Server, path?: string) => createWebSocketServer(server, path),
+        logs: { query: logStore.query },
     }
 }
