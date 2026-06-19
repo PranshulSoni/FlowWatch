@@ -31,6 +31,7 @@ import { createVersionRouter, createVersionMiddleware, type ApiVersionOptions } 
 import { createWebSocketServer, type FlowwatchWebSocket } from "./runtime/websocket.js"
 import { createLogStore, type LogStore } from "./runtime/logStore.js"
 import { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
+import { createEventBus, type EventBus } from "./runtime/eventBus.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -58,6 +59,8 @@ export interface Flowwatch {
     logs: Pick<LogStore, "query">
     // Circuit breaker — stop calling a failing dependency until it recovers
     circuitBreaker: (options?: CircuitBreakerOptions) => CircuitBreaker
+    // Internal event bus — emit and listen for application-level events
+    events: EventBus
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -67,6 +70,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
     const logStore = createLogStore(postgresPool)
+    const eventBus = createEventBus()
     if (normalizedConfig.migrations.autoRun) {
         await runMigrations(postgresPool, migrations);
     }
@@ -149,5 +153,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         websocket: (server: Server, path?: string) => createWebSocketServer(server, path),
         logs: { query: logStore.query },
         circuitBreaker: (opts?: CircuitBreakerOptions) => createCircuitBreaker(opts),
+        events: eventBus,
     }
 }
