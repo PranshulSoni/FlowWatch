@@ -11,3 +11,7 @@ export { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddlew
 
 // HTTP Caching
 export type { HttpCacheOptions } from "./runtime/httpCache.js"
+
+// Server-Sent Events
+export { createSseConnection } from "./server/sse.js"
+export type { SseConnection } from "./server/sse.js"
