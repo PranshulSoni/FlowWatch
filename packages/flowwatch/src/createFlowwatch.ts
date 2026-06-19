@@ -26,6 +26,7 @@ import { createQueryCache, type QueryCache } from "./persistence/cache/queryCach
 import { createFullTextSearch, type FullTextSearch } from "./search/fullTextSearch.js"
 import { createBulkhead, type Bulkhead, type BulkheadOptions } from "./runtime/bulkhead.js"
 import { createRateLimitMiddleware, type RateLimitOptions } from "./runtime/rateLimit.js"
+import { createIpFilterMiddleware, type IpFilterOptions } from "./runtime/ipFilter.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -43,6 +44,7 @@ export interface Flowwatch {
     search: FullTextSearch["search"]
     bulkhead: (options: BulkheadOptions) => Bulkhead
     rateLimit: (options: RateLimitOptions) => RequestHandler
+    ipFilter: (options: IpFilterOptions) => RequestHandler
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -127,5 +129,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         search: createFullTextSearch(postgresPool).search,
         bulkhead: (opts: BulkheadOptions) => createBulkhead(opts),
         rateLimit: (opts: RateLimitOptions) => createRateLimitMiddleware(redisClient, opts),
+        ipFilter: (opts: IpFilterOptions) => createIpFilterMiddleware(opts),
     }
 }

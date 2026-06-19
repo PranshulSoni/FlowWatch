@@ -33,3 +33,6 @@ export { createMockPool, createMockRedis } from "./testing/index.js"
 
 // Rate limiting
 export type { RateLimitOptions } from "./runtime/rateLimit.js"
+
+// IP filtering
+export type { IpFilterOptions } from "./runtime/ipFilter.js"
