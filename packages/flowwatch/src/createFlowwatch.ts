@@ -15,6 +15,7 @@ import { createFlagEngine } from "./engine/flags/flagEngine.js"
 import type { EvaluateFlag } from "./engine/flags/types.js"
 import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
 import { createTraceEngine, type TraceFunction } from "./engine/trace/traceEngine.js"
+import { createTracedQuery, createTracedFetch, type TracedQuery, type TracedFetch } from "./engine/trace/autoInstrumentation.js"
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
@@ -64,6 +65,9 @@ export interface Flowwatch {
     events: EventBus
     // Prometheus metrics — mount middleware and expose /metrics handler
     metrics: MetricsEngine
+    // Auto-traced helpers — use instead of db queries / fetches for automatic span recording
+    query: TracedQuery
+    fetch: TracedFetch
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -97,6 +101,8 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         pool: postgresPool,
         elasticsearchClient,
     })
+    const tracedQuery = createTracedQuery(postgresPool, traceEngine)
+    const tracedFetch = createTracedFetch(traceEngine)
     const workflowEngine = createWorkflowEngine({
         pool: postgresPool,
         workflowQueue,
@@ -159,5 +165,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         circuitBreaker: (opts?: CircuitBreakerOptions) => createCircuitBreaker(opts),
         events: eventBus,
         metrics: metricsEngine,
+        query: tracedQuery,
+        fetch: tracedFetch,
     }
 }
