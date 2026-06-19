@@ -27,3 +27,6 @@ export type { FullTextSearch, SearchOptions, SearchResult } from "./search/fullT
 
 // Bulkhead
 export type { Bulkhead, BulkheadOptions } from "./runtime/bulkhead.js"
+
+// Testing utilities
+export { createMockPool, createMockRedis } from "./testing/index.js"
