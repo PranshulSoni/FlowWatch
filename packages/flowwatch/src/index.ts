@@ -8,3 +8,6 @@ export type { ActiveTraceSpan, TraceFunction } from "./engine/trace/traceEngine.
 export type { TraceSpanType, TraceStatus } from "./persistence/repositories/traces/traceRepository.js"
 export { getCurrentClientIp, getCurrentSpanId, getCurrentTraceId } from "./runtime/tracing/traceContext.js"
 export { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddleware.js"
+
+// HTTP Caching
+export type { HttpCacheOptions } from "./runtime/httpCache.js"

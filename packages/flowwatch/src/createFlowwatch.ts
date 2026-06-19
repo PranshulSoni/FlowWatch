@@ -20,6 +20,7 @@ import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
 import { logger } from "./logger.js"
+import { createHttpCacheMiddleware, type HttpCacheOptions } from "./runtime/httpCache.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -31,6 +32,7 @@ export interface Flowwatch {
     errorHandler: ErrorRequestHandler
     captureError: CaptureErrorFunction
     rollbackMigration: () => Promise<void>
+    httpCache: (options?: HttpCacheOptions) => RequestHandler
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -109,5 +111,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         errorHandler,
         captureError: captureFlowwatchError,
         rollbackMigration: () => rollbackLastMigration(postgresPool, migrations),
+        httpCache: (options?: HttpCacheOptions) => createHttpCacheMiddleware(options),
     }
 }
