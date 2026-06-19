@@ -2,7 +2,7 @@
 
 <p>
   <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/v/flowwatch-client.svg" alt="PyPI version" /></a>
-  <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/dm/flowwatch-client.svg" alt="Monthly downloads" /></a>
+  <a href="https://pepy.tech/projects/flowwatch-client"><img src="https://static.pepy.tech/badge/flowwatch-client/month" alt="Monthly downloads" /></a>
   <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/l/flowwatch-client.svg" alt="License" /></a>
   <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/pyversions/flowwatch-client.svg" alt="Python versions" /></a>
 </p>
