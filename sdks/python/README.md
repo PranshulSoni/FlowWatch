@@ -1,5 +1,12 @@
 # flowwatch-client (Python)
 
+<p>
+  <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/v/flowwatch-client.svg" alt="PyPI version" /></a>
+  <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/dm/flowwatch-client.svg" alt="Monthly downloads" /></a>
+  <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/l/flowwatch-client.svg" alt="License" /></a>
+  <a href="https://pypi.org/project/flowwatch-client"><img src="https://img.shields.io/pypi/pyversions/flowwatch-client.svg" alt="Python versions" /></a>
+</p>
+
 Python client SDK for [FlowWatch](https://github.com/PranshulSoni/FlowWatch) — feature flags, durable workflows, request tracing, and error capture.
 
 This SDK talks to a lightweight sidecar HTTP server that you run alongside your Node.js FlowWatch app. See the [full documentation](https://github.com/PranshulSoni/FlowWatch) for setup instructions.

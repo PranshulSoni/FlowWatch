@@ -1,5 +1,12 @@
 # flowwatch-client (Rust)
 
+<p>
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/v/flowwatch-client.svg" alt="crates.io version" /></a>
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client.svg" alt="Downloads" /></a>
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/l/flowwatch-client.svg" alt="License" /></a>
+  <a href="https://docs.rs/flowwatch-client"><img src="https://img.shields.io/docsrs/flowwatch-client.svg" alt="docs.rs" /></a>
+</p>
+
 Rust client SDK for [FlowWatch](https://github.com/PranshulSoni/FlowWatch) — feature flags, durable workflows, request tracing, and error capture.
 
 This SDK talks to a lightweight sidecar HTTP server that you run alongside your Node.js FlowWatch app. See the [full documentation](https://github.com/PranshulSoni/FlowWatch) for setup instructions.
