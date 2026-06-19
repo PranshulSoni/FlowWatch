@@ -30,6 +30,7 @@ import { createIpFilterMiddleware, type IpFilterOptions } from "./runtime/ipFilt
 import { createVersionRouter, createVersionMiddleware, type ApiVersionOptions } from "./runtime/apiVersion.js"
 import { createWebSocketServer, type FlowwatchWebSocket } from "./runtime/websocket.js"
 import { createLogStore, type LogStore } from "./runtime/logStore.js"
+import { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -55,6 +56,8 @@ export interface Flowwatch {
     websocket: (server: Server, path?: string) => FlowwatchWebSocket
     // Structured log store — query logs persisted to Postgres
     logs: Pick<LogStore, "query">
+    // Circuit breaker — stop calling a failing dependency until it recovers
+    circuitBreaker: (options?: CircuitBreakerOptions) => CircuitBreaker
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -145,5 +148,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         versionMiddleware: (opts?: ApiVersionOptions) => createVersionMiddleware(opts),
         websocket: (server: Server, path?: string) => createWebSocketServer(server, path),
         logs: { query: logStore.query },
+        circuitBreaker: (opts?: CircuitBreakerOptions) => createCircuitBreaker(opts),
     }
 }
