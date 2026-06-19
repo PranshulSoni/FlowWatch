@@ -1,6 +1,7 @@
 export interface Migration {
   name: string
   up: string
+  down?: string
 }
 
 
@@ -8,6 +9,12 @@ export interface Migration {
 export const migrations: Migration[] = [
   {
     name: "001_create_workflow_tables",
+    down: `
+DROP TABLE IF EXISTS flowwatch_workflow_step_executions;
+DROP TABLE IF EXISTS flowwatch_workflow_executions;
+DROP TABLE IF EXISTS flowwatch_workflow_steps;
+DROP TABLE IF EXISTS flowwatch_workflows;
+`,
     up: `CREATE TABLE IF NOT EXISTS flowwatch_workflows (
   id UUID PRIMARY KEY,
   name TEXT NOT NULL,
@@ -81,6 +88,11 @@ ON flowwatch_workflow_step_executions (status, next_retry_at);`
   ,
   {
     name: "002_create_feature_flag_tables",
+    down: `
+DROP TABLE IF EXISTS flowwatch_feature_flag_audit_logs;
+DROP TABLE IF EXISTS flowwatch_feature_flag_rules;
+DROP TABLE IF EXISTS flowwatch_feature_flags;
+`,
     up: `CREATE TABLE IF NOT EXISTS flowwatch_feature_flags (
   id UUID PRIMARY KEY,
   key TEXT NOT NULL UNIQUE,
@@ -123,6 +135,11 @@ ON flowwatch_feature_flag_audit_logs (flag_id, created_at DESC);`
   },
   {
     name: "003_create_error_capture_tables",
+    down: `
+DROP TABLE IF EXISTS flowwatch_errors;
+DROP TABLE IF EXISTS flowwatch_trace_spans;
+DROP TABLE IF EXISTS flowwatch_request_traces;
+`,
     up: `CREATE TABLE IF NOT EXISTS flowwatch_request_traces (
   id UUID PRIMARY KEY,
   method TEXT NOT NULL,

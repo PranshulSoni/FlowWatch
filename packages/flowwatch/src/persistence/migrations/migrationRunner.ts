@@ -1,6 +1,7 @@
-import type { Pool, PoolClient } from "pg"
+import type { Pool } from "pg"
 import type { Migration } from "./migrations.js"
 import { withTransaction } from "../transaction.js"
+import { logger } from "../../logger.js"
 
 export async function runMigrations(pool: Pool, migrationsToRun: Migration[]) {
     await createMigrationsTable(pool)
@@ -56,4 +57,26 @@ async function getAppliedMigrations(pool: Pool): Promise<Set<string>> {
     const appliedMigrations = new Set<string>(migrationNames)
 
     return appliedMigrations
+}
+
+export async function rollbackLastMigration(pool: Pool, migrationsToRun: Migration[]): Promise<void> {
+    await withMigrationLock(pool, async () => {
+        const result = await pool.query(
+            "SELECT name FROM flowwatch_migrations ORDER BY id DESC LIMIT 1"
+        )
+        if (result.rows.length === 0) {
+            logger.info("No migrations to roll back")
+            return
+        }
+        const name = result.rows[0].name as string
+        const migration = migrationsToRun.find((m) => m.name === name)
+        if (!migration?.down) {
+            throw new Error(`Migration "${name}" has no down script`)
+        }
+        logger.info({ migration: name }, "Rolling back migration")
+        await withTransaction(pool, async (client) => {
+            await client.query(migration.down!)
+            await client.query("DELETE FROM flowwatch_migrations WHERE name = $1", [name])
+        })
+    })
 }

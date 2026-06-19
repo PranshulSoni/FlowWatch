@@ -5,7 +5,7 @@ import { validateConfig } from "./runtime/config/validationConfig.js"
 import { normalizeConfig } from "./runtime/config/normalizeConfig.js"
 import { createPostgresPool } from "./persistence/db/postgres.js"
 import { createElasticsearchClient } from "./search/elasticsearch/client.js"
-import { runMigrations } from "./persistence/migrations/migrationRunner.js"
+import { runMigrations, rollbackLastMigration } from "./persistence/migrations/migrationRunner.js"
 import { migrations } from "./persistence/migrations/migrations.js"
 import { createWorkflowEngine } from "./engine/workflows/workflowEngine.js"
 import type { RegisterWorkflow, TriggerWorkflow } from "./engine/workflows/types.js"
@@ -30,6 +30,7 @@ export interface Flowwatch {
     trace: TraceFunction
     errorHandler: ErrorRequestHandler
     captureError: CaptureErrorFunction
+    rollbackMigration: () => Promise<void>
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -107,5 +108,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         trace: traceEngine.trace,
         errorHandler,
         captureError: captureFlowwatchError,
+        rollbackMigration: () => rollbackLastMigration(postgresPool, migrations),
     }
 }
