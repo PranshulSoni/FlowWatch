@@ -24,6 +24,7 @@ import { createHttpCacheMiddleware, type HttpCacheOptions } from "./runtime/http
 import { createResponseCacheMiddleware, type ResponseCacheOptions } from "./persistence/cache/responseCache.js"
 import { createQueryCache, type QueryCache } from "./persistence/cache/queryCache.js"
 import { createFullTextSearch, type FullTextSearch } from "./search/fullTextSearch.js"
+import { createBulkhead, type Bulkhead, type BulkheadOptions } from "./runtime/bulkhead.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -39,6 +40,7 @@ export interface Flowwatch {
     responseCache: (options: ResponseCacheOptions) => RequestHandler
     queryCache: QueryCache
     search: FullTextSearch["search"]
+    bulkhead: (options: BulkheadOptions) => Bulkhead
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -121,5 +123,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         responseCache: (options: ResponseCacheOptions) => createResponseCacheMiddleware(redisClient, options),
         queryCache: createQueryCache(postgresPool, redisClient),
         search: createFullTextSearch(postgresPool).search,
+        bulkhead: (opts: BulkheadOptions) => createBulkhead(opts),
     }
 }

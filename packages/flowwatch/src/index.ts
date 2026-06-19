@@ -24,3 +24,6 @@ export type { QueryCache, QueryCacheOptions } from "./persistence/cache/queryCac
 
 // Full-text search
 export type { FullTextSearch, SearchOptions, SearchResult } from "./search/fullTextSearch.js"
+
+// Bulkhead
+export type { Bulkhead, BulkheadOptions } from "./runtime/bulkhead.js"
