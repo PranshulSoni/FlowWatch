@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <strong>The world's first npm package that gives you durable workflows, feature flags, request tracing, and error reporting — all in one, completely free, and running entirely inside your own Express app.</strong>
+  <strong>The complete backend operations layer for Express — workflows, feature flags, tracing, error capture, rate limiting, caching, WebSockets, metrics, and more. Free. Self-hosted. One package.</strong>
 </p>
 
 <p align="center">
@@ -20,59 +20,59 @@
 
 ## Table of Contents
 
-- [Why I built this](#why-i-built-this) ← skip this if you just want the code
-- [What you get with one install](#what-you-get-with-one-install)
+- [What you get](#what-you-get)
 - [Getting started](#getting-started)
-  - [Minimum setup](#minimum-setup)
-  - [Full setup with Redis and Elasticsearch](#full-setup-with-redis-and-elasticsearch)
-- [Dashboard Security](#dashboard-security)
-- [Multi-Language Support (Sidecar Server)](#multi-language-support-sidecar-server)
-  - [Sidecar Security](#sidecar-security)
+- [Dashboard](#dashboard)
 - [Durable Workflows](#durable-workflows)
 - [Feature Flags](#feature-flags)
 - [Request Tracing](#request-tracing)
 - [Error Reporting](#error-reporting)
-- [AI Insights and Chat](#ai-insights-and-chat)
-- [Infrastructure](#infrastructure)
-- [The Dashboard](#the-dashboard)
+- [Caching](#caching)
+- [Full-Text Search](#full-text-search)
+- [Rate Limiting](#rate-limiting)
+- [IP Filtering](#ip-filtering)
+- [API Versioning](#api-versioning)
+- [Bulkhead Isolation](#bulkhead-isolation)
+- [Circuit Breaker](#circuit-breaker)
+- [WebSockets](#websockets)
+- [CRON Scheduler](#cron-scheduler)
+- [Outbound Webhooks](#outbound-webhooks)
+- [Prometheus Metrics](#prometheus-metrics)
+- [Structured Log Store](#structured-log-store)
+- [Auto-Instrumented Query & Fetch](#auto-instrumented-query--fetch)
+- [Internal Event Bus](#internal-event-bus)
+- [Server-Sent Events](#server-sent-events)
+- [Testing Utilities](#testing-utilities)
+- [Migration Rollback](#migration-rollback)
+- [Multi-Language Sidecar](#multi-language-sidecar)
+- [AI Diagnostics](#ai-diagnostics)
 - [Quick Reference](#quick-reference)
-- [Database Schema](#database-schema)
-- [License](#license)
 
 ---
 
-## Why I built this
-
-I was building my first serious Express backend and everything was going fine until the app actually had to work in production.
-
-The first real problem I hit was a multi-step operation. User pays, inventory gets deducted, email goes out. Simple on paper. But what happens when the email server is down on step 3? The payment went through. The inventory was deducted. But no email, no confirmation, and now you have a confused user and inconsistent database state. I started writing try/catch blocks around every step, adding status columns to the database, writing cron jobs to retry failed rows. It worked, barely, but it was ugly and I had no way to see what was happening at any point.
-
-The second problem was feature flags. Marketing wanted a new UI rolled out to 10% of users. I hardcoded `process.env.NEW_UI_ENABLED=true` and redeploy every time anyone wanted to change anything. Then I moved it to the database. Now every request was hitting the DB just to read a boolean. I wrote a Redis caching layer. The cache got stale. Users were seeing different UIs on page refresh. It was a mess.
-
-The third problem was debugging slow endpoints. A route would randomly take 4 seconds. I'd look at the logs and see 200 lines of mixed output from 30 concurrent requests all jumbled together. I had no idea which log line belonged to which request. I tried passing a `requestId` through every single function call in the entire codebase. My function signatures became a nightmare.
-
-The fourth problem was errors. Something would crash in production, pm2 would restart the server, and the stack trace was gone. I'd find out from a user email. I set up a basic error logger but the same database connection error would repeat a thousand times and flood everything.
-
-Every senior dev I talked to said the same thing: "Use Sentry for errors, LaunchDarkly for flags, Temporal for workflows, Datadog for traces." Great advice. That's also $300/month minimum, four separate dashboards, four separate SDKs, and none of them know what the others are doing.
-
-I built FlowWatch because I couldn't find a single package that solved all four of these problems together, for free, without shipping my data to someone else's cloud. As far as I can tell, nothing like this exists. So I built it.
-
----
-
-## What you get with one install
+## What you get
 
 ```bash
 npm i @pranshulsoni/flowwatch
 ```
 
-- **Durable Workflows** — define multi-step processes that survive server crashes and retry failed steps automatically
-- **Feature Flags** — toggle features and do percentage rollouts from a dashboard, no redeploys needed
-- **Request Tracing** — see exactly what every request did, how long each part took, and which parts were slow
-- **Error Reporting** — capture, group, and search errors with full stack traces and context
-- **AI Diagnostics** — connect a Groq API key and get automated incident analysis and a chat interface that knows your actual data
-- **Built-in Dashboard** — a 10-page admin UI served directly from your Express app at whatever path you choose
+One `createFlowwatch()` call gives you:
 
-Everything stores in your own Postgres database. Redis is optional (but recommended). Elasticsearch is optional. The Groq API key is optional. Postgres is the only hard requirement.
+| Category | Features |
+|---|---|
+| **Core ops** | Durable workflows, feature flags, request tracing, error reporting |
+| **Resilience** | Rate limiting, IP filtering, bulkhead isolation, circuit breaker |
+| **Caching** | HTTP ETag cache, Redis response cache, query cache with tag invalidation |
+| **Transport** | WebSocket server, Server-Sent Events, outbound webhook engine |
+| **Scheduling** | CRON scheduler (BullMQ-backed) |
+| **Observability** | Prometheus metrics, structured log store, auto-traced queries & fetches |
+| **Search** | Postgres full-text search (tsvector) |
+| **Routing** | API versioning middleware and router |
+| **Messaging** | Internal event bus |
+| **Dashboard** | 10-page admin UI served from your Express app |
+| **Testing** | `createMockPool` and `createMockRedis` helpers |
+
+Everything runs inside your own infrastructure. Postgres is the only hard requirement.
 
 ---
 
@@ -88,907 +88,577 @@ const app = express();
 app.use(express.json());
 
 const fw = await createFlowwatch({
-  db: {
-    connectionString: process.env.DATABASE_URL
-  },
-  migrations: {
-    autoRun: true
-  },
-  runtime: {
-    serviceName: "my-api",
-    environment: "production"
-  }
+  db: { connectionString: process.env.DATABASE_URL },
+  migrations: { autoRun: true },
+  runtime: { serviceName: "my-api", environment: "production" },
 });
 
-app.use(fw.requestTracer);   // goes first
+app.use(fw.requestTracer);     // goes first
 app.use("/ops", fw.dashboard);
-
-// your routes go here
-
-app.use(fw.errorHandler);    // goes last
+app.use(fw.errorHandler);      // goes last
 
 app.listen(3000);
 ```
 
-That's it. Visit `http://localhost:3000/ops` and the dashboard is live.
+Visit `http://localhost:3000/ops` to see the dashboard.
 
-### Full setup with Redis and Elasticsearch
-
-```ts
-const fw = await createFlowwatch({
-  db: {
-    connectionString: process.env.DATABASE_URL
-  },
-  redis: {
-    url: process.env.REDIS_URL
-  },
-  elasticsearch: {
-    node: process.env.ELASTICSEARCH_URL
-  },
-  migrations: {
-    autoRun: true
-  },
-  runtime: {
-    serviceName: "my-api",
-    environment: "production"
-  }
-});
-```
-
----
-
-## Installation & Setup (by Language)
-
-Select your programming language below to see how to install the package/SDK and get started:
-
-<details>
-<summary><b>Node.js / JavaScript / TypeScript</b></summary>
-
-### Install:
-```bash
-npm install @pranshulsoni/flowwatch
-```
-
-### Quick Start:
-```typescript
-import express from "express";
-import { createFlowwatch } from "@pranshulsoni/flowwatch";
-
-const app = express();
-app.use(express.json());
-
-const fw = await createFlowwatch({
-  db: { connectionString: process.env.DATABASE_URL }
-});
-
-// Middleware (request tracing goes first, error handler last)
-app.use(fw.requestTracer);
-app.use("/ops", fw.dashboard);
-app.use(fw.errorHandler);
-
-app.listen(3000);
-```
-</details>
-
-<details>
-<summary><b>Python</b></summary>
-
-### Install:
-```bash
-pip install flowwatch-client
-```
-
-### Quick Start:
-*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
-```python
-from flowwatch import FlowwatchClient
-
-client = FlowwatchClient("http://localhost:9400", token="your-sidecar-token")
-
-# Evaluate a feature flag
-if client.evaluate_flag("new-checkout-flow", {"userId": "user_123"}):
-    print("New flow enabled!")
-```
-</details>
-
-<details>
-<summary><b>Rust</b></summary>
-
-### Install:
-Add to your `Cargo.toml`:
-```toml
-[dependencies]
-flowwatch-client = "2.1.0"
-```
-
-### Quick Start:
-*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
-```rust
-use flowwatch_client::FlowwatchClient;
-use std::collections::HashMap;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let client = FlowwatchClient::new("http://localhost:9400", Some("your-sidecar-token"));
-    let enabled = client.evaluate_flag("new-checkout-flow", HashMap::new()).await?;
-    println!("Flag status: {}", enabled);
-    Ok(())
-}
-```
-</details>
-
-<details>
-<summary><b>Go</b></summary>
-
-### Install:
-```bash
-go get github.com/PranshulSoni/flowwatch-go/flowwatch
-```
-
-### Quick Start:
-*Requires the [Node.js sidecar server](#multi-language-support-sidecar-server) running on port `9400`.*
-```go
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/PranshulSoni/flowwatch-go/flowwatch"
-)
-
-func main() {
-	client := flowwatch.NewClient("http://localhost:9400", "your-sidecar-token")
-	enabled, _ := client.EvaluateFlag(context.Background(), "new-checkout-flow", map[string]interface{}{})
-	fmt.Println("Flag status:", enabled)
-}
-```
-</details>
-
----
-
-## Dashboard Security
-
-The dashboard exposes stack traces, request bodies, workflow inputs/outputs, and feature flag contexts. Protect it before deploying to any environment reachable from the internet.
-
-### Token-based access
-
-Pass a `token` in the dashboard config. FlowWatch will then require every request to the dashboard path to include either an `Authorization: Bearer <token>` header or a `?token=<token>` query parameter.
+### Full setup
 
 ```ts
-const fw = await createFlowwatch({
-  db: { connectionString: process.env.DATABASE_URL },
-  dashboard: {
-    token: process.env.DASHBOARD_TOKEN  // generate with: openssl rand -hex 32
-  }
-});
-
-app.use("/ops", fw.dashboard);
-```
-
-Set `DASHBOARD_TOKEN` in your environment and share it only with your team.
-
-### Custom auth callback
-
-If you use sessions, JWTs, or any other auth system, pass an `auth` function instead. It receives the Express `Request` object and must return `true` to allow access or `false` to block it.
-
-```ts
-const fw = await createFlowwatch({
-  db: { connectionString: process.env.DATABASE_URL },
-  dashboard: {
-    auth: async (req) => {
-      const session = await verifySession(req.cookies.sessionId);
-      return session?.role === "admin";
-    }
-  }
-});
-```
-
-When `auth` is provided it takes priority over `token`. Any thrown error or `false` return sends a `401`.
-
-### No auth (development only)
-
-Without a `token` or `auth`, the dashboard is open to anyone who can reach the URL. FlowWatch will print a warning at startup in production environments:
-
-```
-[Flowwatch] WARNING: Dashboard is mounted without authentication in production.
-```
-
-This is fine for local development but must not be used in any publicly reachable deployment.
-
----
-
-## Multi-Language Support (Sidecar Server)
-
-**FlowWatch is no longer locked into Node.js.** Your Python, Go, Rust, Ruby, or PHP service can use FlowWatch features (feature flags, workflows, tracing, error capture) by talking to a lightweight REST sidecar that runs in a separate Node.js process.
-
-### Architecture
-
-```
-┌─────────────────────────────────┐     HTTP     ┌────────────────────────────┐
-│  Your Python / Go / Rust app    │ ──────────►  │  FlowWatch Sidecar (Node)  │
-│  pip install flowwatch-client   │ ◄──────────  │  port 9400                 │
-│  go get flowwatch-go            │              │                            │
-│  cargo add flowwatch-client     │              │  ┌──────────┐  ┌────────┐  │
-└─────────────────────────────────┘              │  │ Postgres │  │ Redis  │  │
-                                                  │  └──────────┘  └────────┘  │
-                                                  └────────────────────────────┘
-```
-
-**The Node.js sidecar is the engine.** It connects to Postgres and Redis, runs the workflow queue, evaluates feature flags, and stores traces and errors. The SDK packages are thin HTTP clients — they do not connect to any database directly and will not work without the sidecar running.
-
-### SDK Packages
-
-| Language | Package | Install |
-|----------|---------|---------|
-| Python | `flowwatch-client` on PyPI | `pip install flowwatch-client` |
-| Go | `github.com/PranshulSoni/flowwatch-go` | `go get github.com/PranshulSoni/flowwatch-go` |
-| Rust | `flowwatch-client` on crates.io | `cargo add flowwatch-client` |
-
-Each SDK wraps the five sidecar endpoints listed below. See each package's README for full usage.
-
-### How It Works
-
-1. Start the FlowWatch Sidecar server in a small Node.js background process (or next to your main backend).
-2. Your non-JS apps make simple, standard HTTP `POST` requests to communicate with the FlowWatch engine.
-3. The dashboard aggregates telemetry, workflows, feature flags, and errors from all services in one unified UI!
-
-### 1. Starting the Sidecar Server (Node.js)
-
-To run the sidecar, import and call `startSidecar` from the package:
-
-```ts
-import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
-
 const fw = await createFlowwatch({
   db: { connectionString: process.env.DATABASE_URL },
   redis: { url: process.env.REDIS_URL },
   elasticsearch: { node: process.env.ELASTICSEARCH_URL },
-  migrations: { autoRun: true }
+  migrations: { autoRun: true },
+  runtime: { serviceName: "my-api", environment: "production" },
 });
-
-// Recommended: pass a token to prevent unauthenticated access
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
-// This hosts the Sidecar REST API at: http://localhost:9400/api/*
-// And mounts the admin Dashboard at: http://localhost:9400/ops
 ```
 
-### 2. Communicating from Other Languages (e.g., Python)
+### Cleanup
 
-Once the sidecar is running on port `9400`, your external service can communicate with it via standard JSON endpoints:
-
-#### Feature Flag Evaluation (`POST /api/flag`)
-Send a flag key and user context. The Node.js engine evaluates rules and percentage rollouts, and returns `true` or `false`.
-
-```python
-import requests
-
-response = requests.post("http://localhost:9400/api/flag", json={
-    "key": "new-billing-flow",
-    "context": {
-        "userId": "user_987",
-        "email": "customer@company.com",
-        "plan": "premium"
-    }
-})
-is_enabled = response.json().get("enabled", False)
-```
-
-#### Ingesting Errors (`POST /api/capture-error`)
-Report server exceptions directly to the FlowWatch error repository with stack trace detail.
-
-```python
-try:
-    # Some buggy python logic
-    raise ValueError("Database connection failed")
-except Exception as e:
-    requests.post("http://localhost:9400/api/capture-error", json={
-        "error": {
-            "message": str(e),
-            "name": type(e).__name__,
-            "stack": "Traceback:\n  File 'app.py', line 12..."
-        },
-        "options": {
-            "source": "python-payment-microservice",
-            "category": "database",
-            "level": "fatal"
-        }
-    })
-```
-
-#### Logging Trace Spans (`POST /api/trace-span`)
-Log performance metrics and execution duration of functions or database queries.
-
-```python
-import time
-
-start_time = time.time()
-# Run database query or external API call
-time.sleep(0.35)
-duration_ms = (time.time() - start_time) * 1000
-
-requests.post("http://localhost:9400/api/trace-span", json={
-    "name": "python-db-query",
-    "type": "database",
-    "durationMs": duration_ms,
-    "status": "ok",
-    "metadata": {
-        "query": "SELECT * FROM orders WHERE id = 1"
-    }
-})
-```
-
-#### Triggering Durable Workflows (`POST /api/trigger`)
-Trigger background workflow executions defined and hosted in the Node.js process.
-
-```python
-requests.post("http://localhost:9400/api/trigger", json={
-    "name": "checkout-workflow",
-    "input": {
-        "cart_id": "cart_1234",
-        "user_email": "user@example.com"
-    }
-})
-```
-
-### Sidecar Security
-
-The sidecar REST server is network-accessible and accepts workflow triggers, error captures, and trace spans from any caller. Protect it in any environment beyond localhost.
-
-Pass a `token` in the options object. Every incoming request must then include `Authorization: Bearer <token>`:
+Call `fw.close()` on process exit to drain connections and workers gracefully.
 
 ```ts
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+process.on("SIGTERM", async () => { await fw.close(); process.exit(0); });
 ```
 
-Without a token, the server logs a warning at startup and accepts all requests. The number-only form `startSidecar(fw, 9400)` still works for backward compatibility and local development — it behaves identically to `{ port: 9400 }` with no token.
+---
+
+## Dashboard
+
+A 10-page admin UI served directly from your Express app. Mount it anywhere.
+
+```ts
+app.use("/ops", fw.dashboard);
+```
+
+Secure it with your existing auth middleware before the mount.
 
 ---
 
 ## Durable Workflows
 
-### The problem
-
-You have a checkout flow. Charge card → deduct inventory → send email → generate invoice. You write it as four sequential awaits in a route handler. It works in development. In production, the email server goes down between step 2 and step 3. The card was charged, inventory was deducted, but the process died halfway.
-
-Now you have inconsistent data and no visibility into what happened.
-
-The "fix" most people reach for is adding a status column to the database and a cron job that checks for stuck orders every minute. That works until you have five different workflows, each with different step logic, different retry rules, and different failure scenarios. You end up with a handwritten state machine that's fragile and impossible to debug because you can't see what's happening in real time.
-
-### Without FlowWatch
+Define multi-step processes that survive server crashes and retry automatically.
 
 ```ts
-app.post("/checkout", async (req, res) => {
-  try {
-    await chargeCard(req.body);
-    await deductInventory(req.body); // server crashes here
-    await sendEmail(req.body);        // never runs
-    await generateInvoice(req.body);
-    res.json({ ok: true });
-  } catch (err) {
-    // what do you roll back? what already ran?
-    res.status(500).json({ error: "something failed" });
-  }
-});
-```
-
-If the server crashes on step 2, you have no idea which steps completed. You need to write recovery logic, track step state manually, and hope your cron job catches it before the user notices.
-
-### With FlowWatch
-
-```ts
-fw.workflow("checkout", [
-  { name: "charge-card",      run: async (input) => chargeCard(input),      maxRetries: 3 },
-  { name: "deduct-inventory", run: async (input) => deductInventory(input), maxRetries: 2 },
-  { name: "send-email",       run: async (input) => sendEmail(input),       maxRetries: 5 },
-  { name: "generate-invoice", run: async (input) => generateInvoice(input), maxRetries: 2 }
+fw.workflow("send-order", [
+  { name: "charge",    handler: async (ctx) => charge(ctx.input.userId, ctx.input.amount) },
+  { name: "inventory", handler: async (ctx) => deductStock(ctx.input.itemId) },
+  { name: "email",     handler: async (ctx) => sendConfirmation(ctx.input.email) },
 ]);
 
-app.post("/checkout", async (req, res) => {
-  const { executionId } = await fw.trigger("checkout", req.body);
-  res.json({ executionId });
+// Trigger from any route
+app.post("/orders", async (req, res) => {
+  await fw.trigger("send-order", req.body);
+  res.json({ queued: true });
 });
 ```
 
-Each step's result is saved to Postgres immediately after it completes. If the server crashes on step 2, the next time it starts up the workflow engine picks up the execution and resumes from step 2. No double charges. No lost orders. No cron jobs.
-
-You can see every execution in the dashboard — which steps ran, which failed, what the input and output of each step was, how many retries happened, and exactly when each step started and finished.
+Each step records its result. If your server crashes mid-workflow, the next restart picks up from the last completed step.
 
 ---
 
 ## Feature Flags
 
-### The problem
-
-You want to test a new feature with 10% of your users before rolling it out to everyone. Simple enough. You add an environment variable, deploy, and now you can control it. Except turning it off means another deploy. Changing the percentage means another deploy. Adding a rule that says "only for enterprise users" means another deploy.
-
-So you move it to the database. Now you're hitting the database on every single request just to read a flag that almost never changes. You add Redis caching. Now you have to manage cache invalidation whenever someone updates the flag. A user reports they see two different UIs on page refresh because the cache expired mid-session.
-
-### Without FlowWatch
+Toggle features and run percentage rollouts from the dashboard — no redeploys.
 
 ```ts
-// Option A: env variable — requires redeploy for any change
-if (process.env.NEW_SEARCH === "true") {
-  return runNewSearch(query);
-}
-
-// Option B: database — adds latency on every request
-const flag = await db.query("SELECT enabled FROM flags WHERE key = 'new-search'");
-if (flag.rows[0].enabled) {
-  return runNewSearch(query);
-}
-
-// Option C: database + Redis — now you have two sources of truth to keep in sync
-const cached = await redis.get("flag:new-search");
-const enabled = cached ? JSON.parse(cached) : (await db.query("...")).rows[0].enabled;
-if (!cached) await redis.setex("flag:new-search", 60, JSON.stringify(enabled));
-```
-
-Every option has a tradeoff and none of them give you a UI to manage flags without writing code.
-
-### With FlowWatch
-
-```ts
-app.get("/search", async (req, res) => {
-  const useNewSearch = await fw.flag("new-search-v2", {
-    userId: req.user.id,
-    email: req.user.email,
-    plan: req.user.plan
-  });
-
-  if (useNewSearch) return runNewSearch(req.query.q);
-  return runOldSearch(req.query.q);
+app.get("/checkout", async (req, res) => {
+  const newUI = await fw.flag("new-checkout", { userId: req.user.id });
+  res.json({ layout: newUI ? "v2" : "v1" });
 });
 ```
 
-Flag evaluation uses Redis as a cache with a 60-second TTL and Postgres as the source of truth. The caching is handled for you. Consistent percentage rollouts use SHA-256 hashing against the userId so the same user always gets the same result.
-
-In the dashboard you can:
-- Toggle flags on/off instantly, no redeploy
-- Set a rollout percentage with a slider
-- Create rules: `plan = enterprise` → enabled, `email ends with @company.com` → enabled
-- View the full audit log of every change ever made to a flag
+Flags are evaluated with Redis caching. Percentage rollouts are sticky per user.
 
 ---
 
 ## Request Tracing
 
-### The problem
-
-An endpoint is slow. You open your terminal and see 150 log lines from 30 concurrent requests all mixed together:
-
-```
-SELECT * FROM users WHERE id = 44
-GET /api/dashboard - started
-Calling payment API
-SELECT * FROM products WHERE id = 8
-GET /api/profile - started
-SELECT * FROM analytics WHERE user_id = 44
-GET /api/dashboard - completed in 4800ms
-```
-
-Which of those database queries belongs to the slow `/api/dashboard` request? Was it the analytics query? Was it the payment API call? You have no idea because the logs are interleaved.
-
-The standard advice is to pass a `requestId` through every function call so you can filter logs by it. That means every function in your entire codebase needs an extra parameter. Every database helper, every service function, every utility — all of them need to accept and forward this ID. It pollutes your entire codebase to solve a visibility problem.
-
-### Without FlowWatch
+See what every request did, how long each part took, and which parts were slow.
 
 ```ts
-// You end up with this everywhere
-async function getUser(id: number, requestId: string) {
-  console.log(`[${requestId}] fetching user ${id}`);
-  const result = await db.query("SELECT * FROM users WHERE id = $1", [id]);
-  console.log(`[${requestId}] fetched user in ${elapsed}ms`);
-  return result;
-}
+app.use(fw.requestTracer); // mount first
 
-async function getDashboard(req, res) {
-  const reqId = req.headers["x-request-id"];
-  const user = await getUser(req.user.id, reqId);      // passing reqId everywhere
-  const stats = await getStats(req.user.id, reqId);    // passing reqId everywhere
-  const flags = await getFlags(req.user.id, reqId);    // passing reqId everywhere
-}
-```
-
-### With FlowWatch
-
-```ts
-// Mount once
-app.use(fw.requestTracer);
-
-// Use anywhere, no ID passing required
-app.get("/api/dashboard", async (req, res) => {
-  const user = await fw.trace("fetch-user", "database", () =>
-    db.query("SELECT * FROM users WHERE id = $1", [req.user.id])
-  );
-
-  const stats = await fw.trace("fetch-stats", "database", () =>
-    db.query("SELECT * FROM analytics WHERE user_id = $1", [req.user.id])
-  );
-
-  const rates = await fw.trace("fetch-shipping-api", "http", () =>
-    axios.get("https://api.shipping.com/rates")
-  );
-
-  res.json({ user, stats, rates });
+// Add manual spans anywhere in your handlers
+app.get("/products", async (req, res) => {
+  const products = await fw.trace("db-query", () => db.query("SELECT * FROM products"));
+  res.json(products);
 });
 ```
 
-FlowWatch uses `AsyncLocalStorage` to carry the trace context automatically through every async operation. You never pass an ID anywhere. The context just follows the request.
-
-In the dashboard you get an interactive trace graph showing every span as a node, with parent-child relationships drawn as edges. You can see:
-
-```
-GET /api/dashboard  (4800ms)
-├── fetch-user        database   42ms
-├── fetch-stats       database   38ms
-└── fetch-shipping-api  http     4690ms  ← there's your problem
-```
-
-Click any span to see its full metadata, duration, and status.
+All traces are stored in Postgres and searchable from the dashboard.
 
 ---
 
 ## Error Reporting
 
-### The problem
-
-Something crashes in production. pm2 restarts the server. The stack trace is gone. A user emails support. You have no idea what happened.
-
-You add a global error handler and log to a file. Now a database connection timeout that fires 3,000 times in an hour writes 3,000 identical stack traces to the log file. The log file is 800MB. The disk fills up. The server goes down for a different reason.
-
-Even when you do have the error, you have no context. What route was it? What user triggered it? What was the request body? What database query ran right before it? A raw stack trace alone doesn't tell you any of that.
-
-### Without FlowWatch
+Capture, group, and search errors with full stack traces and context.
 
 ```ts
-app.use((err, req, res, next) => {
-  console.error(err.stack); // gets lost, or floods the log file
-  res.status(500).json({ error: "Internal server error" });
-});
+app.use(fw.errorHandler); // mount last
 
-// Or manually in catch blocks
+// Manual capture for non-thrown errors
 try {
-  await processPayment(data);
+  await riskyThing();
 } catch (err) {
-  console.error("Payment failed:", err.message); // no grouping, no context, no dashboard
+  fw.captureError(err, { userId: req.user.id, route: req.path });
 }
 ```
 
-### With FlowWatch
+Only 5xx errors are worth capturing. `captureError` is a no-op on 4xx — don't pass client errors to it.
+
+---
+
+## Caching
+
+### HTTP ETag cache
+
+Zero-config 304 responses using SHA1 ETags.
 
 ```ts
-// Catch everything automatically — register this last
-app.use(fw.errorHandler);
+app.get("/config", fw.httpCache(), handler);
+app.get("/config", fw.httpCache({ maxAge: 300 }), handler);
+```
 
-// Or capture specific errors manually with context
-try {
-  await processPayment(data);
-} catch (err) {
-  await fw.captureError(err, {
-    source: "payment_processor",
-    level: "fatal",
-    category: "dependency"
+### Redis response cache
+
+Cache full response bodies in Redis with TTL.
+
+```ts
+app.get("/products", fw.responseCache({ ttl: 60 }), handler);
+app.get("/prices",   fw.responseCache({ ttl: 30, key: (req) => `prices:${req.query.currency}` }), handler);
+```
+
+### Query cache with tag invalidation
+
+Cache database query results and invalidate by tag.
+
+```ts
+const products = await fw.queryCache.get(
+  "SELECT * FROM products WHERE category = $1",
+  ["electronics"],
+  { ttl: 300, tags: ["products"] }
+);
+
+// Bust all queries tagged "products" after a write
+await db.query("UPDATE products SET ...");
+await fw.queryCache.invalidate("products");
+```
+
+---
+
+## Full-Text Search
+
+Postgres `tsvector`-powered search — no Elasticsearch needed for text search.
+
+```ts
+const results = await fw.search({
+  table: "articles",
+  columns: ["title", "body"],
+  query: req.query.q as string,
+  limit: 20,
+  offset: 0,
+});
+// results.rows — ranked by relevance
+// results.total — total match count for pagination
+```
+
+Column and table names are validated against a regex allowlist to prevent SQL injection.
+
+---
+
+## Rate Limiting
+
+Redis-backed sliding window limiter. Degrades gracefully if Redis is unavailable (lets requests through).
+
+```ts
+// 100 requests per minute per IP
+app.use(fw.rateLimit({ max: 100, windowSeconds: 60 }));
+
+// Stricter limits on auth endpoints, keyed by IP
+app.post("/login", fw.rateLimit({ max: 5, windowSeconds: 60, keyBy: "ip" }), loginHandler);
+
+// Per-user limits on authenticated routes
+app.use("/api", fw.rateLimit({ max: 1000, windowSeconds: 60, keyBy: "userId" }));
+```
+
+Sets `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and `Retry-After` headers automatically.
+
+---
+
+## IP Filtering
+
+CIDR allowlist and blocklist. Strips IPv4-mapped IPv6 prefixes automatically.
+
+```ts
+// Only allow traffic from your office and VPN
+app.use("/admin", fw.ipFilter({ allow: ["203.0.113.0/24", "10.0.0.0/8"] }));
+
+// Block known bad actors
+app.use(fw.ipFilter({ deny: ["198.51.100.5", "192.0.2.0/24"] }));
+```
+
+`allow` and `deny` can be individual IPs or CIDR ranges. Both can be combined.
+
+---
+
+## API Versioning
+
+Detect the requested API version from headers or query params, and mount version-specific routes.
+
+```ts
+// Detect version on every request (reads "api-version" header or ?version= query)
+app.use(fw.versionMiddleware());       // req.apiVersion is now set
+app.use(fw.versionMiddleware({ defaultVersion: 2, header: "x-api-version" }));
+
+// Mount version-specific route groups
+const v1 = fw.version();
+const v2 = fw.version();
+
+v1.get("/users", handleUsersV1);
+v2.get("/users", handleUsersV2);
+
+app.use("/v1", v1);
+app.use("/v2", v2);
+```
+
+---
+
+## Bulkhead Isolation
+
+Limit concurrent execution and queue excess requests to prevent one slow dependency from exhausting your thread pool.
+
+```ts
+const dbBulkhead = fw.bulkhead({ limit: 10, queue: 20 });
+
+app.get("/reports", async (req, res) => {
+  const result = await dbBulkhead.execute(() => runExpensiveQuery());
+  res.json(result);
+});
+
+// Check current pressure
+console.log(dbBulkhead.active);  // in-flight count
+console.log(dbBulkhead.queued);  // waiting count
+```
+
+Throws `"Bulkhead full"` when both `limit` and `queue` are exhausted.
+
+---
+
+## Circuit Breaker
+
+Stop hammering a failing dependency and give it time to recover.
+
+```ts
+const paymentBreaker = fw.circuitBreaker({ threshold: 5, timeout: 30_000 });
+
+app.post("/pay", async (req, res) => {
+  try {
+    const result = await paymentBreaker.execute(() => callPaymentService(req.body));
+    res.json(result);
+  } catch (err) {
+    // Circuit is OPEN — payment service is down
+    res.status(503).json({ error: "Payment service unavailable, try again shortly." });
+  }
+});
+```
+
+States: `CLOSED` (normal) → `OPEN` (blocking calls) → `HALF_OPEN` (testing recovery).
+
+---
+
+## WebSockets
+
+Attach a WebSocket server to your existing HTTP server.
+
+```ts
+import http from "http";
+
+const server = http.createServer(app);
+const ws = fw.websocket(server, "/ws");  // path defaults to "/ws"
+
+// Broadcast to all connected clients
+ws.server.on("connection", (socket) => {
+  socket.on("message", (msg) => {
+    ws.broadcast(msg);  // fan out to every open connection
   });
-}
+});
+
+server.listen(3000);
+
+// Graceful shutdown
+process.on("SIGTERM", async () => { await ws.close(); });
 ```
-
-FlowWatch fingerprints each error using a SHA-256 hash of the error type, message, and stack location. Identical errors are grouped together and you see a frequency count rather than thousands of duplicate entries. Each captured error is linked to the request trace it happened in, so you can click an error and immediately see the full request context — what route it was, what spans ran before it, how long each part took, and what the status codes were.
-
-Errors are stored in Postgres and indexed to Elasticsearch, so you can search and filter by category, level, source, time range, or free text.
 
 ---
 
-## AI Insights and Chat
+## CRON Scheduler
 
-### The problem
-
-You have four tools running (hypothetically). An error spikes at 2am. You open Sentry, copy a timestamp, open Datadog to check latency at that timestamp, open LaunchDarkly to check if any flag was changed around that time, open your database client to check for slow queries. You're doing manual correlation across four separate products while half asleep.
-
-Even if each tool is good at what it does, none of them have any context from the others.
-
-### With FlowWatch
-
-Because all four pillars of observability are stored in the same Postgres database, the AI has access to everything at once. Add a Groq API key in the Settings page and you get two features:
-
-**AI Insights** — click "Analyze" on the AI page and the system pulls recent errors, failing workflow executions, active feature flags, and infrastructure health, bundles it all into a prompt, and returns a structured diagnosis with a likely cause, impact, evidence, and recommended actions. It can say things like "database errors spiked 4 minutes after feature flag 'new-billing-v2' was rolled out to 50%, suggesting the new code path has a query that's hitting an unindexed column" — because it can see both the error timestamps and the flag audit log.
-
-**Ask AI** — a full chat interface where you can ask questions in plain English:
-- "Which workflow has the most failures this week?"
-- "What's in the stack trace for the checkout error from an hour ago?"
-- "List the feature flags that were toggled today"
-- "What's the average latency for the /api/search endpoint?"
-
-The AI is grounded in your actual data. It doesn't make up numbers.
-
-Both features are completely optional. If you don't add a Groq key, everything else works fine.
-
----
-
-## Infrastructure
-
-```
-Your Express App
-└── FlowWatch
-    ├── Workflow Engine  →  Postgres (state) + Redis/BullMQ (queues)
-    ├── Flag Engine      →  Redis (cache) + Postgres (source of truth)
-    ├── Trace Engine     →  Postgres + Elasticsearch
-    ├── Error Engine     →  Postgres + Elasticsearch
-    ├── AI Engine        →  Groq API + all of the above
-    └── Dashboard        →  Express router serving static HTML + CSS + JS assets
-```
-
-### What's required vs optional
-
-| Service | Required | What breaks without it |
-| :--- | :--- | :--- |
-| Postgres | **Yes** | Nothing works without it |
-| Redis | No | Workflow queues are disabled. Flag evaluations hit Postgres directly |
-| Elasticsearch | No | Search falls back to Postgres queries |
-| Groq API key | No | AI Insights and Ask AI are locked |
-
-FlowWatch is designed to degrade gracefully. A Redis outage doesn't crash your app. An Elasticsearch cluster going down doesn't break error capture. Each service failing just reduces capability, it doesn't take everything else down with it.
-
----
-
-## Connecting to Infrastructure
-
-FlowWatch just needs connection strings — it doesn't care how or where those services are running. Before you connect, here are the minimum version requirements:
-
-| Service | Minimum Version | Notes |
-| :--- | :--- | :--- |
-| Postgres | **Any modern version** (v11+) | No version-specific features used. If it speaks the standard Postgres wire protocol, it works. |
-| Redis | **v5+** for workflow queues | v5 is required by BullMQ for reliable queue operations. If you're on an older Redis, workflow execution is disabled but everything else (flag caching, tracing, errors) still works. |
-| Elasticsearch | **v8.x** | The client and index mappings are built against the v8 API. v7 is not supported. |
-
-In short — any recent version of Postgres works, Redis 5 or newer works, and Elasticsearch needs to be on v8. If you're on managed services like Supabase, Upstash, or Elastic Cloud, you're almost certainly already on a compatible version.
-
-### Option 1 — Bring your own URLs
-
-If you already have Postgres, Redis, or Elasticsearch running somewhere (local install, Railway, Render, Supabase, Upstash, Elastic Cloud, anything), just pass the connection URLs directly:
+Register recurring background jobs backed by BullMQ and Redis.
 
 ```ts
-const fw = await createFlowwatch({
-  db: {
-    connectionString: "postgresql://user:password@your-host:5432/dbname"
-  },
-  redis: {
-    url: "redis://your-redis-host:6379"
-  },
-  elasticsearch: {
-    node: "https://your-es-host:9200"
-  }
+fw.cron("cleanup-old-sessions", "0 3 * * *", async () => {
+  await db.query("DELETE FROM sessions WHERE expires_at < NOW()");
+});
+
+fw.cron("send-digest-emails", "0 9 * * 1", async () => {
+  const users = await db.query("SELECT * FROM users WHERE digest_enabled = true");
+  for (const user of users.rows) await sendDigest(user);
 });
 ```
 
-That's all. FlowWatch connects and everything works.
+Uses standard cron syntax. Jobs persist across restarts and are deduplicated.
 
-### Option 2 — Spin up locally with Docker Compose
+---
 
-If you want a quick local dev environment with all three services running in one command, the repo includes a `docker-compose.yml`:
+## Outbound Webhooks
 
-```bash
-docker-compose up -d
-```
-
-This starts:
-- Postgres 16 on `localhost:5432`
-- Redis 7 on `localhost:6379`
-- Elasticsearch 8.13 on `localhost:9200`
-
-Then use these as your connection strings:
+Register webhook endpoints and deliver signed events with automatic retries.
 
 ```ts
-const fw = await createFlowwatch({
-  db: {
-    connectionString: "postgresql://postgres:postgres@localhost:5432/flowwatch"
-  },
-  redis: {
-    url: "redis://localhost:6379"
-  },
-  elasticsearch: {
-    node: "http://localhost:9200"
-  }
+// Register a webhook delivery target
+await fw.webhook.register({
+  url: "https://partner.example.com/hooks",
+  events: ["order.created", "order.shipped"],
+  secret: process.env.WEBHOOK_SECRET,
+});
+
+// Deliver an event (retried automatically on failure)
+await fw.webhook.deliver("order.created", {
+  orderId: "ord_123",
+  userId: "usr_456",
+  total: 4999,
 });
 ```
 
+Deliveries are stored in Postgres and retried with exponential backoff via BullMQ.
 
-## The dashboard
+---
 
-Once mounted, the dashboard is available at whatever path you chose (e.g. `/ops` or `/flowwatch`). It's served as static HTML, CSS, and JavaScript files by your Express router — no React, no build step, no CDN dependency.
+## Prometheus Metrics
 
-10 pages:
+Expose standard Prometheus metrics with one line.
 
-| Page | What it shows |
-| :--- | :--- |
-| Overview | Summary metrics, recent executions, recent errors, infrastructure health |
-| Workflows | Registered workflow definitions with step counts |
-| Executions | Every workflow run with status, step timeline, input/output |
-| Feature Flags | All flags with toggle switches, rollout percentage bars, rule counts |
-| Errors | Error list with grouping, frequency, category filters, and full-text search |
-| Traces | Interactive SVG trace graph, span inspector, filterable trace table |
-| AI Insights | Automated diagnosis panel (requires Groq key) |
-| Ask AI | Full chat interface with conversation history (requires Groq key) |
-| Health | Live health cards for Postgres, Redis, Elasticsearch |
-| Settings | Environment name, Groq API key, model selection |
+```ts
+// Expose /metrics endpoint
+app.get("/metrics", fw.metrics.handler);
+
+// Add custom counters and histograms
+fw.metrics.counter("orders_created_total").inc();
+fw.metrics.histogram("payment_duration_seconds").observe(duration);
+```
+
+Includes default Node.js process metrics (memory, CPU, event loop lag).
+
+---
+
+## Structured Log Store
+
+Write structured logs to Postgres and query them programmatically.
+
+```ts
+// Logs are written automatically by the Flowwatch logger
+// Query them later:
+const logs = await fw.logs.query({
+  level: "error",
+  from: new Date(Date.now() - 3_600_000),  // last hour
+  limit: 50,
+});
+```
+
+Stored in `flowwatch_logs` with a GIN index on the message column for fast text search.
+
+---
+
+## Auto-Instrumented Query & Fetch
+
+Use `fw.query` and `fw.fetch` instead of raw pg/fetch calls to get automatic trace spans — no manual `fw.trace()` wrapping needed.
+
+```ts
+// Automatically creates a trace span for this DB call
+const { rows } = await fw.query("SELECT * FROM orders WHERE user_id = $1", [userId]);
+
+// Automatically creates a trace span for this outbound HTTP call
+const data = await fw.fetch("https://api.stripe.com/v1/charges", {
+  method: "POST",
+  headers: { Authorization: `Bearer ${process.env.STRIPE_KEY}` },
+  body: JSON.stringify(payload),
+});
+```
+
+Spans appear in the dashboard under the parent request trace.
+
+---
+
+## Internal Event Bus
+
+Emit and subscribe to application-level events without coupling modules.
+
+```ts
+// In your order module
+fw.events.emit("order:created", { orderId: "ord_123", total: 4999 });
+
+// In your notification module
+fw.events.on("order:created", async (payload) => {
+  await sendOrderConfirmationEmail(payload.orderId);
+});
+
+// Listen once
+fw.events.once("user:first-login", async ({ userId }) => {
+  await sendWelcomeEmail(userId);
+});
+```
+
+Uses Node.js `EventEmitter` under the hood — zero overhead, synchronous dispatch.
+
+---
+
+## Server-Sent Events
+
+Push real-time updates to browsers over a plain HTTP connection.
+
+```ts
+import { createSseConnection } from "@pranshulsoni/flowwatch";
+
+app.get("/events", (req, res) => {
+  const sse = createSseConnection(req, res);
+
+  const interval = setInterval(() => {
+    sse.send({ type: "heartbeat", ts: Date.now() });
+  }, 30_000);
+
+  sse.onClose(() => clearInterval(interval));
+});
+```
+
+No WebSocket handshake required. Works through proxies and load balancers that support streaming.
+
+---
+
+## Testing Utilities
+
+Drop-in mocks for unit tests — no real Postgres or Redis needed.
+
+```ts
+import { createMockPool, createMockRedis } from "@pranshulsoni/flowwatch";
+
+const pool  = createMockPool([{ id: 1, name: "Widget" }]); // query() returns these rows
+const redis = createMockRedis();                            // in-memory get/set/incr/sadd/smembers
+
+// Use them anywhere your code expects a pg Pool or ioredis Redis
+const cache = createQueryCache(pool, redis);
+```
+
+`createMockPool` accepts a rows array returned by every `query()` call. `createMockRedis` has a real in-memory store and supports `get`, `set`, `setex`, `del`, `incr`, `sadd`, `smembers`, and `expire`.
+
+---
+
+## Migration Rollback
+
+Roll back the most recently applied migration (useful in staging or CI).
+
+```ts
+await fw.rollbackMigration();
+```
+
+Runs the migration's `down` SQL inside a transaction and removes the row from `flowwatch_migrations`.
+
+---
+
+## Multi-Language Sidecar
+
+Use Flowwatch from Python, Go, or Rust via the lightweight sidecar server.
+
+```ts
+import { startSidecar } from "@pranshulsoni/flowwatch";
+
+startSidecar(fw, {
+  port: 9400,
+  token: process.env.SIDECAR_TOKEN,
+});
+```
+
+Then from Python:
+
+```python
+from flowwatch import FlowwatchClient
+
+client = FlowwatchClient("http://localhost:9400", token="your-token")
+enabled = client.evaluate_flag("new-ui", {"userId": "user_123"})
+```
+
+SDK packages: `flowwatch-client` (Python), `flowwatch-go` (Go), `flowwatch-client` (Rust crate).
+
+---
+
+## AI Diagnostics
+
+Connect a Groq API key to get automated incident analysis and a chat interface that knows your actual trace and error data.
+
+```ts
+const fw = await createFlowwatch({
+  // ...
+  ai: { groqApiKey: process.env.GROQ_API_KEY },
+});
+```
+
+Available from the dashboard — no extra setup.
 
 ---
 
 ## Quick Reference
 
 ```ts
-// Factory — call once at startup
 const fw = await createFlowwatch(config);
 
 // Middleware
-app.use(fw.requestTracer);   // mount first
-app.use(fw.errorHandler);    // mount last
+fw.requestTracer              // Express middleware — mount first
+fw.errorHandler               // Express middleware — mount last
+fw.httpCache(opts?)           // ETag/304 middleware per route
+fw.responseCache(opts)        // Redis cache middleware per route
+fw.rateLimit(opts)            // Rate limit middleware
+fw.ipFilter(opts)             // IP allowlist/blocklist middleware
+fw.versionMiddleware(opts?)   // Sets req.apiVersion
 
-// Dashboard (add token or auth callback in production — see Dashboard Security)
-app.use("/ops", fw.dashboard);
+// Core features
+fw.workflow(name, steps)      // Register a durable workflow
+fw.trigger(name, input)       // Trigger a workflow
+fw.flag(name, context)        // Evaluate a feature flag
+fw.trace(name, fn)            // Manual trace span
+fw.captureError(err, ctx?)    // Capture a 5xx error
+fw.dashboard                  // Express Router — mount anywhere
 
-// Sidecar server for non-JS backends
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+// Resilience
+fw.bulkhead(opts)             // → Bulkhead { execute, active, queued }
+fw.circuitBreaker(opts?)      // → CircuitBreaker { execute, state }
 
-// Workflows
-fw.workflow(name, steps[]);
-await fw.trigger(name, input?);  // returns { executionId }
+// Transport
+fw.websocket(server, path?)   // → FlowwatchWebSocket { server, broadcast, close }
+fw.webhook                    // → WebhookEngine { register, deliver }
 
-// Feature flags
-await fw.flag(key, context?);    // returns boolean
+// Scheduling
+fw.cron(name, expr, fn)       // Register a recurring job
 
-// Tracing
-await fw.trace(name, type, fn, metadata?);
+// Caching & Search
+fw.queryCache                 // → { get, invalidate }
+fw.search(opts)               // Postgres full-text search
+fw.version()                  // → Express Router for versioned routes
 
-// Error capture
-await fw.captureError(error, options?);
+// Observability
+fw.metrics                    // → { handler, counter, histogram }
+fw.logs.query(opts)           // Query structured Postgres logs
+fw.query(sql, params)         // Auto-traced pg query
+fw.fetch(url, opts?)          // Auto-traced fetch
+fw.events                     // → EventBus { on, once, emit, off }
 
-// Context helpers (usable anywhere in async call chain)
-getCurrentTraceId();
-getCurrentSpanId();
-getCurrentClientIp();
+// Teardown
+fw.rollbackMigration()        // Roll back last migration
+fw.close()                    // Drain and close all connections
 ```
-
----
-
-## Database Schema
-
-When you set `migrations: { autoRun: true }`, FlowWatch creates these tables in your Postgres database automatically on startup. All table names are prefixed with `flowwatch_` so they never conflict with your own tables.
-
-### Workflows
-
-```
-flowwatch_workflows
-  id               uuid  primary key
-  name             text  not null
-  version          int   not null
-  created_at       timestamptz
-  updated_at       timestamptz
-  UNIQUE (name, version)
-
-flowwatch_workflow_steps
-  id               uuid  primary key
-  workflow_id      uuid  → flowwatch_workflows
-  step_index       int   not null
-  name             text  not null
-  max_retries      int   default 0
-  UNIQUE (workflow_id, step_index)
-  UNIQUE (workflow_id, name)
-
-flowwatch_workflow_executions
-  id               uuid  primary key
-  workflow_id      uuid  → flowwatch_workflows
-  workflow_name    text
-  workflow_version int
-  status           text  (pending | running | completed | failed)
-  input            jsonb
-  output           jsonb
-  error            jsonb
-  created_at       timestamptz
-  updated_at       timestamptz
-
-flowwatch_workflow_step_executions
-  id               uuid  primary key
-  execution_id     uuid  → flowwatch_workflow_executions (CASCADE)
-  workflow_step_id uuid  → flowwatch_workflow_steps
-  step_index       int
-  step_name        text
-  status           text  (pending | running | completed | failed)
-  input            jsonb
-  output           jsonb
-  error            jsonb
-  attempt_count    int   default 0
-  max_retries      int
-  next_retry_at    timestamptz
-  UNIQUE (execution_id, step_index)
-  INDEX ON (status, next_retry_at)
-```
-
-### Feature Flags
-
-```
-flowwatch_feature_flags
-  id                  uuid  primary key
-  key                 text  UNIQUE not null
-  description         text
-  enabled             boolean default false
-  rollout_percentage  int   default 0  (0–100)
-  created_at          timestamptz
-  updated_at          timestamptz
-
-flowwatch_feature_flag_rules
-  id          uuid  primary key
-  flag_id     uuid  → flowwatch_feature_flags (CASCADE)
-  attribute   text  not null   (e.g. "plan", "email", "region")
-  operator    text  not null   (e.g. "equals", "contains", "ends_with")
-  value       jsonb not null
-  enabled     boolean default true
-
-flowwatch_feature_flag_audit_logs
-  id          uuid  primary key
-  flag_id     uuid  → flowwatch_feature_flags (SET NULL on delete)
-  action      text  (created | updated | deleted | toggled)
-  before      jsonb
-  after       jsonb
-  changed_by  text
-  created_at  timestamptz
-```
-
-### Traces and Errors
-
-```
-flowwatch_request_traces
-  id           uuid  primary key
-  method       text
-  path         text
-  status_code  int
-  duration_ms  int
-  user_id      text
-  ip           text
-  user_agent   text
-  metadata     jsonb
-  created_at   timestamptz
-
-flowwatch_trace_spans
-  id             uuid  primary key
-  trace_id       uuid  → flowwatch_request_traces (CASCADE)
-  parent_span_id uuid  → flowwatch_trace_spans (SET NULL)  ← self-referencing for parent/child
-  name           text
-  type           text  (database | http | service | workflow)
-  status         text  (ok | error)
-  duration_ms    int
-  metadata       jsonb
-  started_at     timestamptz
-  ended_at       timestamptz
-
-flowwatch_errors
-  id           uuid  primary key
-  trace_id     uuid  → flowwatch_request_traces (SET NULL)
-  span_id      uuid  → flowwatch_trace_spans (SET NULL)
-  source       text
-  category     text  (server | client | database | dependency)
-  level        text  (info | warning | error | fatal)
-  message      text
-  stack        text
-  name         text
-  status_code  int
-  fingerprint  text  (SHA-256 hash — used for grouping duplicate errors)
-  metadata     jsonb
-  occurred_at  timestamptz
-```
-
-### Elasticsearch Indices
-
-If Elasticsearch is connected, FlowWatch also creates two indices:
-
-| Index | Contents |
-| :--- | :--- |
-| `flowwatch_errors` | All captured errors, mirrored from Postgres for full-text search |
-| `flowwatch_trace_spans` | All trace spans, mirrored from Postgres for fast filtering and search |
-
-Postgres is always the source of truth. Elasticsearch is the search layer. If ES goes down, FlowWatch falls back to Postgres queries automatically.
 
 ---
 
 ## License
 
-ISC — free to use, modify, and distribute.
+MIT
