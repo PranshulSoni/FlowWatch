@@ -30,3 +30,6 @@ export type { Bulkhead, BulkheadOptions } from "./runtime/bulkhead.js"
 
 // Testing utilities
 export { createMockPool, createMockRedis } from "./testing/index.js"
+
+// Rate limiting
+export type { RateLimitOptions } from "./runtime/rateLimit.js"
