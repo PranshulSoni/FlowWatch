@@ -34,6 +34,7 @@ import { createLogStore, type LogStore } from "./runtime/logStore.js"
 import { createCircuitBreaker, type CircuitBreaker, type CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 import { createEventBus, type EventBus } from "./runtime/eventBus.js"
 import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine.js"
+import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -68,6 +69,10 @@ export interface Flowwatch {
     // Auto-traced helpers — use instead of db queries / fetches for automatic span recording
     query: TracedQuery
     fetch: TracedFetch
+    // CRON scheduler — register recurring background jobs
+    cron: RegisterCron
+    // Clean up connections and workers
+    close: () => Promise<void>
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -120,9 +125,10 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
     await createMissingMappings(elasticsearchClient)
 
+    let workflowWorkerInstance: any = null
     if (normalizedConfig.worker.enabled && workflowQueue !== null) {
         try {
-            createWorkflowWorker({
+            workflowWorkerInstance = createWorkflowWorker({
                 redisUrl: normalizedConfig.redis.url,
                 pool: postgresPool,
                 getWorkflow: workflowEngine.getWorkflow,
@@ -132,6 +138,28 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         } catch (err: any) {
             logger.warn({ err: err?.message }, "Workflow worker could not start")
         }
+    }
+
+    let cronEngine: ReturnType<typeof createCronEngine> | null = null
+    try {
+        cronEngine = createCronEngine(normalizedConfig.redis.url, captureFlowwatchError)
+    } catch (err: any) {
+        logger.warn({ err: err?.message }, "Cron engine unavailable, scheduled jobs disabled")
+    }
+
+    const close = async () => {
+        if (workflowWorkerInstance) {
+            await workflowWorkerInstance.close()
+        }
+        if (workflowQueue) {
+            await workflowQueue.close()
+        }
+        if (cronEngine) {
+            await cronEngine.close()
+        }
+        await redisClient.quit()
+        await postgresPool.end()
+        await elasticsearchClient.close()
     }
 
     const dashboard = createDashboardRouter({
@@ -167,5 +195,9 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         metrics: metricsEngine,
         query: tracedQuery,
         fetch: tracedFetch,
+        cron: cronEngine
+            ? cronEngine.cron
+            : (name: string) => { logger.warn({ cronJob: name }, "Cron unavailable — Redis not connected") },
+        close,
     }
 }

@@ -59,3 +59,6 @@ export type { MetricsEngine } from "./runtime/metricsEngine.js"
 
 // Auto-traced helpers
 export type { TracedQuery, TracedFetch } from "./engine/trace/autoInstrumentation.js"
+
+// CRON scheduler
+export type { RegisterCron } from "./runtime/cronEngine.js"
