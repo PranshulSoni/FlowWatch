@@ -23,8 +23,10 @@
 - [Getting started](#getting-started)
 - [Features](#features)
 - [Quick Reference](#quick-reference)
-- [Multi-Language Sidecar](#multi-language-sidecar)
-- [AI Diagnostics](#ai-diagnostics)
+- [Client SDKs](#client-sdks)
+  - [Python](#python-sdk)
+  - [Go](#go-sdk)
+  - [Rust](#rust-sdk)
 - [License](#license)
 
 ---
@@ -546,6 +548,133 @@ fw.events                     // → { on, once, emit, off }
 // Teardown
 fw.rollbackMigration()        // roll back last migration
 fw.close()                    // drain all connections
+```
+
+---
+
+## Client SDKs
+
+All three SDKs talk to the lightweight sidecar you start alongside your Node.js app:
+
+```ts
+import { startSidecar } from "@pranshulsoni/flowwatch";
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+```
+
+---
+
+### Python SDK
+
+**Package:** [`flowwatch-client`](https://pypi.org/project/flowwatch-client) &nbsp;·&nbsp; **Source:** [sdks/python](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/python)
+
+```bash
+pip install flowwatch-client
+```
+
+```python
+from flowwatch import FlowwatchClient
+
+client = FlowwatchClient("http://localhost:9400", token="your-token")
+
+# Feature flag
+if client.evaluate_flag("new-checkout", {"userId": "user_123"}):
+    render_new_ui()
+
+# Trigger a workflow
+client.trigger_workflow("send-order", {"orderId": "ord_456", "amount": 4999})
+
+# Capture an error
+try:
+    do_something_risky()
+except Exception as e:
+    import traceback
+    client.capture_error(str(e), stack=traceback.format_exc(), source="worker")
+
+# Auto-timed trace span (context manager)
+with client.trace_span("db-query", type="db"):
+    rows = db.execute("SELECT * FROM products")
+
+client.close()
+```
+
+---
+
+### Go SDK
+
+**Module:** [`github.com/PranshulSoni/flowwatch-go`](https://github.com/PranshulSoni/flowwatch-go) &nbsp;·&nbsp; **Source:** [sdks/go](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/go)
+
+```bash
+go get github.com/PranshulSoni/flowwatch-go
+```
+
+```go
+import (
+    "context"
+    fw "github.com/PranshulSoni/flowwatch-go/flowwatch"
+)
+
+client := fw.New("http://localhost:9400", "your-token")
+ctx := context.Background()
+
+// Feature flag
+enabled, _ := client.EvaluateFlag(ctx, "new-checkout", map[string]any{"userId": "user_123"})
+
+// Trigger a workflow
+client.TriggerWorkflow(ctx, "send-order", map[string]any{"orderId": "ord_456"})
+
+// Capture an error
+client.CaptureError(ctx, fw.CaptureErrorOptions{
+    Message: "something broke",
+    Name:    "OrderError",
+    Source:  "checkout-service",
+})
+
+// Submit a trace span
+client.LogTraceSpan(ctx, fw.TraceSpanOptions{
+    Name:       "db-query",
+    Type:       "db",
+    DurationMs: 42.5,
+    Status:     "ok",
+})
+```
+
+---
+
+### Rust SDK
+
+**Crate:** [`flowwatch-client`](https://crates.io/crates/flowwatch-client) &nbsp;·&nbsp; **Source:** [sdks/rust](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/rust)
+
+```toml
+# Cargo.toml
+[dependencies]
+flowwatch-client = "3.0"
+```
+
+```rust
+use flowwatch_client::{FlowwatchClient, CaptureErrorOptions};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() {
+    let client = FlowwatchClient::new("http://localhost:9400", Some("your-token"));
+
+    // Feature flag
+    let enabled = client.evaluate_flag("new-checkout", HashMap::new()).await.unwrap();
+
+    // Trigger a workflow
+    client.trigger_workflow("send-order", Some(serde_json::json!({
+        "orderId": "ord_456",
+        "amount": 4999
+    }))).await.unwrap();
+
+    // Capture an error
+    client.capture_error(CaptureErrorOptions {
+        message: "something broke".into(),
+        name: Some("OrderError".into()),
+        source: Some("checkout".into()),
+        stack: None,
+    }).await.unwrap();
+}
 ```
 
 ---
