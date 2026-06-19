@@ -36,3 +36,7 @@ export type { RateLimitOptions } from "./runtime/rateLimit.js"
 
 // IP filtering
 export type { IpFilterOptions } from "./runtime/ipFilter.js"
+
+// API versioning
+export type { ApiVersionOptions } from "./runtime/apiVersion.js"
+export { createVersionRouter, createVersionMiddleware } from "./runtime/apiVersion.js"

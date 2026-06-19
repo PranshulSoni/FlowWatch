@@ -27,6 +27,7 @@ import { createFullTextSearch, type FullTextSearch } from "./search/fullTextSear
 import { createBulkhead, type Bulkhead, type BulkheadOptions } from "./runtime/bulkhead.js"
 import { createRateLimitMiddleware, type RateLimitOptions } from "./runtime/rateLimit.js"
 import { createIpFilterMiddleware, type IpFilterOptions } from "./runtime/ipFilter.js"
+import { createVersionRouter, createVersionMiddleware, type ApiVersionOptions } from "./runtime/apiVersion.js"
 
 export interface Flowwatch {
     dashboard: Router
@@ -45,6 +46,8 @@ export interface Flowwatch {
     bulkhead: (options: BulkheadOptions) => Bulkhead
     rateLimit: (options: RateLimitOptions) => RequestHandler
     ipFilter: (options: IpFilterOptions) => RequestHandler
+    version: () => Router
+    versionMiddleware: (options?: ApiVersionOptions) => RequestHandler
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -130,5 +133,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         bulkhead: (opts: BulkheadOptions) => createBulkhead(opts),
         rateLimit: (opts: RateLimitOptions) => createRateLimitMiddleware(redisClient, opts),
         ipFilter: (opts: IpFilterOptions) => createIpFilterMiddleware(opts),
+        version: () => createVersionRouter(),
+        versionMiddleware: (opts?: ApiVersionOptions) => createVersionMiddleware(opts),
     }
 }
