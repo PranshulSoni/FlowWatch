@@ -31,13 +31,16 @@
 
 ---
 
+## Getting started
+
+Pick your language:
+
+<details>
+<summary><strong>Node.js / TypeScript</strong></summary>
+
 ```bash
 npm i @pranshulsoni/flowwatch
 ```
-
----
-
-## Getting started
 
 ```ts
 import express from "express";
@@ -62,11 +65,162 @@ app.use(fw.errorHandler);      // mount last — catches everything thrown in ro
 
 app.listen(3000);
 
-// always close connections cleanly on shutdown
 process.on("SIGTERM", async () => { await fw.close(); process.exit(0); });
 ```
 
-`autoRun: true` runs any pending database migrations on startup so you never have to run them manually. Postgres is the only required dependency — Redis, Elasticsearch, and Groq are all optional and each feature that needs them degrades gracefully if they're not configured.
+`autoRun: true` runs any pending database migrations on startup. Postgres is the only required dependency — Redis, Elasticsearch, and Groq are optional and degrade gracefully when not configured.
+
+</details>
+
+<details>
+<summary><strong>Python</strong></summary>
+
+> **Prerequisite:** Flowwatch is a Node.js package. To use it from Python you need to run the Node.js app (with the sidecar enabled) alongside your Python service. The Python SDK is a thin HTTP client that talks to that sidecar.
+
+**Step 1 — Set up and run the Node.js sidecar**
+
+```bash
+npm i @pranshulsoni/flowwatch
+```
+
+```ts
+// server.ts
+import express from "express";
+import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
+
+const app = express();
+const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
+
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+
+app.use(fw.requestTracer);
+app.use("/ops", fw.dashboard);
+app.use(fw.errorHandler);
+app.listen(3000);
+```
+
+**Step 2 — Install and use the Python client**
+
+```bash
+pip install flowwatch-client
+```
+
+```python
+from flowwatch import FlowwatchClient
+
+client = FlowwatchClient("http://localhost:9400", token="your-token")
+
+if client.evaluate_flag("new-ui", {"userId": "user_123"}):
+    render_new_ui()
+
+client.trigger_workflow("send-order", {"orderId": "ord_456"})
+client.close()
+```
+
+See the [Python SDK](#python-sdk) section for the full API.
+
+</details>
+
+<details>
+<summary><strong>Go</strong></summary>
+
+> **Prerequisite:** Flowwatch is a Node.js package. To use it from Go you need to run the Node.js app (with the sidecar enabled) alongside your Go service. The Go SDK is a thin HTTP client that talks to that sidecar.
+
+**Step 1 — Set up and run the Node.js sidecar**
+
+```bash
+npm i @pranshulsoni/flowwatch
+```
+
+```ts
+// server.ts
+import express from "express";
+import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
+
+const app = express();
+const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
+
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+
+app.use(fw.requestTracer);
+app.use("/ops", fw.dashboard);
+app.use(fw.errorHandler);
+app.listen(3000);
+```
+
+**Step 2 — Install and use the Go client**
+
+```bash
+go get github.com/PranshulSoni/flowwatch-go
+```
+
+```go
+import (
+    "context"
+    fw "github.com/PranshulSoni/flowwatch-go/flowwatch"
+)
+
+client := fw.New("http://localhost:9400", "your-token")
+ctx := context.Background()
+
+enabled, _ := client.EvaluateFlag(ctx, "new-ui", map[string]any{"userId": "user_123"})
+client.TriggerWorkflow(ctx, "send-order", map[string]any{"orderId": "ord_456"})
+```
+
+See the [Go SDK](#go-sdk) section for the full API.
+
+</details>
+
+<details>
+<summary><strong>Rust</strong></summary>
+
+> **Prerequisite:** Flowwatch is a Node.js package. To use it from Rust you need to run the Node.js app (with the sidecar enabled) alongside your Rust service. The Rust SDK is a thin HTTP client that talks to that sidecar.
+
+**Step 1 — Set up and run the Node.js sidecar**
+
+```bash
+npm i @pranshulsoni/flowwatch
+```
+
+```ts
+// server.ts
+import express from "express";
+import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
+
+const app = express();
+const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
+
+startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
+
+app.use(fw.requestTracer);
+app.use("/ops", fw.dashboard);
+app.use(fw.errorHandler);
+app.listen(3000);
+```
+
+**Step 2 — Install and use the Rust client**
+
+```toml
+# Cargo.toml
+[dependencies]
+flowwatch-client = "3.0"
+```
+
+```rust
+use flowwatch_client::{FlowwatchClient};
+use std::collections::HashMap;
+
+#[tokio::main]
+async fn main() {
+    let client = FlowwatchClient::new("http://localhost:9400", Some("your-token"));
+    let enabled = client.evaluate_flag("new-ui", HashMap::new()).await.unwrap();
+    client.trigger_workflow("send-order", Some(serde_json::json!({"orderId": "ord_456"}))).await.unwrap();
+}
+```
+
+See the [Rust SDK](#rust-sdk) section for the full API.
+
+</details>
 
 ---
 
