@@ -21,3 +21,6 @@ export type { ResponseCacheOptions } from "./persistence/cache/responseCache.js"
 
 // Query Cache
 export type { QueryCache, QueryCacheOptions } from "./persistence/cache/queryCache.js"
+
+// Full-text search
+export type { FullTextSearch, SearchOptions, SearchResult } from "./search/fullTextSearch.js"
