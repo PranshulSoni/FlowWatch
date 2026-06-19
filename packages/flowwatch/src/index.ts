@@ -40,3 +40,7 @@ export type { IpFilterOptions } from "./runtime/ipFilter.js"
 // API versioning
 export type { ApiVersionOptions } from "./runtime/apiVersion.js"
 export { createVersionRouter, createVersionMiddleware } from "./runtime/apiVersion.js"
+
+// WebSocket
+export { createWebSocketServer } from "./runtime/websocket.js"
+export type { FlowwatchWebSocket } from "./runtime/websocket.js"

@@ -28,6 +28,8 @@ import { createBulkhead, type Bulkhead, type BulkheadOptions } from "./runtime/b
 import { createRateLimitMiddleware, type RateLimitOptions } from "./runtime/rateLimit.js"
 import { createIpFilterMiddleware, type IpFilterOptions } from "./runtime/ipFilter.js"
 import { createVersionRouter, createVersionMiddleware, type ApiVersionOptions } from "./runtime/apiVersion.js"
+import { createWebSocketServer, type FlowwatchWebSocket } from "./runtime/websocket.js"
+import type { Server } from "http"
 
 export interface Flowwatch {
     dashboard: Router
@@ -48,6 +50,8 @@ export interface Flowwatch {
     ipFilter: (options: IpFilterOptions) => RequestHandler
     version: () => Router
     versionMiddleware: (options?: ApiVersionOptions) => RequestHandler
+    // WebSocket — attach a WebSocket server to your HTTP server
+    websocket: (server: Server, path?: string) => FlowwatchWebSocket
 }
 
 export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatch> {
@@ -135,5 +139,6 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         ipFilter: (opts: IpFilterOptions) => createIpFilterMiddleware(opts),
         version: () => createVersionRouter(),
         versionMiddleware: (opts?: ApiVersionOptions) => createVersionMiddleware(opts),
+        websocket: (server: Server, path?: string) => createWebSocketServer(server, path),
     }
 }
