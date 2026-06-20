@@ -1299,7 +1299,7 @@ startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
 
 ### Python SDK
 
-**Package:** [`flowwatch-client`](https://pypi.org/project/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/python`](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/python)
+**Package:** [`flowwatch-client`](https://pypi.org/project/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/python`](./sdks/python)
 
 ```bash
 pip install flowwatch-client
@@ -1335,7 +1335,7 @@ client.close()
 
 ### Go SDK
 
-**Module:** [`github.com/PranshulSoni/flowwatch-go`](https://github.com/PranshulSoni/flowwatch-go) &nbsp;·&nbsp; **Source:** [`sdks/go`](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/go)
+**Module:** [`github.com/PranshulSoni/flowwatch-go`](https://github.com/PranshulSoni/flowwatch-go) &nbsp;·&nbsp; **Source:** [`sdks/go`](./sdks/go)
 
 ```bash
 go get github.com/PranshulSoni/flowwatch-go
@@ -1376,7 +1376,7 @@ client.LogTraceSpan(ctx, fw.TraceSpanOptions{
 
 ### Rust SDK
 
-**Crate:** [`flowwatch-client`](https://crates.io/crates/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/rust`](https://github.com/PranshulSoni/FlowWatch/tree/main/sdks/rust)
+**Crate:** [`flowwatch-client`](https://crates.io/crates/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/rust`](./sdks/rust)
 
 ```toml
 # Cargo.toml

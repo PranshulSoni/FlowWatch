@@ -21,10 +21,10 @@ export function createWebSocketServer(httpServer: Server, path = "/ws"): Flowwat
     }
   }
 
-  function close(): Promise<void> {
+  function close():Promise<void>{
     return new Promise((resolve, reject) =>
       wss.close((err) => (err ? reject(err) : resolve()))
-    );
+    );``
   }
 
   return { server: wss, broadcast, close };
