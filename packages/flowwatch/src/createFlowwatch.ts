@@ -78,6 +78,8 @@ export interface Flowwatch {
     webhook: WebhookEngine
     // Body parsing middleware — JSON + URL-encoded with configurable size limit
     bodyParser: RequestHandler
+    // Request timeout — returns 503 if handler doesn't respond within ms
+    timeout: (ms?: number) => RequestHandler
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
     // Clean up connections and workers
@@ -147,6 +149,25 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     }
     const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
     await createMissingMappings(elasticsearchClient)
+
+    const defaultTimeout = normalizedConfig.server.timeout
+    const timeout = (ms: number = defaultTimeout): RequestHandler => (req, res, next) => {
+        const timer = setTimeout(() => {
+            if (!res.headersSent) {
+                captureFlowwatchError(new Error("Request timed out"), {
+                    source: "http",
+                    category: "server",
+                    level: "warning",
+                    statusCode: 503,
+                    metadata: { method: req.method, path: req.path },
+                }).catch(() => {})
+                res.status(503).json({ error: "Request timed out." })
+            }
+        }, ms)
+        res.on("finish", () => clearTimeout(timer))
+        res.on("close", () => clearTimeout(timer))
+        next()
+    }
 
     let workflowWorkerInstance: any = null
     if (normalizedConfig.worker.enabled && workflowQueue !== null) {
@@ -239,6 +260,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
             close: () => Promise.resolve()
         },
         bodyParser,
+        timeout,
         logger: instanceLogger,
         close,
     }
