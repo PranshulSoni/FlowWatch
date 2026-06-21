@@ -9,7 +9,7 @@ import { runMigrations, rollbackLastMigration } from "./persistence/migrations/m
 import { migrations } from "./persistence/migrations/migrations.js"
 import { createWorkflowEngine } from "./engine/workflows/workflowEngine.js"
 import type { RegisterWorkflow, TriggerWorkflow } from "./engine/workflows/types.js"
-import { createWorkflowQueue } from "./engine/background/queues/workflowQueue.js"
+import { createWorkflowQueue, getFailedJobs, requeueFailedJob } from "./engine/background/queues/workflowQueue.js"
 import { createWorkflowWorker } from "./engine/background/workers/workflowWorker.js"
 import { createFlagEngine } from "./engine/flags/flagEngine.js"
 import type { EvaluateFlag } from "./engine/flags/types.js"
@@ -85,6 +85,11 @@ export interface Flowwatch {
     maintenanceMode: (isEnabled: () => boolean | Promise<boolean>) => RequestHandler
     // Security headers — helmet middleware (pass false to disable, or a helmet options object)
     securityHeaders: RequestHandler
+    // Dead Letter Queue — inspect and retry permanently failed workflow jobs
+    dlq: {
+        getFailedJobs: (limit?: number) => Promise<any[]>
+        requeueJob: (jobId: string) => Promise<void>
+    }
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
     // Clean up connections and workers
@@ -280,6 +285,14 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
             close: () => Promise.resolve()
         },
         securityHeaders,
+        dlq: {
+            getFailedJobs: (limit?: number) => workflowQueue
+                ? getFailedJobs(workflowQueue, limit)
+                : Promise.resolve([]),
+            requeueJob: (jobId: string) => workflowQueue
+                ? requeueFailedJob(workflowQueue, jobId)
+                : Promise.reject(new Error("Workflow queue unavailable")),
+        },
         bodyParser,
         timeout,
         maintenanceMode,
