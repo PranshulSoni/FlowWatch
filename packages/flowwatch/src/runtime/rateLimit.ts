@@ -1,12 +1,13 @@
 import type { RequestHandler, Request } from "express"
 import type { Redis } from "ioredis"
 
-export type RateLimitAlgorithm = "fixed-window" | "sliding-window" | "token-bucket"
+export type RateLimitAlgorithm = "fixed-window" | "sliding-window" | "token-bucket" | "spike-arrest"
 
 export interface RateLimitOptions {
   max: number
   windowSeconds: number
   algorithm?: RateLimitAlgorithm
+  maxPerSecond?: number   // only used by spike-arrest
   keyBy?: "ip" | "userId" | "apiKey" | ((req: Request) => string)
   prefix?: string
 }
@@ -109,11 +110,32 @@ async function tokenBucket(
   return { allowed: ok === 1, remaining, retryAfter: waitSec }
 }
 
+async function spikeArrest(
+  redis: Redis,
+  key: string,
+  maxPerSecond: number
+): Promise<{ allowed: boolean; remaining: number; retryAfter: number }> {
+  const minIntervalMs = Math.floor(1000 / maxPerSecond)
+  const now = Date.now()
+  const last = await redis.get(key)
+  const lastMs = last ? parseInt(last, 10) : 0
+  const elapsed = now - lastMs
+
+  if (elapsed < minIntervalMs) {
+    const waitMs = minIntervalMs - elapsed
+    return { allowed: false, remaining: 0, retryAfter: Math.ceil(waitMs / 1000) || 1 }
+  }
+
+  await redis.set(key, String(now), "EX", 2)
+  return { allowed: true, remaining: 1, retryAfter: 0 }
+}
+
 export function createRateLimitMiddleware(redis: Redis, options: RateLimitOptions): RequestHandler {
   const {
     max,
     windowSeconds,
     algorithm = "fixed-window",
+    maxPerSecond = 10,
     keyBy = "ip",
     prefix = "flowwatch:rl",
   } = options
@@ -127,6 +149,8 @@ export function createRateLimitMiddleware(redis: Redis, options: RateLimitOption
         result = await slidingWindow(redis, key, max, windowSeconds)
       } else if (algorithm === "token-bucket") {
         result = await tokenBucket(redis, key, max, windowSeconds)
+      } else if (algorithm === "spike-arrest") {
+        result = await spikeArrest(redis, key, maxPerSecond)
       } else {
         result = await fixedWindow(redis, key, max, windowSeconds)
       }
