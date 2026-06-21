@@ -9,6 +9,7 @@ export interface FlowwatchConfig {
     worker?: boolean | FlowwatchWorkerConfig
     migrations?: FlowwatchMigrationConfig
     runtime?: FlowwatchRuntimeConfig
+    server?: FlowwatchServerConfig
 }
 
 export interface FlowwatchRedisConfig {
@@ -45,6 +46,11 @@ export interface FlowwatchRuntimeConfig {
     debug?: boolean
 }
 
+export interface FlowwatchServerConfig {
+    bodyLimit?: string
+    timeout?: number
+}
+
 export interface NormalizedFlowwatchConfig {
     db: PoolConfig
     redis: FlowwatchRedisConfig
@@ -53,4 +59,5 @@ export interface NormalizedFlowwatchConfig {
     worker: Required<FlowwatchWorkerConfig>
     migrations: Required<FlowwatchMigrationConfig>
     runtime: Required<FlowwatchRuntimeConfig>
+    server: Required<FlowwatchServerConfig>
 }

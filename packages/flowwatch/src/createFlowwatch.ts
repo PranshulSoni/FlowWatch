@@ -17,6 +17,7 @@ import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddlew
 import { createTraceEngine, type TraceFunction } from "./engine/trace/traceEngine.js"
 import { createTracedQuery, createTracedFetch, type TracedQuery, type TracedFetch } from "./engine/trace/autoInstrumentation.js"
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
+import { json, urlencoded } from "express"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
@@ -75,6 +76,8 @@ export interface Flowwatch {
     cron: RegisterCron
     // Webhooks — register endpoints and deliver signed events with retries
     webhook: WebhookEngine
+    // Body parsing middleware — JSON + URL-encoded with configurable size limit
+    bodyParser: RequestHandler
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
     // Clean up connections and workers
@@ -87,6 +90,16 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
+    const bodyLimit = normalizedConfig.server.bodyLimit
+    const jsonParser = json({ limit: bodyLimit })
+    const formParser = urlencoded({ limit: bodyLimit, extended: false })
+    const bodyParser: RequestHandler = (req, res, next) => {
+        jsonParser(req, res, (err) => {
+            if (err) return next(err)
+            formParser(req, res, next)
+        })
+    }
+
     const logStore = createLogStore(postgresPool)
     const instanceLogger = pino(
         { name: normalizedConfig.runtime.serviceName ?? "flowwatch", level: process.env.LOG_LEVEL ?? "info" },
@@ -225,6 +238,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
             list: () => Promise.resolve([]),
             close: () => Promise.resolve()
         },
+        bodyParser,
         logger: instanceLogger,
         close,
     }

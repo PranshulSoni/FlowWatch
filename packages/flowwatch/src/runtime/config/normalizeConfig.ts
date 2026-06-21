@@ -27,6 +27,10 @@ export async function normalizeConfig(config: FlowwatchConfig): Promise<Normaliz
             serviceName: config.runtime?.serviceName ?? "flowwatch",
             debug: config.runtime?.debug ?? false,
         },
+        server: {
+            bodyLimit: config.server?.bodyLimit ?? "1mb",
+            timeout: config.server?.timeout ?? 30_000,
+        },
     }
 }
 
