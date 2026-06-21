@@ -80,6 +80,8 @@ export interface Flowwatch {
     bodyParser: RequestHandler
     // Request timeout — returns 503 if handler doesn't respond within ms
     timeout: (ms?: number) => RequestHandler
+    // Maintenance mode — returns 503 to all requests when isEnabled() is true
+    maintenanceMode: (isEnabled: () => boolean | Promise<boolean>) => RequestHandler
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
     // Clean up connections and workers
@@ -149,6 +151,16 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     }
     const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
     await createMissingMappings(elasticsearchClient)
+
+    const maintenanceMode = (isEnabled: () => boolean | Promise<boolean>): RequestHandler =>
+        async (_req, res, next) => {
+            if (await isEnabled()) {
+                res.set("Retry-After", "60")
+                res.status(503).json({ error: "Service temporarily unavailable." })
+                return
+            }
+            next()
+        }
 
     const defaultTimeout = normalizedConfig.server.timeout
     const timeout = (ms: number = defaultTimeout): RequestHandler => (req, res, next) => {
@@ -261,6 +273,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         },
         bodyParser,
         timeout,
+        maintenanceMode,
         logger: instanceLogger,
         close,
     }
