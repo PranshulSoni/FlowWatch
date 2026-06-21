@@ -15,6 +15,10 @@
 </p>
 
 <p align="center">
+  <a href="https://devglobe.app/projects/flowwatch?utm_source=badge&utm_medium=embed" target="_blank" rel="noopener"><img src="https://devglobe.app/badges/launched-on-devglobe-dark.svg" alt="Launched on DevGlobe" width="250" height="54" /></a>
+</p>
+
+<p align="center">
   <strong>One npm package. Everything your Express backend needs to run in production — also works on every server.</strong>
 </p>
 
@@ -1098,6 +1102,7 @@ Runs the `down` SQL of the last applied migration in a transaction. Either both 
 
 </details>
 
+<a id="multi-language-sidecar"></a>
 <details>
 <summary><strong>Multi-Language Sidecar</strong> — use FlowWatch from Python, Go, or Rust via a local HTTP API</summary>
 

@@ -12,6 +12,19 @@ export interface FlowwatchConfig {
     server?: FlowwatchServerConfig
     security?: FlowwatchSecurityConfig
     auth?: FlowwatchAuthConfig
+    openapi?: FlowwatchOpenApiConfig
+}
+
+export interface FlowwatchOpenApiConfig {
+    info: {
+        title: string
+        version: string
+        description?: string
+    }
+    servers?: Array<{ url: string; description?: string }>
+    paths?: Record<string, unknown>
+    components?: Record<string, unknown>
+    path?: string   // where docs are mounted, default "/docs"
 }
 
 export interface FlowwatchRedisConfig {

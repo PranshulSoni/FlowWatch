@@ -39,6 +39,7 @@ import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine
 import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
 import { createAuth } from "@pranshul_soni/authapi"
+import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -99,6 +100,8 @@ export interface Flowwatch {
         requireRole: (role: string) => RequestHandler
         requireVerifiedEmail: RequestHandler
     }
+    // OpenAPI docs — mount anywhere, serves Swagger UI + /openapi.json (undefined if no openapi config provided)
+    docs?: Router
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -176,6 +179,10 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     if (validConfig.auth) {
         authInstance = await createAuth({ db: normalizedConfig.db, ...validConfig.auth })
     }
+
+    const docsRouter = validConfig.openapi
+        ? createOpenApiRouter(validConfig.openapi, !!validConfig.auth)
+        : null
 
     const maintenanceMode = (isEnabled: () => boolean | Promise<boolean>): RequestHandler =>
         async (_req, res, next) => {
@@ -310,6 +317,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         maintenanceMode,
         logger: instanceLogger,
         auth: authInstance ?? undefined,
+        docs: docsRouter ?? undefined,
         close,
     }
 }
