@@ -11,6 +11,7 @@ export interface FlowwatchConfig {
     runtime?: FlowwatchRuntimeConfig
     server?: FlowwatchServerConfig
     security?: FlowwatchSecurityConfig
+    auth?: FlowwatchAuthConfig
 }
 
 export interface FlowwatchRedisConfig {
@@ -55,6 +56,31 @@ export interface FlowwatchServerConfig {
 export interface FlowwatchSecurityConfig {
     // false = disable helmet entirely; object = pass custom helmet options
     headers?: false | Record<string, unknown>
+}
+
+export interface FlowwatchAuthConfig {
+    jwtSecret: string
+    urls?: {
+        apiBaseUrl: string
+        frontendBaseUrl?: string
+    }
+    accessTokenExpiry?: string
+    refreshTokenExpiry?: string
+    rateLimit?: {
+        redisUrl: string
+    }
+    email?: {
+        provider: string
+        apiKey: string
+        from: string
+    }
+    oauth?: {
+        google?: {
+            clientId: string
+            clientSecret: string
+            callbackUrl: string
+        }
+    }
 }
 
 export interface NormalizedFlowwatchConfig {

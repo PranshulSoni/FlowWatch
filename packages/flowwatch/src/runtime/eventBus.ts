@@ -7,3 +7,6 @@ export function createEventBus(): EventBus {
   bus.setMaxListeners(100)
   return bus
 }
+
+//To publish fw.events.emit('user.created',{id:'123',email:'hi@exmaple.com'})
+//To subscribe for an event you can use fw.events.on('user.created',(user)=>{sendWelcomeEmail()})

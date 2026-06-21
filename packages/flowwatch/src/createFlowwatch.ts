@@ -17,9 +17,8 @@ import { createRequestTracingMiddleware } from "./runtime/tracing/tracingMiddlew
 import { createTraceEngine, type TraceFunction } from "./engine/trace/traceEngine.js"
 import { createTracedQuery, createTracedFetch, type TracedQuery, type TracedFetch } from "./engine/trace/autoInstrumentation.js"
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
-import { json, urlencoded } from "express"
+import { json, urlencoded, type ErrorRequestHandler, type RequestHandler, type Router } from "express"
 import helmet from "helmet"
-import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
 import pino from "pino"
@@ -39,6 +38,7 @@ import { createEventBus, type EventBus } from "./runtime/eventBus.js"
 import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine.js"
 import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
+import { createAuth } from "@pranshul_soni/authapi"
 import type { Server } from "http"
 
 export interface Flowwatch {
@@ -92,6 +92,13 @@ export interface Flowwatch {
     }
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
+    // Auth — JWT router + protect/requireRole/requireVerifiedEmail middleware (undefined if no auth config provided)
+    auth?: {
+        router: Router
+        protect: RequestHandler
+        requireRole: (role: string) => RequestHandler
+        requireVerifiedEmail: RequestHandler
+    }
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -164,6 +171,11 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     }
     const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
     await createMissingMappings(elasticsearchClient)
+
+    let authInstance: Awaited<ReturnType<typeof createAuth>> | null = null
+    if (validConfig.auth) {
+        authInstance = await createAuth({ db: normalizedConfig.db, ...validConfig.auth })
+    }
 
     const maintenanceMode = (isEnabled: () => boolean | Promise<boolean>): RequestHandler =>
         async (_req, res, next) => {
@@ -297,6 +309,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         timeout,
         maintenanceMode,
         logger: instanceLogger,
+        auth: authInstance ?? undefined,
         close,
     }
 }
