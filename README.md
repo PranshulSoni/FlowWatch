@@ -7,7 +7,7 @@
   &nbsp;
   <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dw/@pranshulsoni/flowwatch?label=npm%20downloads%2Fweek&color=CB3837" alt="npm weekly downloads" /></a>
   &nbsp;
-  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://static.pepy.tech/personalized-badge/flowwatch-client?period=total&units=international_system&left_color=black&right_color=blue&left_text=pip%20downloads" alt="PyPI downloads" /></a>
+  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://static.pepy.tech/personalized-badge/flowwatch-client?period=total&units=international_system&left_color=555555&right_color=blue&left_text=pip%20downloads" alt="PyPI downloads" /></a>
   &nbsp;
   <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client?label=cargo%20installs&color=DEA584&logo=rust&logoColor=white" alt="cargo installs" /></a>
   &nbsp;
