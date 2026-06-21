@@ -1,6 +1,6 @@
 {
   "name": "flowwatch-monorepo",
-  "version": "3.0.0",
+  "version": "3.1.2",
   "description": "Monorepo for the Flowwatch npm package and dashboard.",
   "private": true,
   "workspaces": [
