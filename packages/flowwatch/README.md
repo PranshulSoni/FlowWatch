@@ -3,43 +3,108 @@
 </h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dm/@pranshulsoni/flowwatch.svg" alt="npm downloads" /></a>
-  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg" alt="npm license" /></a>
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch?label=npm&color=CB3837&logo=npm&logoColor=white" alt="npm version" /></a>
+  &nbsp;
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dw/@pranshulsoni/flowwatch?label=npm%20downloads%2Fweek&color=CB3837" alt="npm weekly downloads" /></a>
+  &nbsp;
+  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://static.pepy.tech/badge/flowwatch-client" alt="PyPI downloads" /></a>
+  &nbsp;
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client?label=cargo%20installs&color=DEA584&logo=rust&logoColor=white" alt="cargo installs" /></a>
+  &nbsp;
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg" alt="license" /></a>
 </p>
 
 <p align="center">
-  <strong>The complete backend operations layer for Express — workflows, feature flags, tracing, error capture, rate limiting, caching, WebSockets, metrics, and more. Free. Self-hosted. One package.</strong>
+  <strong>One npm package. Everything your Express backend needs to run in production — also works on every server.</strong>
 </p>
 
 <p align="center">
-  No SaaS. No monthly bill. No third-party cloud. Your Postgres, your Redis, your data.
+  Durable workflows · Feature flags · Request tracing · Error capture · Rate limiting · Caching · Auth · WebSockets · Metrics · Webhooks · CRON · Circuit breakers · and more — all backed by <em>your</em> Postgres and Redis.
+</p>
+
+<p align="center">
+  No SaaS. No monthly bill. No third-party cloud. Your data stays yours.
 </p>
 
 ---
 
-## Table of Contents
+## The Problem
 
-- [Getting started](#getting-started)
-- [Features](#features)
-- [Quick Reference](#quick-reference)
-- [Client SDKs](#client-sdks)
-  - [Python](#python-sdk)
-  - [Go](#go-sdk)
-  - [Rust](#rust-sdk)
-- [License](#license)
+Building a production backend means assembling a stack of separate SaaS products — each with its own billing, API, account, and integration work:
+
+| What you need | What you'd normally use |
+|---|---|
+| Feature flags | LaunchDarkly, Unleash |
+| Background jobs | Quirrel, Inngest, Trigger.dev |
+| Request tracing | Datadog APM, Honeycomb |
+| Error monitoring | Sentry, Rollbar |
+| Rate limiting | Upstash, custom Redis code |
+| Auth | Auth0, Clerk |
+| Metrics | Grafana Cloud, Datadog |
+| Log aggregation | Logtail, Papertrail |
+| Webhooks | Svix |
+| CRON | Cron-job.org, Railway CRON |
+
+That's 10 separate accounts, 10 SDKs to install, 10 things to break, and hundreds of dollars per month — before your app has a single user.
+
+**FlowWatch replaces all of them.** It's a single npm package that plugs into your existing Express app and gives you every one of those capabilities, backed by your own Postgres and Redis. No external services required. No data leaving your infrastructure.
+
+```
+Before FlowWatch:    your app → LaunchDarkly → Sentry → Datadog → Inngest → Auth0 → Svix → ...
+After FlowWatch:     your app → fw.*  (backed by your Postgres + Redis)
+```
 
 ---
 
-## Getting started
+## What is FlowWatch?
 
-Pick your language:
+FlowWatch is a **single npm package** you add to an existing Express app. After a one-time setup call, you get `fw.*` — a set of production-ready helpers that cover almost everything you'd normally reach for a separate SaaS product to handle.
 
-<details>
-<summary><strong>Node.js / TypeScript</strong></summary>
+```
+Your Express App
+      │
+      └── createFlowwatch(config) ──→ fw.*
+                │
+                ├── fw.requestTracer       (request ID + tracing)
+                ├── fw.auth.protect        (JWT auth from @pranshulsoni/authapi)
+                ├── fw.rateLimit(opts)     (Redis-backed, 3 algorithms)
+                ├── fw.workflow(...)        (durable multi-step jobs)
+                ├── fw.flag(name, ctx)     (feature flags with rollouts)
+                ├── fw.circuitBreaker(...)  (stop hammering failing deps)
+                ├── fw.metrics.handler     (Prometheus /metrics)
+                ├── fw.dashboard           (built-in admin UI)
+                └── ... 20+ more
+```
+
+**Postgres** is the only required dependency. Redis, Elasticsearch, and Auth are optional — each degrades gracefully if not configured.
+
+---
+
+## Installation
+
+**FlowWatch is a Node.js / TypeScript package.** The core is on npm:
 
 ```bash
-npm i @pranshulsoni/flowwatch
+npm install @pranshulsoni/flowwatch
+```
+
+If your backend is in Python, Go, or Rust, you still install the npm package on a Node.js sidecar, then use the matching thin client SDK in your language. [Jump to Client SDKs →](#client-sdks)
+
+| Platform | Package | Install |
+|---|---|---|
+| **Node.js / TypeScript** | [`@pranshulsoni/flowwatch`](https://www.npmjs.com/package/@pranshulsoni/flowwatch) | `npm install @pranshulsoni/flowwatch` |
+| **Python** | `flowwatch-client` | `pip install flowwatch-client` |
+| **Go** | `github.com/PranshulSoni/flowwatch-go` | `go get github.com/PranshulSoni/flowwatch-go` |
+| **Rust** | `flowwatch-client` | `flowwatch-client = "3.0"` in Cargo.toml |
+
+> **Python / Go / Rust:** These are thin HTTP clients. They don't connect to Postgres or Redis directly — they talk to a sidecar HTTP server that you run alongside your app from the npm package. See [Multi-Language Sidecar](#multi-language-sidecar) for setup.
+
+---
+
+## Getting Started (Node.js)
+
+```bash
+npm install @pranshulsoni/flowwatch
 ```
 
 ```ts
@@ -47,184 +112,292 @@ import express from "express";
 import { createFlowwatch } from "@pranshulsoni/flowwatch";
 
 const app = express();
-app.use(express.json());
 
 const fw = await createFlowwatch({
+  // Required
   db: { connectionString: process.env.DATABASE_URL },
-  migrations: { autoRun: true },
-  runtime: { serviceName: "my-api", environment: "production" },
-  // optional:
+
+  // Optional — each degrades gracefully if absent
   redis: { url: process.env.REDIS_URL },
   elasticsearch: { node: process.env.ELASTICSEARCH_URL },
-  ai: { groqApiKey: process.env.GROQ_API_KEY },
+
+  // Auto-run pending DB migrations on startup
+  migrations: { autoRun: true },
+
+  // Auth (uses @pranshulsoni/authapi under the hood)
+  auth: {
+    jwtSecret: process.env.JWT_SECRET!,
+    email: { provider: "resend", apiKey: process.env.EMAIL_KEY!, from: "noreply@yourapp.com" },
+  },
+
+  // Security, body parsing, timeouts
+  security: { headers: true },       // helmet defaults
+  server: { bodyLimit: "1mb", timeout: 30_000 },
+
+  runtime: { serviceName: "my-api", environment: "production" },
 });
 
-app.use(fw.requestTracer);     // mount first — assigns trace ID to every request
-app.use("/ops", fw.dashboard); // admin UI
-app.use(fw.errorHandler);      // mount last — catches everything thrown in routes
+// Mount in this order:
+app.use(fw.securityHeaders);         // helmet — first
+app.use(fw.bodyParser);              // JSON + URL-encoded body parsing
+app.use(fw.requestTracer);           // assigns a trace ID to every request
+app.use(fw.timeout());               // returns 503 if a handler hangs
 
-app.listen(3000);
+// Mount your routes
+app.post("/auth/login", fw.auth!.router);
+app.get("/dashboard", fw.auth!.protect, yourHandler);
 
-process.on("SIGTERM", async () => { await fw.close(); process.exit(0); });
-```
-
-`autoRun: true` runs any pending database migrations on startup. Postgres is the only required dependency — Redis, Elasticsearch, and Groq are optional and degrade gracefully when not configured.
-
-</details>
-
-<details>
-<summary><strong>Python</strong></summary>
-
-> **Prerequisite:** Flowwatch is a Node.js package. To use it from Python you need to run the Node.js app (with the sidecar enabled) alongside your Python service. The Python SDK is a thin HTTP client that talks to that sidecar.
-
-**Step 1 — Set up and run the Node.js sidecar**
-
-```bash
-npm i @pranshulsoni/flowwatch
-```
-
-```ts
-// server.ts
-import express from "express";
-import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
-
-const app = express();
-const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
-
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
-
-app.use(fw.requestTracer);
+// Admin UI at /ops
 app.use("/ops", fw.dashboard);
+
+// Error handler — always last
 app.use(fw.errorHandler);
+
 app.listen(3000);
+
+process.on("SIGTERM", async () => {
+  await fw.close(); // gracefully drains all connections
+  process.exit(0);
+});
 ```
 
-**Step 2 — Install and use the Python client**
-
-```bash
-pip install flowwatch-client
-```
-
-```python
-from flowwatch import FlowwatchClient
-
-client = FlowwatchClient("http://localhost:9400", token="your-token")
-
-if client.evaluate_flag("new-ui", {"userId": "user_123"}):
-    render_new_ui()
-
-client.trigger_workflow("send-order", {"orderId": "ord_456"})
-client.close()
-```
-
-See the [Python SDK](#python-sdk) section for the full API.
-
-</details>
-
-<details>
-<summary><strong>Go</strong></summary>
-
-> **Prerequisite:** Flowwatch is a Node.js package. To use it from Go you need to run the Node.js app (with the sidecar enabled) alongside your Go service. The Go SDK is a thin HTTP client that talks to that sidecar.
-
-**Step 1 — Set up and run the Node.js sidecar**
-
-```bash
-npm i @pranshulsoni/flowwatch
-```
-
-```ts
-// server.ts
-import express from "express";
-import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
-
-const app = express();
-const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
-
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
-
-app.use(fw.requestTracer);
-app.use("/ops", fw.dashboard);
-app.use(fw.errorHandler);
-app.listen(3000);
-```
-
-**Step 2 — Install and use the Go client**
-
-```bash
-go get github.com/PranshulSoni/flowwatch-go
-```
-
-```go
-import (
-    "context"
-    fw "github.com/PranshulSoni/flowwatch-go/flowwatch"
-)
-
-client := fw.New("http://localhost:9400", "your-token")
-ctx := context.Background()
-
-enabled, _ := client.EvaluateFlag(ctx, "new-ui", map[string]any{"userId": "user_123"})
-client.TriggerWorkflow(ctx, "send-order", map[string]any{"orderId": "ord_456"})
-```
-
-See the [Go SDK](#go-sdk) section for the full API.
-
-</details>
-
-<details>
-<summary><strong>Rust</strong></summary>
-
-> **Prerequisite:** Flowwatch is a Node.js package. To use it from Rust you need to run the Node.js app (with the sidecar enabled) alongside your Rust service. The Rust SDK is a thin HTTP client that talks to that sidecar.
-
-**Step 1 — Set up and run the Node.js sidecar**
-
-```bash
-npm i @pranshulsoni/flowwatch
-```
-
-```ts
-// server.ts
-import express from "express";
-import { createFlowwatch, startSidecar } from "@pranshulsoni/flowwatch";
-
-const app = express();
-const fw = await createFlowwatch({ db: { connectionString: process.env.DATABASE_URL }, migrations: { autoRun: true } });
-
-startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
-
-app.use(fw.requestTracer);
-app.use("/ops", fw.dashboard);
-app.use(fw.errorHandler);
-app.listen(3000);
-```
-
-**Step 2 — Install and use the Rust client**
-
-```toml
-# Cargo.toml
-[dependencies]
-flowwatch-client = "3.0"
-```
-
-```rust
-use flowwatch_client::{FlowwatchClient};
-use std::collections::HashMap;
-
-#[tokio::main]
-async fn main() {
-    let client = FlowwatchClient::new("http://localhost:9400", Some("your-token"));
-    let enabled = client.evaluate_flag("new-ui", HashMap::new()).await.unwrap();
-    client.trigger_workflow("send-order", Some(serde_json::json!({"orderId": "ord_456"}))).await.unwrap();
-}
-```
-
-See the [Rust SDK](#rust-sdk) section for the full API.
-
-</details>
+That's it. Flowwatch runs `migrations: { autoRun: true }` and creates all the tables it needs on first start.
 
 ---
 
-## Features
+## What's included
+
+<details>
+<summary><strong>Auth</strong> — JWT sessions, email verification, password reset, Google OAuth</summary>
+
+### What it is
+
+FlowWatch wires in [`@pranshulsoni/authapi`](https://github.com/PranshulSoni/AuthAPI) — a separate package that handles the full authentication lifecycle. You get a ready-made Express router with login, register, email verification, password reset, and Google OAuth endpoints. You don't write any of that code.
+
+### What you need
+
+- `auth.jwtSecret` — used to sign and verify JWT tokens
+- `auth.email` — (optional) nodemailer-compatible config for verification/reset emails
+- `auth.oauth.google` — (optional) Google OAuth credentials
+
+### Steps
+
+**1. Add auth config to createFlowwatch:**
+
+```ts
+const fw = await createFlowwatch({
+  db: { connectionString: process.env.DATABASE_URL },
+  auth: {
+    jwtSecret: process.env.JWT_SECRET!,
+    accessTokenExpiry: "15m",   // default
+    refreshTokenExpiry: "7d",   // default
+    email: {
+      provider: "resend",
+      apiKey: process.env.RESEND_API_KEY!,
+      from: "noreply@yourapp.com",
+    },
+    oauth: {
+      google: {
+        clientId: process.env.GOOGLE_CLIENT_ID!,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+        callbackUrl: "http://localhost:3000/auth/google/callback",
+      },
+    },
+    urls: {
+      apiBaseUrl: "http://localhost:3000",
+      frontendBaseUrl: "http://localhost:5173",
+    },
+  },
+});
+```
+
+**2. Mount the auth router:**
+
+```ts
+// All auth endpoints live here:
+// POST /auth/register
+// POST /auth/login
+// POST /auth/logout
+// POST /auth/refresh
+// GET  /auth/verify-email?token=...
+// POST /auth/forgot-password
+// POST /auth/reset-password
+// GET  /auth/google  (OAuth redirect)
+// GET  /auth/google/callback
+app.use("/auth", fw.auth!.router);
+```
+
+**3. Protect routes:**
+
+```ts
+// Requires a valid JWT Bearer token
+app.get("/me", fw.auth!.protect, (req, res) => {
+  res.json(req.user);
+});
+
+// Requires a specific role
+app.delete("/admin/users/:id",
+  fw.auth!.protect,
+  fw.auth!.requireRole("admin"),
+  deleteUserHandler
+);
+
+// Requires the user to have verified their email
+app.post("/checkout",
+  fw.auth!.protect,
+  fw.auth!.requireVerifiedEmail,
+  checkoutHandler
+);
+```
+
+### What `fw.auth` is when not configured
+
+`fw.auth` is `undefined` if you don't pass an `auth` block to `createFlowwatch`. This is intentional — auth is opt-in. TypeScript will tell you if you try to use it without configuring it.
+
+</details>
+
+<details>
+<summary><strong>Security Headers</strong> — helmet middleware with a single config toggle</summary>
+
+### What it is
+
+`fw.securityHeaders` applies [Helmet](https://helmetjs.github.io/) — a collection of HTTP security headers (CSP, HSTS, X-Frame-Options, etc.). Mount it before any other middleware.
+
+### Steps
+
+```ts
+// in createFlowwatch config:
+security: {
+  headers: true,              // use helmet defaults (recommended)
+  // headers: false,          // disable entirely (e.g. behind a proxy that sets its own)
+  // headers: { ... },        // pass custom helmet options
+}
+
+// mount it:
+app.use(fw.securityHeaders);  // must be before bodyParser and routes
+```
+
+</details>
+
+<details>
+<summary><strong>Body Parser</strong> — JSON + URL-encoded bodies with a size limit</summary>
+
+### What it is
+
+`fw.bodyParser` parses JSON and URL-encoded request bodies and enforces a configurable size limit. It replaces `express.json()` + `express.urlencoded()`.
+
+### Steps
+
+```ts
+// in createFlowwatch config:
+server: {
+  bodyLimit: "1mb",    // default — applies to both JSON and form bodies
+}
+
+// mount it:
+app.use(fw.bodyParser);
+```
+
+Requests exceeding the size limit are rejected with `413 Payload Too Large` before they reach your routes.
+
+</details>
+
+<details>
+<summary><strong>Request Timeout</strong> — returns 503 if a handler doesn't respond within a time limit</summary>
+
+### What it is
+
+`fw.timeout(ms?)` starts a timer when a request arrives. If the response isn't sent before the timer fires, it sends `503 Service Unavailable` and captures the timeout as an error.
+
+### Steps
+
+```ts
+// in createFlowwatch config (sets the default):
+server: {
+  timeout: 30_000,   // 30 seconds default
+}
+
+// apply globally with the default:
+app.use(fw.timeout());
+
+// override per-route:
+app.get("/reports", fw.timeout(120_000), generateReportHandler);  // 2 min for slow reports
+app.post("/quick",  fw.timeout(5_000),   quickHandler);           // 5 sec for fast endpoints
+```
+
+</details>
+
+<details>
+<summary><strong>Maintenance Mode</strong> — block all traffic with a 503 when you need to take the app offline</summary>
+
+### What it is
+
+`fw.maintenanceMode(isEnabled)` accepts a function that returns `true/false` (or a Promise). If it returns `true`, all requests get `503 Service Unavailable` with a `Retry-After: 60` header. Otherwise the request passes through normally.
+
+### Steps
+
+```ts
+// simplest: toggle with an environment variable
+app.use(fw.maintenanceMode(() => process.env.MAINTENANCE === "true"));
+
+// more powerful: use a feature flag so you can toggle from the dashboard
+app.use(fw.maintenanceMode(async () => {
+  return fw.flag("maintenance-mode", {});
+}));
+```
+
+</details>
+
+<details>
+<summary><strong>Dead Letter Queue (DLQ)</strong> — inspect and retry permanently failed background jobs</summary>
+
+### What it is
+
+When a workflow job fails all its retries, BullMQ moves it to the failed jobs list. `fw.dlq` lets you inspect those jobs and retry them without restarting your app.
+
+### Steps
+
+```ts
+// list failed jobs
+app.get("/admin/dlq", requireAdmin, async (req, res) => {
+  const failed = await fw.dlq.getFailedJobs(50);  // limit optional, default 100
+  res.json(failed);
+});
+
+// retry a specific job by its BullMQ job ID
+app.post("/admin/dlq/:jobId/retry", requireAdmin, async (req, res) => {
+  await fw.dlq.requeueJob(req.params.jobId);
+  res.json({ requeued: true });
+});
+```
+
+`fw.dlq.getFailedJobs` and `fw.dlq.requeueJob` both return a resolved empty result if the workflow queue is unavailable (Redis not connected).
+
+</details>
+
+<details>
+<summary><strong>Structured Logger</strong> — Pino logger wired to both stdout and your Postgres log store</summary>
+
+### What it is
+
+`fw.logger` is a [Pino](https://getpino.io/) logger scoped to your app. It writes to stdout (visible in your terminal / PM2 / Docker logs) and simultaneously to the `flowwatch_logs` Postgres table, which you can query from the dashboard or via `fw.logs.query()`.
+
+### Steps
+
+```ts
+// use it anywhere in your app — no import needed after createFlowwatch
+fw.logger.info({ orderId: "ord_123" }, "Order created");
+fw.logger.warn({ userId: req.user.id }, "Suspicious login attempt");
+fw.logger.error({ err }, "Payment failed");
+
+// control log level via environment variable:
+// LOG_LEVEL=debug  → verbose
+// LOG_LEVEL=warn   → warnings and errors only
+```
+
+`fw.logger` vs the module-level `logger` import: `fw.logger` is the instance logger (writes to Postgres). The module-level `logger` is only used internally by Flowwatch for startup warnings. Use `fw.logger` in your app code.
+
+</details>
 
 <details>
 <summary><strong>Dashboard</strong> — 10-page admin UI served directly from your Express app</summary>
@@ -246,11 +419,11 @@ The dashboard is a full admin UI bundled inside the npm package itself. You moun
 | **Metrics** | Live Prometheus metrics graphs |
 | **AI Chat** | Ask questions about your traces and errors; get automated incident analysis |
 
-### How to use it
+### Steps
 
 ```ts
 // mount it anywhere — protect it with your auth middleware first
-app.use("/ops", requireAdminAuth, fw.dashboard);
+app.use("/ops", fw.auth!.protect, fw.auth!.requireRole("admin"), fw.dashboard);
 ```
 
 Visit `http://localhost:3000/ops` after starting your server.
@@ -274,23 +447,25 @@ Durable workflows solve this by checkpointing every step. Each step's result is 
 - If a step throws, it's retried with backoff up to a configurable max
 - The step handler receives a `ctx` object with the original `input` and the results of all previous steps via `ctx.results`
 
+### Steps
+
+**1. Register the workflow once at startup:**
+
 ```ts
 fw.workflow("checkout", [
   {
     name: "charge",
     handler: async (ctx) => {
-      // ctx.input is whatever you passed to fw.trigger()
       const charge = await stripe.charges.create({
         amount: ctx.input.amount,
         customer: ctx.input.customerId,
       });
-      return { chargeId: charge.id }; // returned value is saved to Postgres
+      return { chargeId: charge.id };
     },
   },
   {
     name: "inventory",
     handler: async (ctx) => {
-      // ctx.results.charge is the return value from the previous step
       await db.query("UPDATE products SET stock = stock - 1 WHERE id = $1", [ctx.input.productId]);
     },
   },
@@ -305,8 +480,11 @@ fw.workflow("checkout", [
     },
   },
 ]);
+```
 
-// trigger from any route or job
+**2. Trigger it from a route:**
+
+```ts
 app.post("/checkout", async (req, res) => {
   const execution = await fw.trigger("checkout", {
     amount: req.body.amount,
@@ -339,9 +517,14 @@ Flags are stored in Postgres. When you call `fw.flag()`, it checks Redis first (
 - **Percentage rollout** — e.g. enable for 20% of users, gradually increase
 - **User segment** — enable for users matching specific context fields (e.g. `{ plan: "pro" }`)
 
+### Steps
+
+**1. Create the flag** in the dashboard at `/ops` → Feature Flags → New Flag.
+
+**2. Evaluate it in your code:**
+
 ```ts
 app.get("/checkout", async (req, res) => {
-  // pass any context — userId is used for consistent rollout hashing
   const newCheckout = await fw.flag("new-checkout-flow", {
     userId: req.user.id,
     plan: req.user.plan,
@@ -364,27 +547,22 @@ app.get("/checkout", async (req, res) => {
 
 When a request is slow or fails, you have logs — but logs from 50 concurrent requests are jumbled together. You can't tell which log line belonged to which request, or what order things happened in. Request tracing solves this by giving every request a unique trace ID and recording a timeline of exactly what happened inside it.
 
-### How it works
+### Steps
 
-`fw.requestTracer` is a middleware that runs before your routes. It:
-1. Assigns a UUID trace ID to the request and stores it in async local storage (so it's accessible anywhere in the call stack without passing it as a parameter)
-2. Records the start time
-3. On response, writes a trace record to Postgres with the path, method, status code, and total duration
-
-Inside your handlers, `fw.trace("span-name", fn)` creates a *child span* — a timed sub-operation attached to the current request's trace. When you view the trace in the dashboard, you see a waterfall: the full request at the top, with each span shown as a bar underneath it.
-
-`fw.query()` and `fw.fetch()` (see Auto-Instrumentation) create spans automatically, so you don't need to wrap every DB call manually.
+**1. Mount the tracer first:**
 
 ```ts
-app.use(fw.requestTracer); // must be first
+app.use(fw.requestTracer); // must be before your routes
+```
 
+**2. Add manual spans for slow operations:**
+
+```ts
 app.get("/order/:id", async (req, res) => {
-  // this creates a span named "load-order" in the current request's trace
   const order = await fw.trace("load-order", async () => {
     return db.query("SELECT * FROM orders WHERE id = $1", [req.params.id]);
   });
 
-  // nest spans for sub-operations
   const enriched = await fw.trace("enrich-order", async () => {
     const user = await fw.trace("load-user", () => loadUser(order.userId));
     const items = await fw.trace("load-items", () => loadItems(order.id));
@@ -394,6 +572,16 @@ app.get("/order/:id", async (req, res) => {
   res.json(enriched);
 });
 ```
+
+**3. Or use auto-instrumented helpers instead of manual wrapping:**
+
+```ts
+// fw.query and fw.fetch create spans automatically — no manual fw.trace() needed
+const { rows } = await fw.query("SELECT * FROM orders WHERE user_id = $1", [userId]);
+const stripeData = await fw.fetch("https://api.stripe.com/v1/customers/" + customerId);
+```
+
+All spans appear in the dashboard waterfall under their parent request trace.
 
 </details>
 
@@ -406,176 +594,70 @@ In production, errors are lost. PM2 restarts the process and the stack trace is 
 
 Error reporting captures errors with their full stack trace and request context, stores them in Postgres, groups identical errors together (so you see "this error happened 847 times" not 847 separate entries), and makes them searchable from the dashboard.
 
-### How it works
+### Steps
 
-`fw.errorHandler` is a standard Express error middleware (4 parameters: `err, req, res, next`). Mount it *after* all your routes. Any error thrown in a route or passed to `next(err)` flows into it.
-
-The error is fingerprinted (based on the error message and top stack frame) to group identical errors. A new occurrence increments the count rather than creating a new record.
-
-`fw.captureError()` is for errors you catch yourself — background jobs, async operations outside Express, third-party webhooks. **Only use it for 5xx errors (server bugs).** Validation errors, 404s, and auth failures are not bugs — don't capture them.
+**1. Mount the error handler last:**
 
 ```ts
-app.use(fw.errorHandler); // last middleware — catches everything
+app.use(fw.errorHandler); // after all routes
+```
 
-// manual capture: background job that failed
+Any `throw` or `next(err)` in your routes is automatically caught, stored, and grouped.
+
+**2. Capture errors from background jobs:**
+
+```ts
 async function processPayment(orderId: string) {
   try {
     await stripe.charges.create({ ... });
   } catch (err) {
-    // capture with extra context to help with debugging
     fw.captureError(err, {
       source: "payment-worker",
       orderId,
       severity: "critical",
     });
-    // decide whether to rethrow based on your retry logic
   }
 }
 ```
 
-</details>
-
-<details>
-<summary><strong>Caching</strong> — three caching layers: HTTP ETag, Redis response cache, and query cache with tag invalidation</summary>
-
-### Why three layers?
-
-Each layer caches at a different level of your stack and has different tradeoffs:
-
-| Layer | Where it caches | Best for |
-|---|---|---|
-| HTTP ETag | Browser/CDN ↔ server | Semi-static data sent to the same client |
-| Redis response | Server-side, per route | Expensive routes shared across many users |
-| Query cache | Database query results | Frequent identical queries with infrequent writes |
-
-### HTTP ETag cache
-
-Computes a SHA1 hash of the response body and sends it as an `ETag` header. On subsequent requests, the client sends `If-None-Match: <etag>`. If it matches, the server returns `304 Not Modified` with no body — saving bandwidth and skipping serialization. No Redis needed.
-
-```ts
-app.get("/config", fw.httpCache(), getConfigHandler);
-app.get("/config", fw.httpCache({ maxAge: 300 }), getConfigHandler); // also sets Cache-Control
-```
-
-### Redis response cache
-
-Serializes the full response body to Redis with a TTL. The middleware intercepts the response, stores it under a key (default: the request path + query string, or a custom key function), and on the next request returns the stored value without calling your handler.
-
-```ts
-app.get("/products", fw.responseCache({ ttl: 60 }), getProductsHandler);
-
-// custom key — different currencies get different cache entries
-app.get("/prices", fw.responseCache({
-  ttl: 30,
-  key: (req) => `prices:${req.query.currency}`,
-}), getPricesHandler);
-```
-
-### Query cache with tag invalidation
-
-Caches the raw rows from a database query. You attach *tags* to each cache entry — logical names that group related queries. When you write to the database, you call `invalidate()` with the relevant tags, and all queries tagged with that name are deleted from Redis at once. This lets you use long TTLs without ever serving stale data after a write.
-
-Under the hood, each tag maps to a Redis Set (`flowwatch:qtag:<tag>`) that stores all cache keys belonging to that tag. `invalidate()` reads the Set, deletes all the keys in it, then deletes the Set itself.
-
-```ts
-// reading — cache for 5 minutes, tag as "products"
-const rows = await fw.queryCache.get(
-  "SELECT * FROM products WHERE category = $1 ORDER BY name",
-  ["electronics"],
-  { ttl: 300, tags: ["products", "category:electronics"] }
-);
-
-// writing — invalidate the tag so the cache is immediately fresh
-app.post("/products", async (req, res) => {
-  await db.query("INSERT INTO products (...) VALUES (...)", [...]);
-  await fw.queryCache.invalidate("products"); // all "products" cache entries gone
-  res.json({ created: true });
-});
-```
+**Note:** Only capture 5xx server errors. Validation errors, 404s, and auth failures are not bugs — don't capture them.
 
 </details>
 
 <details>
-<summary><strong>Full-Text Search</strong> — Postgres tsvector search with relevance ranking, no Elasticsearch needed</summary>
-
-### What it is
-
-Postgres has a powerful built-in full-text search engine. `tsvector` is a preprocessed representation of a document (it strips stop words, applies stemming), and `plainto_tsquery` converts a search string into a query that matches against it. `ts_rank` scores matches by relevance. This is good enough for most in-app search — searching your own articles, products, users, etc.
-
-### How it works
-
-`fw.search()` dynamically builds a SQL query that:
-1. Concatenates the specified columns into a single text blob
-2. Converts it to a `tsvector` at query time
-3. Matches it against a `plainto_tsquery` of your search string
-4. Ranks results by `ts_rank` (higher = more relevant)
-5. Returns paginated rows + a total count for pagination controls
-
-Table and column names are validated with a strict regex allowlist (`/^[a-zA-Z_][a-zA-Z0-9_]*$/`) before being interpolated into SQL. User-provided search text goes in as a parameterized value — no injection risk.
-
-```ts
-app.get("/search", async (req, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = 20;
-
-  const results = await fw.search({
-    table: "articles",
-    columns: ["title", "body", "tags"], // searched together
-    query: req.query.q as string,
-    limit,
-    offset: (page - 1) * limit,
-    language: "english", // affects stemming — "running" matches "run"
-  });
-
-  res.json({
-    results: results.rows,
-    total: results.total,
-    pages: Math.ceil(results.total / limit),
-  });
-});
-```
-
-</details>
-
-<details>
-<summary><strong>Rate Limiting</strong> — Redis-backed request limiter per IP, user, or API key, with graceful degradation</summary>
+<summary><strong>Rate Limiting</strong> — Redis-backed request limiter with three algorithms</summary>
 
 ### The problem it solves
 
-Without rate limiting, a single client can hammer your server with thousands of requests per second — whether it's a bot, a misconfigured client, or an attacker. Rate limiting caps how many requests a given client can make in a time window.
+Without rate limiting, a single client can hammer your server with thousands of requests per second — whether it's a bot, a misconfigured client, or an attacker.
 
-### How it works
+### Algorithms
 
-Uses a Redis `INCR` + `EXPIRE` pattern (atomic, no race conditions):
-1. `INCR flowwatch:rl:ip:<client-ip>` — increments a counter, returns the new value
-2. If the counter was just created (value = 1), sets it to expire after `windowSeconds`
-3. If the counter exceeds `max`, returns `429 Too Many Requests` with a `Retry-After` header telling the client when to try again
+| Algorithm | How it works | Best for |
+|---|---|---|
+| `fixed-window` | Counter resets every N seconds (default) | Simple, low memory |
+| `sliding-window` | Rolling time window using a Redis sorted set | No burst at window boundary |
+| `token-bucket` | Tokens refill at a constant rate via Lua script | Smooth traffic shaping |
 
-**Graceful degradation:** if Redis is unavailable, the middleware calls `next()` and lets the request through rather than blocking your entire API. It never takes down your app because of a cache failure.
-
-**Key strategies:**
-- `"ip"` — limits per client IP. Good for public endpoints
-- `"userId"` — limits per authenticated user (`req.user.id`). Good for authenticated APIs
-- `"apiKey"` — limits per API key (`x-api-key` header). Good for developer APIs
-- Custom function — limit by anything: `(req) => req.body.email` for login attempts per email
+### Steps
 
 ```ts
-// base limit for all traffic
+// global base limit
 app.use(fw.rateLimit({ max: 500, windowSeconds: 60 }));
 
-// tighter limit on login — prevent credential stuffing
+// tighter limit on login with sliding window — prevents credential stuffing
 app.post("/auth/login",
-  fw.rateLimit({ max: 5, windowSeconds: 60, keyBy: "ip" }),
+  fw.rateLimit({ max: 5, windowSeconds: 60, keyBy: "ip", algorithm: "sliding-window" }),
   loginHandler
 );
 
 // per-user limit for authenticated API
 app.use("/api/v1",
-  authenticate,
+  fw.auth!.protect,
   fw.rateLimit({ max: 1000, windowSeconds: 60, keyBy: "userId" })
 );
 
-// custom key — limit by the target email being looked up (prevents user enumeration)
+// custom key — limit by email (prevents user enumeration)
 app.post("/auth/forgot-password",
   fw.rateLimit({
     max: 3,
@@ -586,6 +668,8 @@ app.post("/auth/forgot-password",
 );
 ```
 
+**Graceful degradation:** if Redis is unavailable, the middleware lets the request through rather than blocking your entire API.
+
 </details>
 
 <details>
@@ -593,34 +677,23 @@ app.post("/auth/forgot-password",
 
 ### What it is
 
-IP filtering lets you control which IP addresses can reach certain routes. It works at the request level before any business logic runs, so blocked requests never touch your database or application code.
+IP filtering lets you control which IP addresses can reach certain routes. It works at the request level before any business logic runs.
 
-### How it works
-
-Pure in-process CIDR matching — no external calls, no Redis. For each request:
-- The client IP is extracted from `req.ip`
-- The `::ffff:` prefix is stripped (Node.js adds this to IPv4 addresses when listening on a dual-stack IPv6 socket)
-- The IP is tested against the allow/deny list using bitwise arithmetic on the 32-bit integer representation of the IPv4 address
-
-**Allow mode** is a strict allowlist: *only* IPs on the list pass. Everything else gets `403`. Use this when you want to restrict access entirely to known sources (your office, a VPN, another service's IP range).
-
-**Deny mode** is a blocklist: listed IPs get `403`, everyone else passes. Use this to block specific bad actors without restricting all other traffic.
-
-Both modes can be combined on the same middleware call.
+### Steps
 
 ```ts
-// restrict the admin panel to internal network and VPN only
+// restrict the admin panel to VPN only
 app.use("/admin",
-  fw.ipFilter({ allow: ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"] }),
+  fw.ipFilter({ allow: ["10.0.0.0/8", "192.168.0.0/16"] }),
   adminRouter
 );
 
-// block a specific abusive IP range from your public API
+// block a specific abusive IP range
 app.use(fw.ipFilter({ deny: ["198.51.100.0/24"] }));
 
 // allow only your payment provider's webhook IPs
 app.post("/webhooks/stripe",
-  fw.ipFilter({ allow: ["3.18.12.63", "3.130.192.231", "13.235.14.237"] }),
+  fw.ipFilter({ allow: ["3.18.12.63", "3.130.192.231"] }),
   stripeWebhookHandler
 );
 ```
@@ -630,38 +703,24 @@ app.post("/webhooks/stripe",
 <details>
 <summary><strong>API Versioning</strong> — version detection middleware and isolated version routers</summary>
 
-### The problem it solves
-
-When you make breaking API changes, existing clients break if you change the route they're calling. API versioning lets you run multiple versions of the same endpoint simultaneously — old clients keep calling v1, new clients call v2 — and you retire old versions only when you're ready.
-
-### How it works
-
-**`fw.versionMiddleware()`** reads the API version from either:
-- A request header (default: `api-version`, configurable via `header` option)
-- A query parameter (`?version=2`)
-
-It parses the value to an integer and sets `req.apiVersion`. If neither is present, it uses `defaultVersion` (default: `1`). This runs on every request so you always know what version the client wants.
-
-**`fw.version()`** returns a plain Express `Router`. You create one per version, register routes on each, and mount them at versioned path prefixes. The routers are fully independent — a route registered on v1 is never called by a v2 request.
+### Steps
 
 ```ts
-// detect version on all requests
+// detect version from header or query param on all requests
 app.use(fw.versionMiddleware({ defaultVersion: 1, header: "api-version" }));
 
 // create isolated routers per version
 const v1 = fw.version();
 const v2 = fw.version();
 
-// v1 returns a flat user object
 v1.get("/users/:id", async (req, res) => {
-  const user = await db.query("SELECT id, name, email FROM users WHERE id = $1", [req.params.id]);
-  res.json(user.rows[0]);
+  // flat user object
+  res.json(await getUser(req.params.id));
 });
 
-// v2 returns a richer user object with nested profile
 v2.get("/users/:id", async (req, res) => {
-  const user = await db.query("SELECT u.*, p.* FROM users u JOIN profiles p ON p.user_id = u.id WHERE u.id = $1", [req.params.id]);
-  res.json({ user: user.rows[0] });
+  // richer nested object
+  res.json({ user: await getUserWithProfile(req.params.id) });
 });
 
 app.use("/v1", v1);
@@ -671,27 +730,82 @@ app.use("/v2", v2);
 </details>
 
 <details>
-<summary><strong>Bulkhead Isolation</strong> — cap concurrent calls to slow dependencies so one bottleneck can't exhaust your entire server</summary>
+<summary><strong>Caching</strong> — three layers: HTTP ETag, Redis response cache, and query cache with tag invalidation</summary>
+
+### Why three layers?
+
+| Layer | Where it caches | Best for |
+|---|---|---|
+| `fw.httpCache()` | Browser/CDN ↔ server (ETag/304) | Semi-static data per client |
+| `fw.responseCache()` | Server-side Redis per route | Expensive routes shared across users |
+| `fw.queryCache` | Raw DB query results in Redis | Frequent identical queries |
+
+### Steps
+
+```ts
+// ETag cache — no Redis needed
+app.get("/config", fw.httpCache({ maxAge: 300 }), getConfigHandler);
+
+// Redis response cache — full response body stored in Redis
+app.get("/products", fw.responseCache({ ttl: 60 }), getProductsHandler);
+
+// Query cache with tag invalidation
+const rows = await fw.queryCache.get(
+  "SELECT * FROM products WHERE category = $1",
+  ["electronics"],
+  { ttl: 300, tags: ["products"] }
+);
+
+// Invalidate on write — all queries tagged "products" are cleared
+app.post("/products", async (req, res) => {
+  await db.query("INSERT INTO products ...", [...]);
+  await fw.queryCache.invalidate("products");
+  res.json({ created: true });
+});
+```
+
+</details>
+
+<details>
+<summary><strong>Full-Text Search</strong> — Postgres tsvector search with relevance ranking</summary>
+
+### Steps
+
+```ts
+app.get("/search", async (req, res) => {
+  const results = await fw.search({
+    table: "articles",
+    columns: ["title", "body", "tags"],
+    query: req.query.q as string,
+    limit: 20,
+    offset: 0,
+    language: "english",
+  });
+
+  res.json({
+    results: results.rows,
+    total: results.total,
+    pages: Math.ceil(results.total / 20),
+  });
+});
+```
+
+No Elasticsearch required. Uses Postgres's built-in `tsvector` and `plainto_tsquery`. Table and column names are validated before interpolation — no SQL injection risk.
+
+</details>
+
+<details>
+<summary><strong>Bulkhead Isolation</strong> — cap concurrent calls to slow dependencies</summary>
 
 ### The problem it solves
 
-Named after the watertight compartments in a ship's hull. If one compartment floods, the bulkhead walls stop it from sinking the whole ship. In backend systems: if your database is slow and every incoming request starts a DB query, you end up with hundreds of open connections waiting. Eventually your server runs out of threads/memory and crashes entirely — even routes that don't use the database stop responding.
+If a database query is slow and every request starts one, you end up with hundreds of open connections waiting. A bulkhead caps concurrent calls to any one resource so a slow dependency can't cascade and crash your entire server.
 
-A bulkhead caps how many concurrent calls to a slow resource are allowed at any one time. Excess calls queue up briefly or fail fast, instead of piling up indefinitely.
-
-### How it works
-
-The bulkhead is a semaphore — an `active` counter and a `pending` queue of resolve functions.
-
-- If `active < limit`: increment `active`, run `fn()`, decrement `active` when done, wake up the next pending caller
-- If `active >= limit` and `pending.length < queue`: add a Promise resolver to the pending queue and wait
-- If both are full: throw immediately with `"Bulkhead full"`
-
-The `active` and `queued` properties let you monitor pressure in real time — you can expose them as metrics or log them when they're high.
+### Steps
 
 ```ts
-// create one bulkhead per resource type — not per request
-const dbBulkhead    = fw.bulkhead({ limit: 20, queue: 50 });
+// create one bulkhead per resource — not per request
+const dbBulkhead      = fw.bulkhead({ limit: 20, queue: 50 });
 const paymentBulkhead = fw.bulkhead({ limit: 5,  queue: 10 });
 
 app.get("/reports", async (req, res) => {
@@ -700,19 +814,10 @@ app.get("/reports", async (req, res) => {
     res.json(result);
   } catch (err) {
     if (err.message.includes("Bulkhead full")) {
-      res.status(503).json({ error: "Server is at capacity, please retry in a moment." });
-    } else {
-      throw err;
-    }
+      res.status(503).json({ error: "Server is at capacity, please retry." });
+    } else throw err;
   }
 });
-
-// monitor pressure
-setInterval(() => {
-  if (dbBulkhead.active > 15) {
-    logger.warn({ active: dbBulkhead.active, queued: dbBulkhead.queued }, "DB bulkhead under pressure");
-  }
-}, 5000);
 ```
 
 </details>
@@ -720,22 +825,16 @@ setInterval(() => {
 <details>
 <summary><strong>Circuit Breaker</strong> — stop sending requests to a failing dependency and give it time to recover</summary>
 
-### The problem it solves
-
-If an external service (payment provider, email API, third-party data source) starts failing, your code will keep retrying — which hammers the already-struggling service and ties up your own threads waiting for timeouts. A circuit breaker detects repeated failures and "opens" — subsequent calls fail immediately without even attempting the request. After a cooldown period it allows one test request through to check if the service has recovered.
-
 ### The three states
 
-- **CLOSED** (normal): all calls go through. If failures exceed `threshold` within a window, the breaker opens
-- **OPEN** (blocking): all calls fail immediately with an error, no network attempt made. After `timeout` ms, moves to HALF_OPEN
-- **HALF_OPEN** (testing): the next single call is allowed through. If it succeeds, the breaker closes. If it fails, it opens again
+- **CLOSED** — all calls go through. Too many failures → opens
+- **OPEN** — all calls fail immediately, no network attempt. After timeout → HALF_OPEN
+- **HALF_OPEN** — one test call goes through. Success → CLOSED. Failure → OPEN again
 
-### How to use it
+### Steps
 
 ```ts
-// one breaker per external service
-const stripeBreaker    = fw.circuitBreaker({ threshold: 3, timeout: 15_000 });
-const sendgridBreaker  = fw.circuitBreaker({ threshold: 5, timeout: 30_000 });
+const stripeBreaker = fw.circuitBreaker({ threshold: 3, timeout: 15_000 });
 
 app.post("/checkout", async (req, res) => {
   try {
@@ -745,13 +844,8 @@ app.post("/checkout", async (req, res) => {
     res.json({ chargeId: charge.id });
   } catch (err) {
     if (err.message === "Circuit open") {
-      // don't even try — tell the user to retry later
-      res.status(503).json({
-        error: "Payment service is temporarily unavailable. Please try again in a minute.",
-      });
-    } else {
-      throw err; // real error — let the error handler deal with it
-    }
+      res.status(503).json({ error: "Payment service unavailable. Please retry in a minute." });
+    } else throw err;
   }
 });
 ```
@@ -759,19 +853,9 @@ app.post("/checkout", async (req, res) => {
 </details>
 
 <details>
-<summary><strong>WebSockets</strong> — real-time bidirectional communication attached to your existing HTTP server</summary>
+<summary><strong>WebSockets</strong> — real-time bidirectional communication on your existing HTTP server</summary>
 
-### What it is
-
-WebSockets allow persistent, bidirectional connections between browser and server. Unlike HTTP, where the client always initiates and the server always responds, WebSockets let the server push data to clients at any time. Use this for live dashboards, notifications, collaborative features, chat, real-time game state, etc.
-
-### How it works
-
-`fw.websocket()` wraps the `ws` library and attaches a `WebSocketServer` to your existing Node.js `http.Server` — no separate port needed. The WebSocket path defaults to `/ws` but is configurable.
-
-`ws.broadcast()` sends a message to every currently connected client whose `readyState` is `OPEN`. It skips clients that are connecting or closing.
-
-**Important:** use `http.createServer(app)` instead of `app.listen()` so you have access to the raw server object to pass to `fw.websocket()`.
+### Steps
 
 ```ts
 import http from "http";
@@ -779,304 +863,175 @@ import http from "http";
 const server = http.createServer(app);
 const ws = fw.websocket(server, "/ws");
 
-// handle incoming messages
 ws.server.on("connection", (socket, req) => {
-  const userId = parseUserFromCookie(req.headers.cookie);
-
-  socket.send(JSON.stringify({ type: "connected", userId }));
-
   socket.on("message", (raw) => {
     const msg = JSON.parse(raw.toString());
-
     if (msg.type === "chat") {
-      // broadcast to everyone — including the sender
-      ws.broadcast(JSON.stringify({ type: "chat", from: userId, text: msg.text }));
+      ws.broadcast(JSON.stringify({ type: "chat", from: msg.userId, text: msg.text }));
     }
-  });
-
-  socket.on("close", () => {
-    ws.broadcast(JSON.stringify({ type: "user-left", userId }));
   });
 });
 
-// push events to all clients from anywhere in your app
+// push to all clients from anywhere in your app
 fw.events.on("order:shipped", (order) => {
   ws.broadcast(JSON.stringify({ type: "order-update", orderId: order.id, status: "shipped" }));
 });
 
-server.listen(3000);
+server.listen(3000); // use server.listen, not app.listen
 ```
 
 </details>
 
 <details>
-<summary><strong>CRON Scheduler</strong> — recurring background jobs defined in code, backed by BullMQ and Redis</summary>
+<summary><strong>CRON Scheduler</strong> — recurring background jobs backed by BullMQ and Redis</summary>
 
-### What it is
-
-A CRON scheduler lets you run code on a schedule — every hour, every day at midnight, every Monday, etc. Instead of running a separate cron container or relying on system cron, you define jobs in your application code and they run inside your Node.js process.
-
-### How it works
-
-Jobs are registered with a name, a standard cron expression, and an async handler function. Under the hood they're stored as BullMQ repeatable jobs in Redis. This means:
-- Jobs persist across restarts — if your server restarts, Redis still knows the job is due
-- Deduplication — if multiple instances of your app are running, only one worker picks up each scheduled job execution
-- Failure handling — if a job throws, it's retried with backoff
+### Steps
 
 ```ts
-// standard 5-field cron: minute hour day-of-month month day-of-week
+// standard 5-field cron: minute hour day month weekday
 
-// run at 3am every day — clean up expired sessions
-fw.cron("cleanup-sessions", "0 3 * * *", async () => {
-  const result = await db.query(
-    "DELETE FROM sessions WHERE expires_at < NOW() RETURNING id"
-  );
-  logger.info({ deleted: result.rowCount }, "Cleaned up expired sessions");
+fw.cron("cleanup-sessions").schedule("0 3 * * *").run(async () => {
+  await db.query("DELETE FROM sessions WHERE expires_at < NOW()");
 });
 
-// run every hour — sync exchange rates from external API
-fw.cron("sync-exchange-rates", "0 * * * *", async () => {
+fw.cron("sync-rates").schedule("0 * * * *").run(async () => {
   const rates = await fetch("https://api.exchangerate.host/latest").then(r => r.json());
-  await db.query("INSERT INTO exchange_rates (currency, rate, fetched_at) VALUES ...", [...]);
-});
-
-// run every Monday at 9am — weekly digest emails
-fw.cron("weekly-digest", "0 9 * * 1", async () => {
-  const { rows: users } = await db.query("SELECT * FROM users WHERE digest_enabled = true");
-  for (const user of users) {
-    await sendWeeklyDigest(user);
-  }
+  await db.query("INSERT INTO exchange_rates ...", [...]);
 });
 ```
+
+Jobs persist across restarts (stored in Redis). Multiple app instances won't double-run a job — BullMQ deduplicates.
 
 </details>
 
 <details>
-<summary><strong>Outbound Webhooks</strong> — deliver signed events to external URLs with automatic retries and delivery logs</summary>
+<summary><strong>Outbound Webhooks</strong> — deliver signed events to external URLs with automatic retries</summary>
 
-### What it is
-
-Outbound webhooks let external services subscribe to events from your app. When something happens in your system (an order is placed, a payment succeeds, a user is created), you deliver a signed HTTP POST to the subscriber's URL. If delivery fails (their server is down, times out, returns a 5xx), you retry automatically with exponential backoff.
-
-### How it works
-
-- `fw.webhook.register()` stores a webhook subscription in Postgres (URL, which events it listens for, a shared secret for signing)
-- `fw.webhook.deliver()` writes a pending delivery to Postgres and enqueues a BullMQ job
-- The worker makes the HTTP POST with an `X-Flowwatch-Signature` header (HMAC-SHA256 of the payload using the subscription's secret)
-- If the delivery fails, it retries with exponential backoff up to a max attempt count
-- All delivery attempts (success or failure) are logged in Postgres and viewable in the dashboard
-
-Subscribers verify the signature on their end to confirm the request came from you and wasn't tampered with.
+### Steps
 
 ```ts
-// register a subscription (typically done by the subscriber via your API)
+// register a subscription
 app.post("/webhooks/subscribe", async (req, res) => {
-  const subscription = await fw.webhook.register({
+  const sub = await fw.webhook.register({
     url: req.body.url,
-    events: req.body.events,      // e.g. ["order.created", "order.shipped"]
+    events: req.body.events,   // e.g. ["order.created", "order.shipped"]
     secret: crypto.randomBytes(32).toString("hex"),
   });
-  res.json({ id: subscription.id, secret: subscription.secret });
+  res.json({ id: sub.id, secret: sub.secret });
 });
 
 // deliver events from your business logic
 app.post("/orders", async (req, res) => {
   const order = await createOrder(req.body);
 
-  // fire-and-forget — delivery happens in background with retries
   await fw.webhook.deliver("order.created", {
     orderId: order.id,
-    customerId: order.customerId,
     total: order.total,
-    items: order.items,
   });
 
   res.status(201).json(order);
 });
 ```
 
+Deliveries happen in the background with exponential backoff retries. All attempts are logged in Postgres and visible in the dashboard.
+
 </details>
 
 <details>
-<summary><strong>Prometheus Metrics</strong> — expose /metrics for scraping and record custom application metrics</summary>
+<summary><strong>Prometheus Metrics</strong> — expose /metrics for Prometheus scraping, plus custom counters and histograms</summary>
 
-### What it is
-
-Prometheus is the industry standard for collecting and querying metrics from backend services. It scrapes a `/metrics` endpoint on your service at regular intervals and stores time-series data. You can then graph it in Grafana, set up alerts, and track trends over time.
-
-### What's included by default
-
-When you expose `fw.metrics.handler`, it automatically includes:
-- `process_cpu_seconds_total` — CPU usage
-- `process_resident_memory_bytes` — memory usage
-- `nodejs_eventloop_lag_seconds` — event loop lag (a key indicator of being overloaded)
-- `nodejs_active_handles_total`, `nodejs_active_requests_total`
-- HTTP request duration histograms (if you integrate with the request tracer)
-
-### Custom metrics
+### Steps
 
 ```ts
-// expose the /metrics endpoint
+// expose the scrape endpoint
 app.get("/metrics", fw.metrics.handler);
 
-// counter — a value that only goes up (requests, errors, events)
+// custom metrics
 const ordersCreated = fw.metrics.counter("orders_created_total");
-const paymentErrors  = fw.metrics.counter("payment_errors_total");
-
-// histogram — records distributions (response times, payload sizes)
-const paymentDuration  = fw.metrics.histogram("payment_duration_seconds");
-const responseBodySize = fw.metrics.histogram("response_body_size_bytes");
+const paymentDuration = fw.metrics.histogram("payment_duration_seconds");
 
 app.post("/checkout", async (req, res) => {
   const start = Date.now();
-  try {
-    const result = await processPayment(req.body);
-    ordersCreated.inc();
-    paymentDuration.observe((Date.now() - start) / 1000);
-    res.json(result);
-  } catch (err) {
-    paymentErrors.inc();
-    throw err;
-  }
+  const result = await processPayment(req.body);
+  ordersCreated.inc();
+  paymentDuration.observe((Date.now() - start) / 1000);
+  res.json(result);
 });
 ```
+
+Default metrics (CPU, memory, event loop lag) are included automatically.
 
 </details>
 
 <details>
-<summary><strong>Structured Log Store</strong> — write JSON logs to Postgres and query them programmatically or from the dashboard</summary>
+<summary><strong>Structured Log Store</strong> — JSON logs to both stdout and Postgres, queryable from the dashboard</summary>
 
-### The problem it solves
-
-`console.log` output goes to stdout and disappears when the process restarts. Third-party log services (Datadog, Papertrail, Logtail) cost money and send your data off your infrastructure. The log store writes structured JSON logs to your own Postgres database so they're queryable, filterable, and persistent — without any external service.
-
-### How it works
-
-Flowwatch uses a [Pino](https://getpino.io/) logger internally. The log store adds a writable stream to Pino's multistream output — logs are written to both stdout (for your terminal/PM2) and to the `flowwatch_logs` Postgres table simultaneously. The table has a GIN index on the `message` column for fast text search.
-
-Logs are queryable by level (`debug`, `info`, `warn`, `error`), time range, and message text.
+### Steps
 
 ```ts
-// the Flowwatch internal logger writes here automatically
-// you can also query logs from your own code:
+// use fw.logger in your app code
+fw.logger.info({ orderId: "ord_123" }, "Order created");
+fw.logger.error({ err }, "Payment failed");
 
+// query logs programmatically
 app.get("/admin/logs", requireAdmin, async (req, res) => {
   const logs = await fw.logs.query({
-    level: req.query.level as string,     // filter by level
-    from: new Date(req.query.from as string),
-    to: new Date(req.query.to as string),
-    limit: 100,
+    level: "error",
+    from: new Date(Date.now() - 3_600_000),
+    limit: 50,
   });
   res.json(logs);
 });
-
-// search the last hour of errors for a specific message
-const recentErrors = await fw.logs.query({
-  level: "error",
-  from: new Date(Date.now() - 3_600_000),
-  limit: 50,
-});
 ```
+
+Set `LOG_LEVEL=debug` to see verbose output. Default is `info`.
 
 </details>
 
 <details>
-<summary><strong>Auto-Instrumented Query & Fetch</strong> — DB queries and HTTP calls automatically appear as trace spans, no manual wrapping needed</summary>
+<summary><strong>Internal Event Bus</strong> — in-process publish/subscribe to decouple your modules</summary>
 
-### The problem it solves
-
-`fw.trace("span-name", fn)` works but requires you to manually wrap every database call and outbound HTTP request. It's easy to forget, and retrofitting it across an existing codebase is tedious. Auto-instrumentation solves this by giving you drop-in replacements that look identical to the standard APIs but automatically record spans.
-
-### How it works
-
-`fw.query()` is a thin wrapper around `pool.query()`. It reads the current trace ID from async local storage (set by `fw.requestTracer`), records the start time, runs the query, and writes a span to the trace with the SQL statement and duration. If there's no active trace, it just runs the query normally.
-
-`fw.fetch()` does the same for outbound HTTP — it wraps the global `fetch` API and records a span with the URL, method, and response status.
+### Steps
 
 ```ts
-// BEFORE — no tracing
-const { rows } = await pool.query("SELECT * FROM orders WHERE user_id = $1", [userId]);
-const stripeData = await fetch("https://api.stripe.com/v1/customers/" + customerId);
-
-// AFTER — identical API, automatic trace spans
-const { rows } = await fw.query("SELECT * FROM orders WHERE user_id = $1", [userId]);
-const stripeData = await fw.fetch("https://api.stripe.com/v1/customers/" + customerId);
-```
-
-Both calls appear in the dashboard waterfall under their parent request trace — you can see exactly how long each DB query and external API call took without changing anything else about your code.
-
-</details>
-
-<details>
-<summary><strong>Internal Event Bus</strong> — decouple modules with in-process publish/subscribe events</summary>
-
-### The problem it solves
-
-As your app grows, modules start depending on each other directly. Your order module calls your notification module, which calls your analytics module, which calls your billing module. This creates tight coupling — changing one module requires changing all its callers. An event bus inverts this: the order module emits `"order:created"` and doesn't know or care who's listening. The notification module, analytics module, and billing module each subscribe independently.
-
-### How it works
-
-`fw.events` is a thin wrapper around Node.js's built-in `EventEmitter`. It has zero overhead and synchronous dispatch — when you emit an event, all listeners run before `emit()` returns. This is intentional: it keeps the flow predictable. If you need async listeners, make the listener function async and handle it yourself.
-
-```ts
-// order.service.ts — emits events, knows nothing about who listens
+// emitter module — knows nothing about who listens
 async function createOrder(data) {
   const order = await db.query("INSERT INTO orders ...", [...]);
   fw.events.emit("order:created", { orderId: order.id, userId: data.userId, total: data.total });
   return order;
 }
 
-// notifications.service.ts — listens, knows nothing about order internals
+// listener modules — each subscribes independently
 fw.events.on("order:created", async ({ orderId, userId }) => {
-  const user = await loadUser(userId);
-  await sendEmail(user.email, `Order ${orderId} confirmed!`);
+  await sendConfirmationEmail(userId, orderId);
 });
 
-// analytics.service.ts — also listens independently
 fw.events.on("order:created", ({ total, userId }) => {
   analytics.track(userId, "Order Placed", { revenue: total });
-});
-
-// one-time listeners
-fw.events.once("user:first-order", async ({ userId }) => {
-  await sendWelcomeSeries(userId); // runs only for the user's first order ever
 });
 ```
 
 </details>
 
 <details>
-<summary><strong>Server-Sent Events</strong> — push updates from server to browser over a plain HTTP connection</summary>
+<summary><strong>Server-Sent Events</strong> — push data from server to browser over a plain HTTP connection</summary>
 
-### SSE vs WebSockets
+### When to use SSE vs WebSockets
 
-| | SSE | WebSocket |
-|---|---|---|
-| Direction | Server → client only | Bidirectional |
-| Protocol | Plain HTTP | Custom upgrade |
-| Browser support | Native `EventSource` API | Native `WebSocket` API |
-| Proxy/load balancer support | Better (it's just HTTP) | Can require special config |
-| Reconnect | Automatic | Manual |
-| Use when | You need to push updates to browser | You need two-way communication |
+- **SSE:** server-to-client only (live dashboards, notifications, progress bars). Simpler, works over plain HTTP.
+- **WebSockets:** bidirectional (chat, collaborative features). Requires `http.createServer`.
 
-Use SSE for: live dashboards, notification feeds, progress bars for long-running tasks, order status updates. Use WebSockets when the client also needs to send messages.
-
-### How it works
-
-`createSseConnection()` sets the correct headers (`Content-Type: text/event-stream`, `Cache-Control: no-cache`, `Connection: keep-alive`), calls `res.flushHeaders()` to start streaming immediately, and returns an object with a `send()` method and an `onClose()` callback.
+### Steps
 
 ```ts
 import { createSseConnection } from "@pranshulsoni/flowwatch";
 
-// client subscribes to live order updates
-app.get("/orders/:id/stream", authenticate, async (req, res) => {
+app.get("/orders/:id/stream", fw.auth!.protect, async (req, res) => {
   const sse = createSseConnection(req, res);
 
-  // send current state immediately on connection
   const order = await db.query("SELECT * FROM orders WHERE id = $1", [req.params.id]);
   sse.send({ type: "order-state", order: order.rows[0] });
 
-  // listen for updates and push them
   const listener = (update) => {
     if (update.orderId === req.params.id) {
       sse.send({ type: "order-update", status: update.status });
@@ -1084,45 +1039,26 @@ app.get("/orders/:id/stream", authenticate, async (req, res) => {
   };
   fw.events.on("order:updated", listener);
 
-  // clean up when client disconnects
-  sse.onClose(() => {
-    fw.events.off("order:updated", listener);
-  });
+  sse.onClose(() => fw.events.off("order:updated", listener));
 });
 ```
 
-On the client:
+Client:
 
 ```js
 const source = new EventSource("/orders/ord_123/stream");
-source.onmessage = (e) => {
-  const data = JSON.parse(e.data);
-  updateOrderStatus(data);
-};
+source.onmessage = (e) => updateOrderStatus(JSON.parse(e.data));
 ```
 
 </details>
 
 <details>
-<summary><strong>Testing Utilities</strong> — drop-in mocks for Postgres Pool and Redis so you can unit test without real infrastructure</summary>
+<summary><strong>Testing Utilities</strong> — mock Postgres Pool and Redis for unit tests without real infrastructure</summary>
 
-### What it is
-
-Writing unit tests for code that uses `pool.query()` or `redis.get()` normally requires either a real database (slow, brittle) or a mocking library with complex setup. `createMockPool` and `createMockRedis` are zero-dependency, in-process fakes that match the real APIs closely enough to test your code without any external services.
-
-### `createMockPool(rows)`
-
-Returns an object shaped like a `pg.Pool`. Every call to `.query()` resolves with the rows you passed to `createMockPool`. Pass different row arrays for different tests. If you need different responses for different queries in the same test, create multiple pools or use a spy library on top.
-
-### `createMockRedis()`
-
-Returns an object shaped like an `ioredis.Redis`. It has a real in-memory `Map` and `Set` store, so get/set/incr/sadd/smembers all behave correctly. It does NOT simulate TTLs (expire/pttl return fixed values) — for TTL-sensitive tests, use a real Redis instance.
-
-**Supported methods:** `get`, `set`, `setex`, `del`, `incr`, `sadd`, `smembers`, `expire`, `pttl`
+### Steps
 
 ```ts
 import { createMockPool, createMockRedis } from "@pranshulsoni/flowwatch";
-import { createQueryCache } from "@pranshulsoni/flowwatch";
 
 describe("queryCache", () => {
   it("returns cached rows on second call", async () => {
@@ -1135,104 +1071,92 @@ describe("queryCache", () => {
 
     expect(first).toEqual(second);  // second call hits Redis, not Postgres
   });
-
-  it("invalidates by tag", async () => {
-    const pool  = createMockPool([{ id: 1, name: "Widget" }]);
-    const redis = createMockRedis();
-    const cache = createQueryCache(pool, redis);
-
-    await cache.get("SELECT * FROM products", [], { ttl: 60, tags: ["products"] });
-    await cache.invalidate("products");
-
-    const cachedValue = await redis.get("products");
-    expect(cachedValue).toBeNull();
-  });
 });
 ```
+
+`createMockRedis()` has a real in-memory store — get/set/incr/sadd/smembers all behave correctly. TTLs are not simulated (expire/pttl return fixed values).
 
 </details>
 
 <details>
-<summary><strong>Migration Rollback</strong> — undo the last applied database migration in a single call</summary>
+<summary><strong>Migration Rollback</strong> — undo the last applied database migration</summary>
 
-### What it is
-
-Database migrations normally only go forward. But in development and CI you often need to undo a migration — if you made a mistake in the schema, if you're testing the migration itself, or if you need to reset a staging environment. `rollbackLastMigration()` runs the `down` SQL of the most recently applied migration inside a transaction, then removes its record from the `flowwatch_migrations` table.
-
-### How it works
-
-Each migration in `migrations.ts` can have an optional `down` property containing the SQL to reverse it. `rollbackLastMigration()`:
-
-1. Acquires a Postgres advisory lock (so concurrent rollbacks don't interfere)
-2. Queries `flowwatch_migrations ORDER BY id DESC LIMIT 1` to find the last applied migration
-3. Looks up the corresponding migration object and checks for a `down` script
-4. Runs the `down` SQL and the `DELETE FROM flowwatch_migrations` in a single transaction — either both succeed or neither does
+### Steps
 
 ```ts
-// in a management script or CLI
+// in a script or CLI
 await fw.rollbackMigration();
 
-// or expose it as an internal API endpoint (protect this!)
+// or expose as an internal API (protect this!)
 app.post("/internal/db/rollback", requireInternalAuth, async (req, res) => {
   await fw.rollbackMigration();
   res.json({ rolledBack: true });
 });
 ```
 
+Runs the `down` SQL of the last applied migration in a transaction. Either both the schema change and the migration record removal succeed, or neither does.
+
 </details>
 
 <details>
-<summary><strong>Multi-Language Sidecar</strong> — use Flowwatch from Python, Go, or Rust via a local HTTP API</summary>
+<summary><strong>Multi-Language Sidecar</strong> — use FlowWatch from Python, Go, or Rust via a local HTTP API</summary>
 
 ### The problem it solves
 
-Flowwatch is a Node.js package. If your backend is in Python, Go, or Rust, you can't import it directly. The sidecar pattern solves this: you run a tiny Express server alongside your main app that exposes Flowwatch's core features (flags, workflows, tracing, errors) as a simple JSON HTTP API. Your non-Node service calls localhost, not an external SaaS.
+FlowWatch is a Node.js package. If your backend is in Python, Go, or Rust, you can't import it directly. The sidecar pattern solves this: a tiny Express server runs inside the same Node.js process and exposes FlowWatch's core features (flags, workflows, tracing, errors) as a simple JSON HTTP API on localhost. Your non-Node service calls localhost, not an external SaaS.
 
-### How it works
+### Steps
 
-`startSidecar(fw, { port, token })` starts a second HTTP server on a different port inside the same Node.js process. It exposes endpoints like `POST /api/flag`, `POST /api/trigger`, `POST /api/trace-span`, and `POST /api/capture-error`. The `token` option enables bearer token auth — any request without the correct `Authorization` header is rejected.
-
-The Python, Go, and Rust client SDKs wrap these endpoints so you write idiomatic code in your language and don't have to construct HTTP calls yourself.
+**1. Start the sidecar from your Node.js app:**
 
 ```ts
-// in your Node.js app
 import { startSidecar } from "@pranshulsoni/flowwatch";
 
 startSidecar(fw, {
   port: 9400,
-  token: process.env.SIDECAR_TOKEN, // set the same value in your Python/Go/Rust env
+  token: process.env.SIDECAR_TOKEN,  // set the same value in your Python/Go/Rust env
 });
 ```
 
-See the [Client SDKs](#client-sdks) section below for usage in each language.
+**2. Use the matching client SDK in your language:**
+
+```python
+# Python
+from flowwatch import FlowwatchClient
+client = FlowwatchClient("http://localhost:9400", token=os.environ["SIDECAR_TOKEN"])
+enabled = client.evaluate_flag("new-ui", {"userId": "user_123"})
+client.trigger_workflow("send-order", {"orderId": "ord_456"})
+```
+
+```go
+// Go
+client := fw.New("http://localhost:9400", os.Getenv("SIDECAR_TOKEN"))
+enabled, _ := client.EvaluateFlag(ctx, "new-ui", map[string]any{"userId": "user_123"})
+```
+
+```rust
+// Rust
+let client = FlowwatchClient::new("http://localhost:9400", Some("token"));
+let enabled = client.evaluate_flag("new-ui", HashMap::new()).await.unwrap();
+```
 
 </details>
 
 <details>
-<summary><strong>AI Diagnostics</strong> — automated incident analysis and a chat interface that knows your actual trace and error data</summary>
+<summary><strong>AI Diagnostics</strong> — automated incident analysis and a chat interface that knows your actual trace data</summary>
 
-### What it is
-
-The AI diagnostics feature connects Flowwatch to the [Groq](https://groq.com) inference API (fast, free tier available) and adds two capabilities to the dashboard:
-
-1. **Automated incident analysis** — when a spike in errors or slow traces is detected, the AI is given the actual trace data and error messages and asked to explain what happened and suggest fixes. You see a plain English summary instead of raw stack traces.
-
-2. **Chat interface** — a chat window in the dashboard where you can ask questions about your own data. "Why was the API slow between 2pm and 3pm?" gives you an answer based on the actual traces from that window, not generic advice.
-
-### What it doesn't do
-
-It doesn't send your data to OpenAI or any third-party that stores it. Groq processes the request and returns a response — it's stateless inference, not training data. Your Postgres data stays in your Postgres.
+### Steps
 
 ```ts
 const fw = await createFlowwatch({
   db: { connectionString: process.env.DATABASE_URL },
-  // add a Groq API key — free at console.groq.com
-  ai: { groqApiKey: process.env.GROQ_API_KEY },
+  ai: { groqApiKey: process.env.GROQ_API_KEY }, // free at console.groq.com
 });
 
-// that's it — the dashboard /ops page now has AI chat enabled
-app.use("/ops", fw.dashboard);
+app.use("/ops", fw.dashboard); // AI chat tab appears automatically
 ```
+
+The AI is given your actual trace and error data as context. "Why was the API slow between 2pm and 3pm?" answers based on the real traces from that window. Your Postgres data never leaves your infrastructure — Groq is stateless inference only.
 
 </details>
 
@@ -1241,54 +1165,72 @@ app.use("/ops", fw.dashboard);
 ## Quick Reference
 
 ```ts
-// Middleware
-fw.requestTracer              // mount first
-fw.errorHandler               // mount last
-fw.httpCache(opts?)           // ETag/304 per route
-fw.responseCache(opts)        // Redis cache per route
-fw.rateLimit(opts)            // rate limit per route or global
-fw.ipFilter(opts)             // IP allowlist/blocklist
-fw.versionMiddleware(opts?)   // sets req.apiVersion
+// ─── Setup middleware (mount in this order) ───────────────────────────────────
+app.use(fw.securityHeaders)            // helmet — first
+app.use(fw.bodyParser)                 // JSON + URL-encoded, size limited
+app.use(fw.requestTracer)              // assigns trace ID
+app.use(fw.timeout())                  // 503 if handler hangs (default 30s)
+app.use(fw.metrics.middleware())       // optional request duration recording
 
-// Core
-fw.workflow(name, steps)      // register durable workflow
-fw.trigger(name, input)       // trigger workflow
-fw.flag(name, context)        // evaluate feature flag
-fw.trace(name, fn)            // manual trace span
-fw.captureError(err, ctx?)    // capture 5xx error
-fw.dashboard                  // Router — mount anywhere
+// ─── Auth ──────────────────────────────────────────────────────────────────
+app.use("/auth", fw.auth!.router)      // login/register/oauth/verify endpoints
+fw.auth!.protect                       // middleware: require valid JWT
+fw.auth!.requireRole("admin")          // middleware: require a specific role
+fw.auth!.requireVerifiedEmail          // middleware: require verified email
 
-// Resilience
-fw.bulkhead(opts)             // → { execute, active, queued }
-fw.circuitBreaker(opts?)      // → { execute, state }
+// ─── Request control ─────────────────────────────────────────────────────
+fw.maintenanceMode(isEnabled)          // 503 all requests when isEnabled() → true
+fw.rateLimit(opts)                     // per IP / user / key — 3 algorithms
+fw.ipFilter(opts)                      // CIDR allowlist / blocklist
+fw.versionMiddleware(opts?)            // sets req.apiVersion from header
 
-// Transport & Scheduling
-fw.websocket(server, path?)   // → { server, broadcast, close }
-fw.webhook                    // → { register, deliver }
-fw.cron(name, expr, fn)       // register recurring job
+// ─── Core ────────────────────────────────────────────────────────────────
+fw.workflow(name, steps)               // register durable workflow
+fw.trigger(name, input)               // enqueue workflow execution
+fw.flag(name, context)                // evaluate feature flag → boolean
+fw.trace(name, fn)                    // manual trace span
+fw.captureError(err, ctx?)            // capture a 5xx error
+fw.rollbackMigration()                // roll back last DB migration
+fw.dashboard                          // Express Router — mount anywhere
+fw.errorHandler                       // Express error middleware — mount last
 
-// Caching & Search
-fw.queryCache                 // → { get, invalidate }
-fw.search(opts)               // Postgres full-text search
-fw.version()                  // → Express Router (versioned routes)
+// ─── Resilience ──────────────────────────────────────────────────────────
+fw.bulkhead(opts)                     // → { execute, active, queued }
+fw.circuitBreaker(opts?)              // → { execute, state }
 
-// Observability
-fw.metrics                    // → { handler, counter, histogram }
-fw.logs.query(opts)           // query Postgres log store
-fw.query(sql, params)         // auto-traced pg query
-fw.fetch(url, opts?)          // auto-traced fetch
-fw.events                     // → { on, once, emit, off }
+// ─── Transport & Scheduling ──────────────────────────────────────────────
+fw.websocket(server, path?)           // → { server, broadcast, close }
+fw.webhook                            // → { register, deliver, list }
+fw.cron(name).schedule(expr).run(fn)  // recurring background job
 
-// Teardown
-fw.rollbackMigration()        // roll back last migration
-fw.close()                    // drain all connections
+// ─── Caching & Search ────────────────────────────────────────────────────
+fw.httpCache(opts?)                   // ETag/304 middleware
+fw.responseCache(opts)                // Redis response cache middleware
+fw.queryCache                         // → { get, invalidate }
+fw.search(opts)                       // Postgres full-text search
+fw.version()                          // → Express Router for versioned routes
+
+// ─── Observability ───────────────────────────────────────────────────────
+fw.metrics                            // → { handler, counter, histogram }
+fw.logger                             // Pino logger → stdout + Postgres
+fw.logs.query(opts)                   // query Postgres log store
+fw.query(sql, params)                 // auto-traced pg query
+fw.fetch(url, opts?)                  // auto-traced HTTP fetch
+fw.events                             // → { on, once, emit, off }
+
+// ─── Dead Letter Queue ────────────────────────────────────────────────────
+fw.dlq.getFailedJobs(limit?)          // list permanently failed workflow jobs
+fw.dlq.requeueJob(jobId)              // retry a failed job
+
+// ─── Teardown ────────────────────────────────────────────────────────────
+fw.close()                            // drain all connections gracefully
 ```
 
 ---
 
 ## Client SDKs
 
-All three SDKs talk to the lightweight sidecar you start alongside your Node.js app:
+All three SDKs talk to the sidecar you start alongside your Node.js app:
 
 ```ts
 import { startSidecar } from "@pranshulsoni/flowwatch";
@@ -1299,7 +1241,7 @@ startSidecar(fw, { port: 9400, token: process.env.SIDECAR_TOKEN });
 
 ### Python SDK
 
-**Package:** [`flowwatch-client`](https://pypi.org/project/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/python`](./sdks/python)
+**Package:** `flowwatch-client` &nbsp;·&nbsp; **Source:** [`sdks/python`](./sdks/python)
 
 ```bash
 pip install flowwatch-client
@@ -1310,21 +1252,17 @@ from flowwatch import FlowwatchClient
 
 client = FlowwatchClient("http://localhost:9400", token="your-token")
 
-# Feature flag
 if client.evaluate_flag("new-checkout", {"userId": "user_123"}):
     render_new_ui()
 
-# Trigger a workflow
 client.trigger_workflow("send-order", {"orderId": "ord_456", "amount": 4999})
 
-# Capture an error
 try:
     do_something_risky()
 except Exception as e:
     import traceback
     client.capture_error(str(e), stack=traceback.format_exc(), source="worker")
 
-# Auto-timed trace span (context manager)
 with client.trace_span("db-query", type="db"):
     rows = db.execute("SELECT * FROM products")
 
@@ -1335,7 +1273,7 @@ client.close()
 
 ### Go SDK
 
-**Module:** [`github.com/PranshulSoni/flowwatch-go`](https://github.com/PranshulSoni/flowwatch-go) &nbsp;·&nbsp; **Source:** [`sdks/go`](./sdks/go)
+**Module:** `github.com/PranshulSoni/flowwatch-go` &nbsp;·&nbsp; **Source:** [`sdks/go`](./sdks/go)
 
 ```bash
 go get github.com/PranshulSoni/flowwatch-go
@@ -1350,33 +1288,16 @@ import (
 client := fw.New("http://localhost:9400", "your-token")
 ctx := context.Background()
 
-// Feature flag
 enabled, _ := client.EvaluateFlag(ctx, "new-checkout", map[string]any{"userId": "user_123"})
-
-// Trigger a workflow
 client.TriggerWorkflow(ctx, "send-order", map[string]any{"orderId": "ord_456"})
-
-// Capture an error
-client.CaptureError(ctx, fw.CaptureErrorOptions{
-    Message: "something broke",
-    Name:    "OrderError",
-    Source:  "checkout-service",
-})
-
-// Submit a trace span
-client.LogTraceSpan(ctx, fw.TraceSpanOptions{
-    Name:       "db-query",
-    Type:       "db",
-    DurationMs: 42.5,
-    Status:     "ok",
-})
+client.CaptureError(ctx, fw.CaptureErrorOptions{Message: "something broke", Source: "checkout-service"})
 ```
 
 ---
 
 ### Rust SDK
 
-**Crate:** [`flowwatch-client`](https://crates.io/crates/flowwatch-client) &nbsp;·&nbsp; **Source:** [`sdks/rust`](./sdks/rust)
+**Crate:** `flowwatch-client` &nbsp;·&nbsp; **Source:** [`sdks/rust`](./sdks/rust)
 
 ```toml
 # Cargo.toml
@@ -1392,22 +1313,12 @@ use std::collections::HashMap;
 async fn main() {
     let client = FlowwatchClient::new("http://localhost:9400", Some("your-token"));
 
-    // Feature flag
     let enabled = client.evaluate_flag("new-checkout", HashMap::new()).await.unwrap();
 
-    // Trigger a workflow
     client.trigger_workflow("send-order", Some(serde_json::json!({
         "orderId": "ord_456",
         "amount": 4999
     }))).await.unwrap();
-
-    // Capture an error
-    client.capture_error(CaptureErrorOptions {
-        message: "something broke".into(),
-        name: Some("OrderError".into()),
-        source: Some("checkout".into()),
-        stack: None,
-    }).await.unwrap();
 }
 ```
 
