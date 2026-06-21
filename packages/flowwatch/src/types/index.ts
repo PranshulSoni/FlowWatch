@@ -10,6 +10,7 @@ export interface FlowwatchConfig {
     migrations?: FlowwatchMigrationConfig
     runtime?: FlowwatchRuntimeConfig
     server?: FlowwatchServerConfig
+    security?: FlowwatchSecurityConfig
 }
 
 export interface FlowwatchRedisConfig {
@@ -49,6 +50,11 @@ export interface FlowwatchRuntimeConfig {
 export interface FlowwatchServerConfig {
     bodyLimit?: string
     timeout?: number
+}
+
+export interface FlowwatchSecurityConfig {
+    // false = disable helmet entirely; object = pass custom helmet options
+    headers?: false | Record<string, unknown>
 }
 
 export interface NormalizedFlowwatchConfig {

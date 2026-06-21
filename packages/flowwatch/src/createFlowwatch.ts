@@ -18,6 +18,7 @@ import { createTraceEngine, type TraceFunction } from "./engine/trace/traceEngin
 import { createTracedQuery, createTracedFetch, type TracedQuery, type TracedFetch } from "./engine/trace/autoInstrumentation.js"
 import { captureError, createErrorHandler, type CaptureErrorFunction } from "./engine/errors/errorEngine.js"
 import { json, urlencoded } from "express"
+import helmet from "helmet"
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
@@ -82,6 +83,8 @@ export interface Flowwatch {
     timeout: (ms?: number) => RequestHandler
     // Maintenance mode — returns 503 to all requests when isEnabled() is true
     maintenanceMode: (isEnabled: () => boolean | Promise<boolean>) => RequestHandler
+    // Security headers — helmet middleware (pass false to disable, or a helmet options object)
+    securityHeaders: RequestHandler
     // Pino logger instance scoped to this FlowWatch app
     logger: Logger
     // Clean up connections and workers
@@ -94,6 +97,11 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const validConfig = validateConfig(config)
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
+    const headersConfig = validConfig.security?.headers
+    const securityHeaders: RequestHandler = headersConfig === false
+        ? (_req, _res, next) => next()
+        : helmet(headersConfig as any)
+
     const bodyLimit = normalizedConfig.server.bodyLimit
     const jsonParser = json({ limit: bodyLimit })
     const formParser = urlencoded({ limit: bodyLimit, extended: false })
@@ -271,6 +279,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
             list: () => Promise.resolve([]),
             close: () => Promise.resolve()
         },
+        securityHeaders,
         bodyParser,
         timeout,
         maintenanceMode,
