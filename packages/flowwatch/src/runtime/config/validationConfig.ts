@@ -12,6 +12,7 @@ export function validateConfig(config: unknown): FlowwatchConfig{
   validateWorkerConfig(config.worker)
   validateMigrationsConfig(config.migrations)
   validateRuntimeConfig(config.runtime)
+  validateAuthConfig(config.auth)
 
   return config as unknown as FlowwatchConfig
 }
@@ -131,6 +132,84 @@ function validateRuntimeConfig(runtime: unknown){
 
   if (runtime.debug !== undefined && typeof runtime.debug !== "boolean") {
     throw new Error("config runtime.debug must be a boolean")
+  }
+}
+
+function validateAuthConfig(auth: unknown) {
+  if (auth === undefined) {
+    return
+  }
+
+  if (!isObject(auth)) {
+    throw new Error("config auth must be an object")
+  }
+
+  if (!isNonEmptyString(auth.jwtSecret)) {
+    throw new Error("config auth.jwtSecret must be a non-empty string")
+  }
+
+  if (auth.accessTokenExpiry !== undefined && !isNonEmptyString(auth.accessTokenExpiry)) {
+    throw new Error("config auth.accessTokenExpiry must be a non-empty string")
+  }
+
+  if (auth.refreshTokenExpiry !== undefined && !isNonEmptyString(auth.refreshTokenExpiry)) {
+    throw new Error("config auth.refreshTokenExpiry must be a non-empty string")
+  }
+
+  if (auth.urls !== undefined) {
+    if (!isObject(auth.urls)) {
+      throw new Error("config auth.urls must be an object")
+    }
+    if (!isNonEmptyString(auth.urls.apiBaseUrl)) {
+      throw new Error("config auth.urls.apiBaseUrl must be a non-empty string")
+    }
+    if (auth.urls.frontendBaseUrl !== undefined && !isNonEmptyString(auth.urls.frontendBaseUrl)) {
+      throw new Error("config auth.urls.frontendBaseUrl must be a non-empty string")
+    }
+  }
+
+  if (auth.rateLimit !== undefined) {
+    if (!isObject(auth.rateLimit)) {
+      throw new Error("config auth.rateLimit must be an object")
+    }
+    if (!isNonEmptyString(auth.rateLimit.redisUrl)) {
+      throw new Error("config auth.rateLimit.redisUrl must be a non-empty string")
+    }
+  }
+
+  if (auth.email !== undefined) {
+    if (!isObject(auth.email)) {
+      throw new Error("config auth.email must be an object")
+    }
+    if (!isNonEmptyString(auth.email.provider)) {
+      throw new Error("config auth.email.provider must be a non-empty string")
+    }
+    if (!isNonEmptyString(auth.email.apiKey)) {
+      throw new Error("config auth.email.apiKey must be a non-empty string")
+    }
+    if (!isNonEmptyString(auth.email.from)) {
+      throw new Error("config auth.email.from must be a non-empty string")
+    }
+  }
+
+  if (auth.oauth !== undefined) {
+    if (!isObject(auth.oauth)) {
+      throw new Error("config auth.oauth must be an object")
+    }
+    if (auth.oauth.google !== undefined) {
+      if (!isObject(auth.oauth.google)) {
+        throw new Error("config auth.oauth.google must be an object")
+      }
+      if (!isNonEmptyString(auth.oauth.google.clientId)) {
+        throw new Error("config auth.oauth.google.clientId must be a non-empty string")
+      }
+      if (!isNonEmptyString(auth.oauth.google.clientSecret)) {
+        throw new Error("config auth.oauth.google.clientSecret must be a non-empty string")
+      }
+      if (!isNonEmptyString(auth.oauth.google.callbackUrl)) {
+        throw new Error("config auth.oauth.google.callbackUrl must be a non-empty string")
+      }
+    }
   }
 }
 

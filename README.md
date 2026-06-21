@@ -12,6 +12,8 @@
   <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client?label=cargo%20installs&color=DEA584&logo=rust&logoColor=white" alt="cargo installs" /></a>
   &nbsp;
   <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg" alt="license" /></a>
+  &nbsp;
+  <a href="https://devglobe.app/projects/flowwatch?utm_source=badge&utm_medium=embed" target="_blank" rel="noopener"><img src="https://devglobe.app/badges/launched-on-devglobe-dark.svg" alt="Launched on DevGlobe" width="150" height="33" /></a>
 </p>
 
 <p align="center">
@@ -1098,6 +1100,7 @@ Runs the `down` SQL of the last applied migration in a transaction. Either both 
 
 </details>
 
+<a id="multi-language-sidecar"></a>
 <details>
 <summary><strong>Multi-Language Sidecar</strong> — use FlowWatch from Python, Go, or Rust via a local HTTP API</summary>
 
