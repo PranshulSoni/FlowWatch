@@ -1,5 +1,7 @@
 export { createFlowwatch } from "./createFlowwatch.js"
 export type { Flowwatch } from "./createFlowwatch.js"
+export { logger } from "./logger.js"
+export type { Logger } from "./logger.js"
 export { startSidecar, createSidecarRouter } from "./server/sidecarServer.js"
 export type { FlowwatchConfig } from "./types/index.js"
 export type { TriggerWorkflow, WorkflowStep, WorkflowStepHandler } from "./engine/workflows/types.js"

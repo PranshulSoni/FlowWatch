@@ -20,7 +20,8 @@ import { captureError, createErrorHandler, type CaptureErrorFunction } from "./e
 import type { ErrorRequestHandler, RequestHandler, Router } from "express"
 import { createMissingMappings } from "./search/elasticsearch/mappingChecker.js"
 import { createRedisClient } from "./persistence/cache/redisClient.js"
-import { logger } from "./logger.js"
+import pino from "pino"
+import { logger, type Logger } from "./logger.js"
 import { createHttpCacheMiddleware, type HttpCacheOptions } from "./runtime/httpCache.js"
 import { createResponseCacheMiddleware, type ResponseCacheOptions } from "./persistence/cache/responseCache.js"
 import { createQueryCache, type QueryCache } from "./persistence/cache/queryCache.js"
@@ -74,6 +75,8 @@ export interface Flowwatch {
     cron: RegisterCron
     // Webhooks — register endpoints and deliver signed events with retries
     webhook: WebhookEngine
+    // Pino logger instance scoped to this FlowWatch app
+    logger: Logger
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -85,6 +88,10 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const normalizedConfig = await normalizeConfig(validConfig)
     const postgresPool = createPostgresPool(normalizedConfig.db)
     const logStore = createLogStore(postgresPool)
+    const instanceLogger = pino(
+        { name: normalizedConfig.runtime.serviceName ?? "flowwatch", level: process.env.LOG_LEVEL ?? "info" },
+        pino.multistream([{ stream: process.stdout }, { stream: logStore.stream }])
+    )
     const eventBus = createEventBus()
     const metricsEngine = createMetricsEngine()
     if (normalizedConfig.migrations.autoRun) {
@@ -218,6 +225,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
             list: () => Promise.resolve([]),
             close: () => Promise.resolve()
         },
+        logger: instanceLogger,
         close,
     }
 }
