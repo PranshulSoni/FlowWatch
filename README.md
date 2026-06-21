@@ -3,13 +3,19 @@
 </h1>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch.svg" alt="npm version" /></a>
-  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dm/@pranshulsoni/flowwatch.svg" alt="npm downloads" /></a>
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/v/@pranshulsoni/flowwatch?label=npm&color=CB3837&logo=npm&logoColor=white" alt="npm version" /></a>
+  &nbsp;
+  <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/dw/@pranshulsoni/flowwatch?label=npm%20downloads%2Fweek&color=CB3837" alt="npm weekly downloads" /></a>
+  &nbsp;
+  <a href="https://pypi.org/project/flowwatch-client/"><img src="https://static.pepy.tech/badge/flowwatch-client" alt="PyPI downloads" /></a>
+  &nbsp;
+  <a href="https://crates.io/crates/flowwatch-client"><img src="https://img.shields.io/crates/d/flowwatch-client?label=cargo%20installs&color=DEA584&logo=rust&logoColor=white" alt="cargo installs" /></a>
+  &nbsp;
   <a href="https://www.npmjs.com/package/@pranshulsoni/flowwatch"><img src="https://img.shields.io/npm/l/@pranshulsoni/flowwatch.svg" alt="license" /></a>
 </p>
 
 <p align="center">
-  <strong>One npm package. Everything your Express backend needs to run in production.</strong>
+  <strong>One npm package. Everything your Express backend needs to run in production — also works on every server.</strong>
 </p>
 
 <p align="center">
@@ -19,6 +25,34 @@
 <p align="center">
   No SaaS. No monthly bill. No third-party cloud. Your data stays yours.
 </p>
+
+---
+
+## The Problem
+
+Building a production backend means assembling a stack of separate SaaS products — each with its own billing, API, account, and integration work:
+
+| What you need | What you'd normally use |
+|---|---|
+| Feature flags | LaunchDarkly, Unleash |
+| Background jobs | Quirrel, Inngest, Trigger.dev |
+| Request tracing | Datadog APM, Honeycomb |
+| Error monitoring | Sentry, Rollbar |
+| Rate limiting | Upstash, custom Redis code |
+| Auth | Auth0, Clerk |
+| Metrics | Grafana Cloud, Datadog |
+| Log aggregation | Logtail, Papertrail |
+| Webhooks | Svix |
+| CRON | Cron-job.org, Railway CRON |
+
+That's 10 separate accounts, 10 SDKs to install, 10 things to break, and hundreds of dollars per month — before your app has a single user.
+
+**FlowWatch replaces all of them.** It's a single npm package that plugs into your existing Express app and gives you every one of those capabilities, backed by your own Postgres and Redis. No external services required. No data leaving your infrastructure.
+
+```
+Before FlowWatch:    your app → LaunchDarkly → Sentry → Datadog → Inngest → Auth0 → Svix → ...
+After FlowWatch:     your app → fw.*  (backed by your Postgres + Redis)
+```
 
 ---
 
