@@ -1,5 +1,5 @@
 [package]
-name = "pranshulsoni-flowwatch"
+name = "flowwatch-client"
 version = "3.1.4"
 edition = "2021"
 description = "Rust client for FlowWatch — connect to a running FlowWatch sidecar"
