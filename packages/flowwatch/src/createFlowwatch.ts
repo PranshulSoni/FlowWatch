@@ -106,6 +106,8 @@ export interface Flowwatch {
     docs?: Router
     // Health check — mount as a router; returns Postgres/Redis/Elasticsearch status
     health: Router
+    // Rotate the JWT secret without restarting — all new sign/verify calls use the new secret immediately
+    rotateSecret: (newSecret: string) => void
     // Tenant resolver — sets req.tenantId from subdomain, header, or JWT claim
     tenantResolver: (options: TenantResolverOptions) => RequestHandler
     // Clean up connections and workers
@@ -181,9 +183,15 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
     const flagEngine = createFlagEngine(postgresPool, traceEngine, captureFlowwatchError, redisClient)
     await createMissingMappings(elasticsearchClient)
 
+    const secretStore = { current: validConfig.auth?.jwtSecret ?? "" }
+
     let authInstance: Awaited<ReturnType<typeof createAuth>> | null = null
     if (validConfig.auth) {
-        authInstance = await createAuth({ db: normalizedConfig.db, ...validConfig.auth })
+        authInstance = await createAuth({
+            db: normalizedConfig.db,
+            ...validConfig.auth,
+            jwtSecret: () => secretStore.current,
+        })
     }
 
     const docsRouter = validConfig.openapi
@@ -325,6 +333,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         auth: authInstance ?? undefined,
         docs: docsRouter ?? undefined,
         health: createHealthRouter(postgresPool, redisClient, elasticsearchClient),
+        rotateSecret: (newSecret: string) => { secretStore.current = newSecret },
         tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),
         close,
     }

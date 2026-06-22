@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.19.1",
-    "@pranshul_soni/authapi": "^2.3.0",
+    "@pranshul_soni/authapi": "^2.4.0",
     "bullmq": "^5.78.1",
     "express": "^5.2.1",
     "helmet": "^8.2.0",
