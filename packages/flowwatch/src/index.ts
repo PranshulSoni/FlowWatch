@@ -50,6 +50,9 @@ export type { FlowwatchWebSocket } from "./runtime/websocket.js"
 // Log store
 export type { LogEntry, LogQueryOptions } from "./runtime/logStore.js"
 
+// Tenant resolver
+export type { TenantResolverOptions } from "./runtime/tenantResolver.js"
+
 // Circuit breaker
 export type { CircuitBreaker, CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 

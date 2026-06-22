@@ -38,6 +38,7 @@ import { createEventBus, type EventBus } from "./runtime/eventBus.js"
 import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine.js"
 import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
+import { createTenantResolver, type TenantResolverOptions } from "./runtime/tenantResolver.js"
 import { createAuth } from "@pranshul_soni/authapi"
 import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
@@ -102,6 +103,8 @@ export interface Flowwatch {
     }
     // OpenAPI docs — mount anywhere, serves Swagger UI + /openapi.json (undefined if no openapi config provided)
     docs?: Router
+    // Tenant resolver — sets req.tenantId from subdomain, header, or JWT claim
+    tenantResolver: (options: TenantResolverOptions) => RequestHandler
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -318,6 +321,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger: instanceLogger,
         auth: authInstance ?? undefined,
         docs: docsRouter ?? undefined,
+        tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),
         close,
     }
 }
