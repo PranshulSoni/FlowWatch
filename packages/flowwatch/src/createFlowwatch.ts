@@ -252,7 +252,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger.warn({ err: err?.message }, "Cron engine unavailable, scheduled jobs disabled")
     }
 
-    const auditEngine = await createAuditEngine(postgresPool, cronEngine)
+    const auditEngine = createAuditEngine(postgresPool, cronEngine)
 
     let webhookEngine: WebhookEngine | null = null
     try {

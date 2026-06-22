@@ -262,4 +262,26 @@ CREATE INDEX IF NOT EXISTS flowwatch_webhook_deliveries_webhook_id_idx
 ON flowwatch_webhook_deliveries (webhook_id, created_at DESC);
 `
   }
+  ,
+  {
+    name: "006_create_audit_log",
+    down: `DROP TABLE IF EXISTS fw_audit_log;`,
+    up: `
+CREATE TABLE IF NOT EXISTS fw_audit_log (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     TEXT,
+  tenant_id   TEXT,
+  method      VARCHAR(10) NOT NULL,
+  path        TEXT        NOT NULL,
+  status      INTEGER     NOT NULL,
+  duration_ms INTEGER     NOT NULL,
+  ip          TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS fw_audit_log_user_id_idx    ON fw_audit_log (user_id);
+CREATE INDEX IF NOT EXISTS fw_audit_log_tenant_id_idx  ON fw_audit_log (tenant_id);
+CREATE INDEX IF NOT EXISTS fw_audit_log_created_at_idx ON fw_audit_log (created_at DESC);
+`
+  }
 ];
