@@ -40,6 +40,7 @@ import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
 import { createTenantResolver, type TenantResolverOptions } from "./runtime/tenantResolver.js"
 import { createHealthRouter, type HealthCheckResult } from "./runtime/healthCheck.js"
+import { createAuditEngine, type AuditEngine } from "./runtime/auditLog.js"
 import { createAuth } from "@pranshul_soni/authapi"
 import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
@@ -104,6 +105,8 @@ export interface Flowwatch {
     }
     // OpenAPI docs — mount anywhere, serves Swagger UI + /openapi.json (undefined if no openapi config provided)
     docs?: Router
+    // Audit log — auto-capture every request with fire-and-forget writes + nightly cleanup
+    audit: AuditEngine
     // Health check — mount as a router; returns Postgres/Redis/Elasticsearch status
     health: Router
     // Rotate the JWT secret without restarting — all new sign/verify calls use the new secret immediately
@@ -249,6 +252,8 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger.warn({ err: err?.message }, "Cron engine unavailable, scheduled jobs disabled")
     }
 
+    const auditEngine = await createAuditEngine(postgresPool, cronEngine)
+
     let webhookEngine: WebhookEngine | null = null
     try {
         webhookEngine = createWebhookEngine(postgresPool, normalizedConfig.redis.url, captureFlowwatchError)
@@ -332,6 +337,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger: instanceLogger,
         auth: authInstance ?? undefined,
         docs: docsRouter ?? undefined,
+        audit: auditEngine,
         health: createHealthRouter(postgresPool, redisClient, elasticsearchClient),
         rotateSecret: (newSecret: string) => { secretStore.current = newSecret },
         tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),

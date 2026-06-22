@@ -56,6 +56,9 @@ export type { TenantResolverOptions } from "./runtime/tenantResolver.js"
 // Health check
 export type { HealthCheckResult } from "./runtime/healthCheck.js"
 
+// Audit log
+export type { AuditEngine, AuditEntry, AuditQueryOptions, AuditMiddlewareOptions } from "./runtime/auditLog.js"
+
 // Circuit breaker
 export type { CircuitBreaker, CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 
