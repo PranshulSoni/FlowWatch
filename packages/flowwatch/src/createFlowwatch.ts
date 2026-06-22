@@ -39,6 +39,7 @@ import { createMetricsEngine, type MetricsEngine } from "./runtime/metricsEngine
 import { createCronEngine, type RegisterCron } from "./runtime/cronEngine.js"
 import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine.js"
 import { createTenantResolver, type TenantResolverOptions } from "./runtime/tenantResolver.js"
+import { createHealthRouter, type HealthCheckResult } from "./runtime/healthCheck.js"
 import { createAuth } from "@pranshul_soni/authapi"
 import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
@@ -103,6 +104,8 @@ export interface Flowwatch {
     }
     // OpenAPI docs — mount anywhere, serves Swagger UI + /openapi.json (undefined if no openapi config provided)
     docs?: Router
+    // Health check — mount as a router; returns Postgres/Redis/Elasticsearch status
+    health: Router
     // Tenant resolver — sets req.tenantId from subdomain, header, or JWT claim
     tenantResolver: (options: TenantResolverOptions) => RequestHandler
     // Clean up connections and workers
@@ -321,6 +324,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger: instanceLogger,
         auth: authInstance ?? undefined,
         docs: docsRouter ?? undefined,
+        health: createHealthRouter(postgresPool, redisClient, elasticsearchClient),
         tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),
         close,
     }

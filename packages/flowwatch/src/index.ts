@@ -53,6 +53,9 @@ export type { LogEntry, LogQueryOptions } from "./runtime/logStore.js"
 // Tenant resolver
 export type { TenantResolverOptions } from "./runtime/tenantResolver.js"
 
+// Health check
+export type { HealthCheckResult } from "./runtime/healthCheck.js"
+
 // Circuit breaker
 export type { CircuitBreaker, CircuitBreakerOptions } from "./runtime/circuitBreaker.js"
 
