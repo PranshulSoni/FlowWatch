@@ -8,7 +8,7 @@ export interface RateLimitOptions {
   windowSeconds: number
   algorithm?: RateLimitAlgorithm
   maxPerSecond?: number   // only used by spike-arrest
-  keyBy?: "ip" | "userId" | "apiKey" | ((req: Request) => string)
+  keyBy?: "ip" | "userId" | "apiKey" | "tenant" | ((req: Request) => string)
   prefix?: string
 }
 
@@ -48,6 +48,7 @@ function getKey(req: Request, keyBy: RateLimitOptions["keyBy"], prefix: string):
   if (typeof keyBy === "function") return `${prefix}:custom:${keyBy(req)}`
   if (keyBy === "userId") return `${prefix}:user:${(req as any).user?.id ?? req.ip}`
   if (keyBy === "apiKey") return `${prefix}:apikey:${req.headers["x-api-key"] ?? req.ip}`
+  if (keyBy === "tenant") return `${prefix}:tenant:${req.tenantId ?? req.ip}`
   return `${prefix}:ip:${req.ip}`
 }
 
