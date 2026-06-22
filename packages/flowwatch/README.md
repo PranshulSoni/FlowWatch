@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  Durable workflows · Feature flags · Request tracing · Error capture · Rate limiting · Caching · Auth · WebSockets · Metrics · Webhooks · CRON · Circuit breakers · and more — all backed by <em>your</em> Postgres and Redis.
+  Durable workflows · Feature flags · Request tracing · Error capture · Rate limiting · Caching · Auth · WebSockets · Metrics · Webhooks · CRON · Circuit breakers · Audit logging · Health checks · Multi-tenancy · Hot secret rotation · and more — all backed by <em>your</em> Postgres and Redis.
 </p>
 
 <p align="center">
@@ -76,8 +76,12 @@ Your Express App
                 ├── fw.flag(name, ctx)     (feature flags with rollouts)
                 ├── fw.circuitBreaker(...)  (stop hammering failing deps)
                 ├── fw.metrics.handler     (Prometheus /metrics)
+                ├── fw.audit.middleware()  (auto-capture every request)
+                ├── fw.health              (Postgres + Redis + ES status)
+                ├── fw.tenantResolver(opts)(multi-tenancy from subdomain/header/JWT)
+                ├── fw.rotateSecret(secret)(hot-swap JWT secret without restart)
                 ├── fw.dashboard           (built-in admin UI)
-                └── ... 20+ more
+                └── ... 30+ more
 ```
 
 **Postgres** is the only required dependency. Redis, Elasticsearch, and Auth are optional — each degrades gracefully if not configured.
@@ -1102,6 +1106,162 @@ Runs the `down` SQL of the last applied migration in a transaction. Either both 
 
 </details>
 
+<details>
+<summary><strong>Health Check</strong> — single endpoint that pings Postgres, Redis, and Elasticsearch</summary>
+
+### What it is
+
+`fw.health` is an Express Router. Mount it once and every deployment platform (Kubernetes, Railway, Render, ECS) can hit it to know if your app is alive.
+
+### Steps
+
+```ts
+app.use("/health", fw.health);
+```
+
+### Response
+
+```json
+{
+  "status": "ok",
+  "uptime": 3620,
+  "checks": {
+    "postgres":      { "status": "ok",   "latencyMs": 3 },
+    "redis":         { "status": "ok",   "latencyMs": 1 },
+    "elasticsearch": { "status": "down", "latencyMs": 12 }
+  }
+}
+```
+
+- `200` — all ok
+- `200` — degraded (some checks failing, app still running)
+- `503` — all three dependencies are down
+
+</details>
+
+<details>
+<summary><strong>Hot Secret Rotation</strong> — swap the JWT secret without restarting the server</summary>
+
+### What it is
+
+`fw.rotateSecret(newSecret)` updates the JWT secret in place. All subsequent `jwt.sign()` and `jwt.verify()` calls use the new secret immediately — no restart, no downtime.
+
+### Steps
+
+```ts
+const fw = await createFlowwatch({
+  auth: { jwtSecret: process.env.JWT_SECRET! }
+});
+
+// later — triggered by a webhook, admin endpoint, or secrets manager:
+fw.rotateSecret(newJwtSecret);
+```
+
+Tokens issued before the rotation will fail verification (access tokens are typically 15 minutes, so the blast radius is small). Issue a new token by logging in again.
+
+</details>
+
+<details>
+<summary><strong>Multi-Tenancy</strong> — serve multiple tenants from one app using req.tenantId</summary>
+
+### What it is
+
+`fw.tenantResolver(options)` is middleware that reads a tenant identifier from the request and sets `req.tenantId`. Once set, you can use it in every query to scope data per tenant.
+
+### Three strategies
+
+```ts
+// 1. Subdomain — acme.yourapp.com → req.tenantId = "acme"
+app.use(fw.tenantResolver({ from: "subdomain" }));
+
+// 2. Header — X-Tenant-Id: acme → req.tenantId = "acme"
+app.use(fw.tenantResolver({ from: "header" }));
+
+// 3. JWT claim — requires fw.auth.protect to run first
+app.use(fw.auth!.protect, fw.tenantResolver({ from: "jwt" }));
+```
+
+### Passing tenantId at login (for JWT strategy)
+
+```ts
+POST /auth/login
+{ "email": "...", "password": "...", "tenantId": "acme" }
+// JWT payload becomes: { userId, role, isVerified, tenantId: "acme" }
+```
+
+### Per-tenant rate limiting
+
+```ts
+// each tenant gets its own rate limit bucket
+app.use(fw.tenantResolver({ from: "header" }));
+app.use(fw.rateLimit({ max: 1000, windowSeconds: 60, keyBy: "tenant" }));
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `from` | `"subdomain" \| "header" \| "jwt"` | required | Where to read the tenant ID |
+| `header` | `string` | `"x-tenant-id"` | Header name (only for `from: "header"`) |
+| `jwtClaim` | `string` | `"tenantId"` | JWT claim name (only for `from: "jwt"`) |
+| `onMissing` | `"reject" \| "ignore"` | `"reject"` | What to do when no tenant ID is found |
+
+</details>
+
+<details>
+<summary><strong>Audit Log</strong> — auto-capture every request with fire-and-forget writes and nightly cleanup</summary>
+
+### What it is
+
+`fw.audit.middleware()` captures every HTTP request — method, path, status, duration, userId, tenantId, IP — and writes it to the `fw_audit_log` Postgres table after the response is sent. The write is fire-and-forget, so it adds zero latency.
+
+A nightly CRON job runs automatically to delete logs older than `retentionDays` (default: 15).
+
+### Steps
+
+```ts
+// mount early — after auth and tenantResolver so userId and tenantId are set
+app.use(fw.auth!.protect);
+app.use(fw.tenantResolver({ from: "header" }));
+app.use(fw.audit.middleware({
+  ignore: ["/health", "/metrics"],  // skip noisy endpoints
+  retentionDays: 15,                // auto-delete after 15 days (default)
+}));
+```
+
+### Query the log
+
+```ts
+// most recent 403s for a specific tenant
+const logs = await fw.audit.query({
+  tenantId: "acme",
+  status: 403,
+  limit: 50,
+});
+
+// all DELETE requests by a user in the last hour
+const logs = await fw.audit.query({
+  userId: "user_abc",
+  method: "DELETE",
+  from: new Date(Date.now() - 3_600_000),
+});
+```
+
+### What's stored
+
+| Column | Type | Description |
+|---|---|---|
+| `user_id` | TEXT | From `req.user.userId` (null if unauthenticated) |
+| `tenant_id` | TEXT | From `req.tenantId` (null if not using multi-tenancy) |
+| `method` | TEXT | HTTP method |
+| `path` | TEXT | Request path |
+| `status` | INTEGER | Response status code |
+| `duration_ms` | INTEGER | Response time in milliseconds |
+| `ip` | TEXT | Client IP |
+| `created_at` | TIMESTAMPTZ | When the request completed |
+
+</details>
+
 <a id="multi-language-sidecar"></a>
 <details>
 <summary><strong>Multi-Language Sidecar</strong> — use FlowWatch from Python, Go, or Rust via a local HTTP API</summary>
@@ -1226,6 +1386,18 @@ fw.events                             // → { on, once, emit, off }
 // ─── Dead Letter Queue ────────────────────────────────────────────────────
 fw.dlq.getFailedJobs(limit?)          // list permanently failed workflow jobs
 fw.dlq.requeueJob(jobId)              // retry a failed job
+
+// ─── Health & Security ────────────────────────────────────────────────────
+app.use("/health", fw.health)         // Postgres + Redis + ES status → 200/503
+fw.rotateSecret(newSecret)            // hot-swap JWT secret without restart
+
+// ─── Multi-Tenancy ────────────────────────────────────────────────────────
+fw.tenantResolver(opts)               // sets req.tenantId from subdomain/header/JWT
+fw.rateLimit({ keyBy: "tenant" })     // per-tenant rate limit bucket
+
+// ─── Audit Log ────────────────────────────────────────────────────────────
+fw.audit.middleware(opts?)            // auto-capture every request (fire-and-forget)
+fw.audit.query(opts?)                 // query audit log with filters
 
 // ─── Teardown ────────────────────────────────────────────────────────────
 fw.close()                            // drain all connections gracefully
