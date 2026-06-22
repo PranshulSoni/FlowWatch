@@ -71,8 +71,22 @@ export interface FlowwatchSecurityConfig {
     headers?: false | Record<string, unknown>
 }
 
+export interface FlowwatchAuthUserTableColumns {
+    id?: string
+    email?: string
+    password?: string
+    role?: string
+    isVerified?: string
+    username?: string
+}
+
 export interface FlowwatchAuthConfig {
     jwtSecret: string
+    // Use your own existing users table instead of authapi creating auth_users
+    userTable?: {
+        name: string
+        columns?: FlowwatchAuthUserTableColumns
+    }
     urls?: {
         apiBaseUrl: string
         frontendBaseUrl?: string
