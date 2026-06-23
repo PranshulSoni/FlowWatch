@@ -42,6 +42,7 @@ import { createTenantResolver, type TenantResolverOptions } from "./runtime/tena
 import { createHealthRouter, type HealthCheckResult } from "./runtime/healthCheck.js"
 import { createAuditEngine, type AuditEngine } from "./runtime/auditLog.js"
 import { createRequestIdMiddleware } from "./runtime/requestId.js"
+import { createServiceRegistry, type ServiceRegistry } from "./runtime/serviceRegistry.js"
 import { createAuth } from "@pranshul_soni/authapi"
 import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
@@ -116,6 +117,8 @@ export interface Flowwatch {
     tenantResolver: (options: TenantResolverOptions) => RequestHandler
     // Request ID — attaches x-request-id to every request and response
     requestId: () => RequestHandler
+    // Service discovery — register upstream services and resolve healthy instances with round-robin
+    discovery: ServiceRegistry
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -264,7 +267,10 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         logger.warn({ err: err?.message }, "Webhook engine unavailable, webhook delivery disabled")
     }
 
+    const registry = createServiceRegistry()
+
     const close = async () => {
+        registry.close()
         if (workflowWorkerInstance) {
             await workflowWorkerInstance.close()
         }
@@ -345,6 +351,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         rotateSecret: (newSecret: string) => { secretStore.current = newSecret },
         tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),
         requestId: () => createRequestIdMiddleware(),
+        discovery: registry,
         close,
     }
 }

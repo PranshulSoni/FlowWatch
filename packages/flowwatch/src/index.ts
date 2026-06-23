@@ -56,6 +56,9 @@ export type { TenantResolverOptions } from "./runtime/tenantResolver.js"
 // Request ID
 export { createRequestIdMiddleware } from "./runtime/requestId.js"
 
+// Service discovery
+export type { ServiceRegistry, ServiceInstance, RegisterServiceOptions } from "./runtime/serviceRegistry.js"
+
 // Health check
 export type { HealthCheckResult } from "./runtime/healthCheck.js"
 
