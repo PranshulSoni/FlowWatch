@@ -41,6 +41,7 @@ import { createWebhookEngine, type WebhookEngine } from "./runtime/webhookEngine
 import { createTenantResolver, type TenantResolverOptions } from "./runtime/tenantResolver.js"
 import { createHealthRouter, type HealthCheckResult } from "./runtime/healthCheck.js"
 import { createAuditEngine, type AuditEngine } from "./runtime/auditLog.js"
+import { createRequestIdMiddleware } from "./runtime/requestId.js"
 import { createAuth } from "@pranshul_soni/authapi"
 import { createOpenApiRouter } from "./runtime/openapi.js"
 import type { Server } from "http"
@@ -113,6 +114,8 @@ export interface Flowwatch {
     rotateSecret: (newSecret: string) => void
     // Tenant resolver — sets req.tenantId from subdomain, header, or JWT claim
     tenantResolver: (options: TenantResolverOptions) => RequestHandler
+    // Request ID — attaches x-request-id to every request and response
+    requestId: () => RequestHandler
     // Clean up connections and workers
     close: () => Promise<void>
 }
@@ -341,6 +344,7 @@ export async function createFlowwatch(config: FlowwatchConfig): Promise<Flowwatc
         health: createHealthRouter(postgresPool, redisClient, elasticsearchClient),
         rotateSecret: (newSecret: string) => { secretStore.current = newSecret },
         tenantResolver: (opts: TenantResolverOptions) => createTenantResolver(opts),
+        requestId: () => createRequestIdMiddleware(),
         close,
     }
 }
